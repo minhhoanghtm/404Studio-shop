@@ -3,10 +3,12 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useCartStore } from '@/shared/stores/useCartStore';
 import { useAuthStore } from '@/shared/stores/useAuthStore';
 import { useToastStore } from '@/shared/stores/useToastStore';
+import { ordersApi, paymentsApi } from '@/shared/api';
 import { ShippingAddress } from '@/shared/types';
 import { ShippingAddressForm } from './components/ShippingAddressForm';
 import { DeliveryMethodSelector } from './components/DeliveryMethodSelector';
 import { PaymentMethodSelector } from './components/PaymentMethodSelector';
+import type { PaymentMethod } from './components/PaymentMethodSelector';
 import { CheckoutSummary } from './components/CheckoutSummary';
 import { vi } from '@/shared/locales/vi/common';
 import { ArrowLeft } from 'lucide-react';
@@ -22,7 +24,7 @@ export const CheckoutPage: React.FC = () => {
     clearCart,
   } = useCartStore();
 
-  const { user, createOrder } = useAuthStore();
+  const { user } = useAuthStore();
   const { addToast } = useToastStore();
 
   const [formData, setFormData] = useState<ShippingAddress>({
@@ -39,11 +41,9 @@ export const CheckoutPage: React.FC = () => {
   });
 
   const [shippingMethod, setShippingMethod] = useState<'white-glove' | 'express'>('white-glove');
-  const [paymentMethod, setPaymentMethod] = useState<'card' | 'wire'>('card');
-  const [cardNumber, setCardNumber] = useState('•••• •••• •••• 8842');
-  const [cardExpiry, setCardExpiry] = useState('11/29');
-  const [cardCvc, setCardCvc] = useState('884');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cod');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
 
   const subtotal = getSubtotal();
   const discount = getDiscount();
@@ -75,7 +75,7 @@ export const CheckoutPage: React.FC = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handlePlaceOrder = (e: React.FormEvent) => {
+  const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formData.firstName || !formData.lastName || !formData.addressLine1 || !formData.city || !formData.postalCode) {
@@ -87,42 +87,47 @@ export const CheckoutPage: React.FC = () => {
       return;
     }
 
+    const objectId = /^[a-f\d]{24}$/i;
+    if (items.some((item) => !objectId.test(item.productId))) {
+      addToast({ type: 'error', title: 'Không thể tạo đơn hàng an toàn', message: 'Giỏ hàng hiện chứa dữ liệu mẫu chưa có mã sản phẩm từ Backend. Vui lòng tải lại sản phẩm từ cửa hàng trước khi thanh toán.' });
+      return;
+    }
+
     setIsProcessing(true);
+    try {
+      let orderId = pendingOrderId;
+      let order: any;
+      if (!orderId) {
+        const response = await ordersApi.createOrder({
+          items: items.map((item) => ({ product_id: item.productId, quantity: item.quantity, price: item.price })),
+          shipping_address: {
+            full_name: `${formData.firstName} ${formData.lastName}`.trim(), phone: formData.phone,
+            city: formData.city, district: formData.state, ward: formData.postalCode, address_detail: formData.addressLine1,
+          },
+          payment_method: paymentMethod,
+        });
+        order = response.order || response.data?.order || response.data;
+        orderId = order?._id || order?.id;
+        if (!orderId) throw new Error('Máy chủ không trả về mã đơn hàng hợp lệ.');
+        setPendingOrderId(orderId);
+      }
 
-    setTimeout(() => {
-      const orderItems = items.map((item, idx) => ({
-        id: `oi_${Date.now()}_${idx}`,
-        productId: item.productId,
-        name: item.name,
-        price: item.price,
-        quantity: item.quantity,
-        size: item.selectedSize,
-        color: item.selectedColor,
-        image: item.image,
-      }));
+      if (paymentMethod === 'cod') {
+        clearCart();
+        setPendingOrderId(null);
+        navigate('/order-success', { state: { order } });
+        return;
+      }
 
-      const newOrder = createOrder({
-        items: orderItems,
-        subtotal,
-        discount,
-        shipping,
-        tax,
-        total,
-        shippingAddress: formData,
-        paymentMethod: paymentMethod === 'card' ? 'Mastercard •••• 8842' : 'Chuyển khoản Concierge Maison',
-      });
-
-      clearCart();
+      const paymentResponse = paymentMethod === 'momo' ? await paymentsApi.createMomoPayment(orderId) : await paymentsApi.createVnpayPayment(orderId);
+      const paymentUrl = paymentResponse.paymentUrl || paymentResponse.data?.paymentUrl;
+      if (!paymentUrl || !/^https?:\/\//i.test(paymentUrl)) throw new Error('Máy chủ chưa cung cấp đường dẫn thanh toán hợp lệ.');
+      window.location.assign(paymentUrl);
+    } catch (error: any) {
+      addToast({ type: 'error', title: 'Chưa thể hoàn tất', message: error?.message || 'Đơn hàng chưa được xác nhận. Vui lòng thử lại.' });
+    } finally {
       setIsProcessing(false);
-
-      addToast({
-        type: 'success',
-        title: 'Đơn hàng đã được xác nhận',
-        message: `Mã đơn hàng ${newOrder.orderNumber} đã ghi nhận thành công.`,
-      });
-
-      navigate('/order-success', { state: { order: newOrder } });
-    }, 1500);
+    }
   };
 
   return (
@@ -156,12 +161,6 @@ export const CheckoutPage: React.FC = () => {
             <PaymentMethodSelector
               method={paymentMethod}
               onSelectMethod={setPaymentMethod}
-              cardNumber={cardNumber}
-              onCardNumberChange={setCardNumber}
-              cardExpiry={cardExpiry}
-              onCardExpiryChange={setCardExpiry}
-              cardCvc={cardCvc}
-              onCardCvcChange={setCardCvc}
             />
           </div>
 

@@ -1,5 +1,7 @@
 # PROJECT HANDOVER: ATELIER VÉRITÉ (HIGH FASHION E-COMMERCE WITH THREEUI & BACKEND INTEGRATION)
 
+> **AI/payment re-audit update — 17/11/2026:** Frontend mock AI fallback replies and local fake order confirmation were removed from the audited paths. The UI now calls the copied backend's actual AI/payment route contracts, preserves confirmation gates, and blocks checkout for local demo-only product IDs. Live AI, sandbox payment, IPN and E2E verification remain **BLOCKED_BY_BACKEND_ENVIRONMENT** because no safe configured backend/data/provider sandbox was available. See `docs/AI_SYSTEM_AUDIT.md` and related AI verification reports.
+
 ## 1. Executive Summary
 
 **ATELIER VÉRITÉ** (*Paris • Milan • Tokyo*) is a production-grade, fullstack luxury fashion e-commerce platform built as a greenfield application. It brings together high-end French luxury editorial aesthetics, architectural typography, interactive 3D WebGL components powered by `@designcodeio/threeui` and Three.js, a modern React 19 / TypeScript / Zustand / Tailwind storefront, and a complete Express.js / MongoDB / Redis backend migrated cleanly from `D:\Project\REACT-WebFashion\back-end`.

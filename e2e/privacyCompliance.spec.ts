@@ -165,15 +165,16 @@ test.describe('Phase 11 — Legal Compliance, Privacy & Cookie Consent Suite', (
     await expect(page.locator('text=Quy Định Về Phạm Vi Xóa Dữ Liệu')).toBeVisible();
 
     const requestForm = page.locator('form[data-testid="privacy-request-form"]');
+    await expect(requestForm).toBeVisible({ timeout: 10000 });
 
     // 3. Fill in identity verification (email for guest, password for authenticated)
-    const emailInput = requestForm.locator('input[type="email"]');
     const passwordInput = requestForm.locator('input[type="password"]');
+    const emailInput = requestForm.locator('input[type="email"]');
 
-    if ((await emailInput.count()) > 0) {
-      await emailInput.fill('patron.test@atelierverite.com');
-    } else if ((await passwordInput.count()) > 0) {
+    if (await passwordInput.isVisible({ timeout: 2000 }).catch(() => false)) {
       await passwordInput.fill('MockPassword123!');
+    } else if (await emailInput.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await emailInput.fill('patron.test@atelierverite.com');
     }
 
     await requestForm.locator('textarea').fill('Yêu cầu xóa tài khoản thử nghiệm theo Luật 91/2025/QH15.');

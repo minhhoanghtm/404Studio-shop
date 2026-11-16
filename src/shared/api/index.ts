@@ -105,34 +105,31 @@ export const cartApi = {
 // ORDERS APIs
 // ============================================================================
 export const ordersApi = {
-  createOrder: (orderPayload: any) =>
-    api.post<ApiResponse<any>>('/order', orderPayload),
+  createOrder: (orderPayload: {
+    items: Array<{ product_id: string; variant_id?: string; quantity: number; price?: number }>;
+    shipping_address: Record<string, unknown>;
+    payment_method: 'cod' | 'momo' | 'vnpay';
+    voucher_code?: string;
+    reservation_id?: string;
+  }) => api.post<ApiResponse<any> & { order?: any }>('/order', orderPayload),
 
-  getMyOrders: (params?: { page?: number; limit?: number; status?: string }) => {
-    const query = new URLSearchParams();
-    if (params?.page) query.set('page', params.page.toString());
-    if (params?.limit) query.set('limit', params.limit.toString());
-    if (params?.status) query.set('status', params.status);
-    const qs = query.toString();
-    return api.get<ApiResponse<any[]>>(`/order/my-orders${qs ? `?${qs}` : ''}`);
-  },
+  getMyOrders: () => api.get<ApiResponse<any[]> & { orders?: any[] }>('/order'),
 
-  getOrderById: (id: string) =>
-    api.get<ApiResponse<any>>(`/order/${id}`),
+  getPaymentDetails: (id: string) => api.get<ApiResponse<any>>(`/order/${id}/payment`),
 
   lookupOrder: (orderCode: string, phone: string) =>
-    api.get<ApiResponse<any>>(`/order/lookup?orderCode=${encodeURIComponent(orderCode)}&phone=${encodeURIComponent(phone)}`),
+    api.get<ApiResponse<any>>(`/order/guest-lookup?orderCode=${encodeURIComponent(orderCode)}&phone=${encodeURIComponent(phone)}`),
 };
 
 // ============================================================================
 // PAYMENTS APIs
 // ============================================================================
 export const paymentsApi = {
-  createMomoPayment: (payload: { orderId: string; amount: number }) =>
-    api.post<ApiResponse<{ payUrl: string; qrCodeUrl?: string }>>('/payments/momo/create', payload),
+  createMomoPayment: (orderId: string) =>
+    api.post<ApiResponse<{ paymentUrl: string }> & { paymentUrl?: string }>(`/payments/momo/create/${encodeURIComponent(orderId)}`),
 
-  createVnpayPayment: (payload: { orderId: string; amount: number; bankCode?: string }) =>
-    api.post<ApiResponse<{ payUrl: string }>>('/payments/vnpay/create', payload),
+  createVnpayPayment: (orderId: string) =>
+    api.post<ApiResponse<{ paymentUrl: string }> & { paymentUrl?: string }>(`/payments/vnpay/create/${encodeURIComponent(orderId)}`),
 };
 
 // ============================================================================
@@ -189,13 +186,8 @@ export const shippingApi = {
 // AI SHOPPING ASSISTANT APIs
 // ============================================================================
 export const aiApi = {
-  chat: (message: string, history?: any[]) =>
-    api.post<ApiResponse<{ reply: string; recommendations?: any[] }>>('/ai/chat', {
-      message,
-      history,
-    }),
-  confirmAction: (actionId: string) =>
-    api.post<ApiResponse<any>>(`/ai/actions/${actionId}/confirm`),
+  chat: (content: string, payload?: { conversationId?: string; metadata?: Record<string, unknown>; confirmAction?: unknown; cancelAction?: unknown }) =>
+    api.post<ApiResponse<any>>('/ai/chat', { content, mode: 'agent', ...payload }),
 };
 
 // ============================================================================
