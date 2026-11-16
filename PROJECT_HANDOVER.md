@@ -293,3 +293,26 @@ npm run backend:seed
 - `VANGUARD15`: 15% discount for Atelier Welcome Courtesy (No minimum).
 - `LUXE20`: 20% discount for Haute Circle Exclusive (Min order 50.000.000 ₫).
 - `WELCOME10`: 10% discount for First Order Privilège.
+
+---
+
+## 9. DevOps, Docker Architecture & GitHub Actions CI/CD (Phase 12)
+
+### 9.1. Docker Container Orchestration
+- **Frontend Container**: Multi-stage Nginx 1.27 Alpine serving compiled SPA bundle with security headers, gzip compression, asset cache-control, and `/healthz` liveness probe.
+- **Backend Container**: Node 22 Alpine + `dumb-init` (PID 1 signal forwarding) running under non-root user `node:node` with `/api/health/liveness` healthcheck.
+- **Background Worker**: Dedicated container running BullMQ workers for email delivery, vector synchronization, and queue processing.
+- **Compose Stacks**:
+  - `compose.yaml`: Canonical stack with 5 services on isolated bridge network `atelier-network`.
+  - `compose.dev.yaml`: Hot reload overrides with bind mounts for local rapid development.
+  - `compose.prod.yaml`: Hardened production overrides with CPU/RAM limits, restart policies, and logging rotation.
+
+### 9.2. Automated Quality Gates & GitHub Actions
+- **Continuous Integration Pipeline (`.github/workflows/ci.yml`)**:
+  - `Security & Secret Scan`: Zero secrets found, Gitleaks scan, npm dependency vulnerability audit.
+  - `Frontend Quality Gates`: Oxlint static checks, TypeScript strict mode, Vitest unit suite (24/24 tests), Vite production build.
+  - `Backend Quality Gates`: ESLint static checks and dependency audit.
+  - `Docker Build & Compose Verification`: Buildx image builds and syntax validation across all Compose stacks.
+  - `Playwright E2E & Legal Privacy Suite`: Full headless verification of customer journeys and prior consent tracking blocking.
+- **Remote Verification**: 100% Green on GitHub Actions (Run ID `43916740884` completed with `success`).
+
