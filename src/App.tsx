@@ -1,4 +1,4 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useState } from 'react';
 import { BrowserRouter, Routes, Route, Outlet, Navigate } from 'react-router-dom';
 import {
   AnnouncementBar,
@@ -9,6 +9,8 @@ import {
   ToastContainer,
   ScrollToTop,
 } from './shared/components';
+import { AiAssistantModal } from './shared/components/AiAssistantModal';
+import { Sparkles } from 'lucide-react';
 
 // Direct import for immediate zero-latency hero rendering
 import { HomePage } from './pages/Home';
@@ -30,6 +32,15 @@ const ContactPage = lazy(() => import('./pages/Contact').then(m => ({ default: m
 const SupportPage = lazy(() => import('./pages/Support').then(m => ({ default: m.SupportPage })));
 const NotFoundPage = lazy(() => import('./pages/NotFound').then(m => ({ default: m.NotFoundPage })));
 
+// Specialized Customer Feature Pages
+const VerifyOtpPage = lazy(() => import('./pages/Auth').then(m => ({ default: m.VerifyOtpPage })));
+const ResetPasswordPage = lazy(() => import('./pages/Auth').then(m => ({ default: m.ResetPasswordPage })));
+const OrderLookupPage = lazy(() => import('./pages/OrderLookup').then(m => ({ default: m.OrderLookupPage })));
+const PaymentResultPage = lazy(() => import('./pages/PaymentResult').then(m => ({ default: m.PaymentResultPage })));
+const VouchersPage = lazy(() => import('./pages/Vouchers').then(m => ({ default: m.VouchersPage })));
+const LookbooksPage = lazy(() => import('./pages/Lookbooks').then(m => ({ default: m.LookbooksPage })));
+const CreateReviewPage = lazy(() => import('./pages/Reviews').then(m => ({ default: m.CreateReviewPage })));
+
 // User Account & Auth Pages
 const LoginPage = lazy(() => import('./pages/Auth').then(m => ({ default: m.LoginPage })));
 const RegisterPage = lazy(() => import('./pages/Auth').then(m => ({ default: m.RegisterPage })));
@@ -38,6 +49,17 @@ const AccountOrdersPage = lazy(() => import('./pages/Account').then(m => ({ defa
 const AccountOrderDetailPage = lazy(() => import('./pages/Account').then(m => ({ default: m.AccountOrderDetailPage })));
 const AccountAddressesPage = lazy(() => import('./pages/Account').then(m => ({ default: m.AccountAddressesPage })));
 const AccountSettingsPage = lazy(() => import('./pages/Account').then(m => ({ default: m.AccountSettingsPage })));
+const MyCouponsPage = lazy(() => import('./pages/Account').then(m => ({ default: m.MyCouponsPage })));
+
+// Admin Portal Pages
+const AdminDashboardPage = lazy(() => import('./pages/Admin').then(m => ({ default: m.AdminDashboardPage })));
+const AdminProductsPage = lazy(() => import('./pages/Admin').then(m => ({ default: m.AdminProductsPage })));
+const AdminCategoriesPage = lazy(() => import('./pages/Admin').then(m => ({ default: m.AdminCategoriesPage })));
+const AdminOrdersPage = lazy(() => import('./pages/Admin').then(m => ({ default: m.AdminOrdersPage })));
+const AdminCustomersPage = lazy(() => import('./pages/Admin').then(m => ({ default: m.AdminCustomersPage })));
+const AdminCouponsPage = lazy(() => import('./pages/Admin').then(m => ({ default: m.AdminCouponsPage })));
+const AdminSettingsPage = lazy(() => import('./pages/Admin').then(m => ({ default: m.AdminSettingsPage })));
+const AdminChatPage = lazy(() => import('./pages/Admin').then(m => ({ default: m.AdminChatPage })));
 
 // High-Fashion Loading Fallback
 const PageLoadingFallback: React.FC = () => (
@@ -49,10 +71,12 @@ const PageLoadingFallback: React.FC = () => (
   </div>
 );
 
-// Main Layout Wrapper
+// Main Storefront Layout Wrapper
 const RootLayout: React.FC = () => {
+  const [isAiOpen, setIsAiOpen] = useState(false);
+
   return (
-    <div className="min-h-screen flex flex-col bg-noir-950 text-white selection:bg-champagne/30 selection:text-white">
+    <div className="min-h-screen flex flex-col bg-noir-950 text-white selection:bg-champagne/30 selection:text-white relative">
       <AnnouncementBar />
       <Header />
       <main className="flex-1">
@@ -66,6 +90,18 @@ const RootLayout: React.FC = () => {
       <CartDrawer />
       <QuickSearchModal />
       <ToastContainer />
+      <AiAssistantModal isOpen={isAiOpen} onClose={() => setIsAiOpen(false)} />
+
+      {/* Floating AI Stylist Trigger Button */}
+      <button
+        type="button"
+        onClick={() => setIsAiOpen(true)}
+        className="fixed bottom-6 right-6 z-40 px-4 py-2.5 bg-champagne text-noir-950 rounded-full shadow-2xl hover:scale-105 transition-all duration-300 flex items-center gap-2 border border-champagne/50 group"
+        aria-label="Tư vấn Stylist AI"
+      >
+        <Sparkles className="w-4 h-4 animate-spin-slow group-hover:rotate-12 transition-transform" />
+        <span className="text-xs uppercase tracking-wider font-semibold font-mono">Stylist AI</span>
+      </button>
     </div>
   );
 };
@@ -75,6 +111,7 @@ export function App() {
     <BrowserRouter>
       <ScrollToTop />
       <Routes>
+        {/* Storefront Layout */}
         <Route path="/" element={<RootLayout />}>
           {/* Public Routes */}
           <Route index element={<HomePage />} />
@@ -92,6 +129,15 @@ export function App() {
           <Route path="journal/:slug" element={<JournalDetailPage />} />
           <Route path="contact" element={<ContactPage />} />
           <Route path="support" element={<SupportPage />} />
+
+          {/* New Specialized Customer Routes */}
+          <Route path="verify-otp" element={<VerifyOtpPage />} />
+          <Route path="reset-password" element={<ResetPasswordPage />} />
+          <Route path="order-lookup" element={<OrderLookupPage />} />
+          <Route path="payment-result" element={<PaymentResultPage />} />
+          <Route path="vouchers" element={<VouchersPage />} />
+          <Route path="lookbooks" element={<LookbooksPage />} />
+          <Route path="reviews/create" element={<CreateReviewPage />} />
 
           {/* Support Anchor Aliases */}
           <Route path="faq" element={<Navigate to="/support#faq" replace />} />
@@ -118,11 +164,79 @@ export function App() {
           <Route path="account/orders/:id" element={<AccountOrderDetailPage />} />
           <Route path="account/addresses" element={<AccountAddressesPage />} />
           <Route path="account/settings" element={<AccountSettingsPage />} />
+          <Route path="account/coupons" element={<MyCouponsPage />} />
+          <Route path="my-coupons" element={<MyCouponsPage />} />
 
           {/* 404 Catch-All */}
           <Route path="404" element={<NotFoundPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
+
+        {/* Admin Portal Routes (Isolated Layout) */}
+        <Route
+          path="admin"
+          element={
+            <Suspense fallback={<PageLoadingFallback />}>
+              <AdminDashboardPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="admin/products"
+          element={
+            <Suspense fallback={<PageLoadingFallback />}>
+              <AdminProductsPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="admin/categories"
+          element={
+            <Suspense fallback={<PageLoadingFallback />}>
+              <AdminCategoriesPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="admin/orders"
+          element={
+            <Suspense fallback={<PageLoadingFallback />}>
+              <AdminOrdersPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="admin/customers"
+          element={
+            <Suspense fallback={<PageLoadingFallback />}>
+              <AdminCustomersPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="admin/coupons"
+          element={
+            <Suspense fallback={<PageLoadingFallback />}>
+              <AdminCouponsPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="admin/settings"
+          element={
+            <Suspense fallback={<PageLoadingFallback />}>
+              <AdminSettingsPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="admin/chats"
+          element={
+            <Suspense fallback={<PageLoadingFallback />}>
+              <AdminChatPage />
+            </Suspense>
+          }
+        />
       </Routes>
     </BrowserRouter>
   );

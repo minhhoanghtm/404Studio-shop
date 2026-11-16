@@ -1,10 +1,10 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../shared/stores/useAuthStore';
-import { User, Package, MapPin, Settings, LogOut, Sparkles } from 'lucide-react';
+import { User, Package, MapPin, Settings, LogOut, Sparkles, Tag } from 'lucide-react';
 import { vi } from '../../shared/locales/vi/common';
 
-export const AccountLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AccountLayout: React.FC<{ children: React.ReactNode; activeTab?: string }> = ({ children }) => {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
 
@@ -17,6 +17,7 @@ export const AccountLayout: React.FC<{ children: React.ReactNode }> = ({ childre
     { label: 'Tổng quan tài khoản', to: '/account', icon: User, end: true },
     { label: 'Đơn hàng & Biên lai', to: '/orders', icon: Package },
     { label: 'Sổ địa chỉ giao hàng', to: '/account/addresses', icon: MapPin },
+    { label: 'Ví phiếu ưu đãi', to: '/account/coupons', icon: Tag },
     { label: 'Cài đặt Patron', to: '/account/settings', icon: Settings },
   ];
 

@@ -112,12 +112,56 @@ test.describe('Atelier Vérité Storefront E2E Suite', () => {
 
     // Verify redirect to order-success
     await page.waitForURL(/order-success/, { timeout: 10000 });
-    await expect(page.locator('h1')).toContainText(/Đơn hàng của quý khách đã được xác nhận/i);
+    await expect(page.locator('h1')).toContainText(/Đơn hàng của quý khách đã được xác nhận/i, { timeout: 10000 });
   });
 
   test('should handle 404 route gracefully', async ({ page }) => {
     await page.goto('/non-existent-luxury-silhouette');
     await expect(page.locator('h1')).toContainText('404');
     await expect(page.locator('text=Kiểu Dáng Yêu Cầu Không Tồn Tại')).toBeVisible();
+  });
+
+  test('should view vouchers catalog and copy promo code', async ({ page }) => {
+    await page.goto('/vouchers');
+    await expect(page.locator('h1')).toContainText(/Phiếu Ưu Đãi Atelier/i);
+    await expect(page.locator('text=VANGUARD15')).toBeVisible();
+
+    const copyBtn = page.locator('button:has-text("Sao Chép")').first();
+    await copyBtn.click();
+    await expect(page.locator('text=Đã Chép').first()).toBeVisible({ timeout: 5000 });
+  });
+
+  test('should lookup order status on /order-lookup', async ({ page }) => {
+    await page.goto('/order-lookup');
+    await expect(page.locator('h1')).toContainText(/Tra Cứu Tiến Trình Đơn Hàng/i);
+
+    const orderInput = page.getByPlaceholder(/Mã đơn hàng/i);
+    const phoneInput = page.getByPlaceholder(/Số điện thoại/i);
+    await orderInput.fill('ORD-8924');
+    await phoneInput.fill('0901234567');
+
+    const submitBtn = page.locator('button:has-text("Tra Cứu Lịch Trình")');
+    await submitBtn.click();
+
+    await expect(page.locator('span:has-text("ORD-8924")').first()).toBeVisible({ timeout: 5000 });
+  });
+
+  test('should open Stylist AI assistant modal', async ({ page }) => {
+    await page.goto('/');
+    const aiBtn = page.locator('button[aria-label="Tư vấn Stylist AI"]');
+    await aiBtn.click();
+
+    await expect(page.locator('h3:has-text("Stylist AI Atelier Vérité")')).toBeVisible();
+    await expect(page.locator('text=Kính chào quý khách')).toBeVisible();
+  });
+
+  test('should access admin portal dashboard and products table', async ({ page }) => {
+    await page.goto('/admin');
+    await expect(page.locator('h1')).toContainText(/Tổng Quan Vận Hành/i);
+    await expect(page.locator('text=Tổng Doanh Thu Quý')).toBeVisible();
+
+    await page.goto('/admin/products');
+    await expect(page.locator('h1')).toContainText(/Quản Lý Tác Phẩm Thời Trang/i);
+    await expect(page.locator('text=Thêm Tác Phẩm Mới')).toBeVisible();
   });
 });

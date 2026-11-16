@@ -1,5 +1,87 @@
-# Logs
-logs
+
+# ==========================================
+# DEPENDENCIES
+# ==========================================
+node_modules/
+.pnpm-store/
+.yarn/cache/
+
+# ==========================================
+# ENVIRONMENT & SECRETS
+# ==========================================
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+
+id_rsa*
+id_ed25519*
+*.pub
+
+# Credentials
+credentials.json
+credential.json
+client_secret*.json
+service-account*.json
+firebase-adminsdk*.json
+token.json
+tokens.json
+*refresh-token*
+*secret-key*
+
+# Private credential directories
+secrets/
+private/
+credentials/
+
+# ==========================================
+# DATABASE & BACKUPS
+# ==========================================
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+*.bak
+*.backup
+
+# SQL exports (review before ignoring)
+*.sql
+*.sql.gz
+
+# Local databases and persistent volumes
+db-data/
+mongo-data/
+postgres-data/
+redis-data/
+database-backups/
+backups/
+
+# ==========================================
+# UPLOADS / PRIVATE USER DATA
+# ==========================================
+uploads/
+storage/private/
+private-uploads/
+user-data/
+exports/private/
+
+# ==========================================
+# DOCKER LOCAL CONFIG
+# ==========================================
+docker-compose.override.yml
+compose.override.yml
+
+# ==========================================
+# LOGS & DEBUG
+# ==========================================
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -7,23 +89,39 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
+# ==========================================
+# BUILD OUTPUT
+# ==========================================
+dist/
+dist-ssr/
+build/
+coverage/
+.next/
+.nuxt/
+.cache/
+.vite/
 *.local
 
-# Editor directories and files
+# ==========================================
+# TEST RESULTS & TRACES
+# ==========================================
+test-results/
+playwright-report/
+blob-report/
+playwright/.auth/
+*.har
+*.trace
+
+# ==========================================
+# IDE / OS
+# ==========================================
 .vscode/*
 !.vscode/extensions.json
-.idea
+.idea/
 .DS_Store
+Thumbs.db
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-
-# Test outputs
-test-results/
-playwright-report/
-blob-report/
