@@ -12,6 +12,7 @@ export default defineConfig({
     baseURL: 'http://localhost:5173',
     trace: 'off',
     screenshot: 'only-on-failure',
+    video: 'on',
   },
   projects: [
     {
