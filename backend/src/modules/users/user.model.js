@@ -1,0 +1,108 @@
+import mongoose from "mongoose";
+
+const addressSchema = new mongoose.Schema(
+  {
+    fullName: {
+      type: String,
+      trim: true,
+      required: true,
+    },
+    phone: {
+      type: String,
+      trim: true,
+      required: true,
+      match: [/^[0-9]{9,11}$/, "Số điện thoại không hợp lệ"],
+    },
+    provinceCode: String,
+    districtCode: String,
+    wardCode: String,
+    addressDetail: String,
+    isDefault: {
+      type: Boolean,
+      default: false,
+    },
+  },
+  { _id: true }
+);
+
+const userSchema = new mongoose.Schema(
+  {
+    phone: {
+      type: String,
+      default: undefined,
+      unique: true,
+      sparse: true,
+      trim: true,
+      index: true,
+    },
+    email: {
+      type: String,
+      required: false,
+      unique: true,
+      sparse: true,
+      trim: true,
+      lowercase: true,
+    },
+    passWord: {
+      type: String,
+      required: true,
+    },
+    fullName: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    birthday: Date,
+    sex: {
+      type: String,
+      enum: ["male", "female"],
+    },
+    role: {
+      type: String,
+      enum: ["user", "admin"],
+      default: "user",
+    },
+    status: {
+      type: String,
+      enum: ["active", "blocked", "deleted"],
+      default: "active",
+      index: true,
+    },
+    avatar_url: {
+      type: String,
+      default:
+        "https://cdn.sforum.vn/sforum/wp-content/uploads/2023/10/avatar-trang-4.jpg",
+    },
+    consent_status: {
+      type: String,
+      enum: ['granted', 'denied'],
+      default: 'granted',
+      index: true,
+    },
+    legal_consents: {
+      terms_accepted: { type: Boolean, default: false },
+      privacy_accepted: { type: Boolean, default: false },
+      marketing_accepted: { type: Boolean, default: false },
+      policy_version: { type: String, default: null },
+      recorded_at: { type: Date, default: null },
+    },
+    processing_restricted_at: { type: Date, default: null },
+    personal_data_anonymized_at: { type: Date, default: null },
+    addresses: [addressSchema],
+  },
+  {
+    timestamps: true,
+  }
+);
+
+// Compare password helper (if needed)
+userSchema.methods.comparePassword = async function (enteredPassword) {
+  // It was previously called as user.comparePassword(currentPassword) but wasn't implemented. We'll implement it here using bcrypt!
+  // To avoid issues, let's use dynamic import of bcrypt inside method or keep it simple.
+  // Actually, importing bcrypt directly:
+  const bcrypt = await import("bcrypt");
+  return await bcrypt.default.compare(enteredPassword, this.passWord);
+};
+
+const User = mongoose.models.User || mongoose.model("User", userSchema);
+export default User;

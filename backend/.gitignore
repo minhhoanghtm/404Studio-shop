@@ -1,0 +1,10 @@
+.env
+.env.*
+!.env.example
+!.env.*.example
+uploads/
+
+# k6 raw output files (chỉ commit summary.md)
+load-tests/results/*.txt
+load-tests/results/*.json
+load-tests/results/.k6_raw.tmp

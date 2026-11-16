@@ -1,0 +1,128 @@
+/**
+ * Communication validators — Zod schema-based, utility function style.
+ * KHÔNG phải Express middleware — được gọi từ service layer.
+ *
+ * Giữ nguyên:
+ *  - Tên và signature của tất cả 3 export functions
+ *  - Throw ValidationError (không thay bằng AppError) để không break communication module
+ *  - Return value contract (trả về validated/normalized object)
+ *
+ * Chỉ thay implementation bên trong bằng Zod.
+ */
+import { z } from "zod";
+import { ValidationError } from "../errors/communication.errors.js";
+
+// ---------------------------------------------------------------------------
+// Helper: parse và throw ValidationError nếu fail
+// ---------------------------------------------------------------------------
+
+function parseOrThrow(schema, data, contextLabel = "") {
+  const result = schema.safeParse(data);
+  if (!result.success) {
+    // Use Zod's issues array (compatible with newer Zod versions)
+    const issues = result.error?.issues ?? [];
+    const messages = issues.map((e) => {
+      const field = e.path && e.path.length > 0 ? e.path.join(".") + ": " : "";
+      return `${field}${e.message}`;
+    });
+    throw new ValidationError(messages.join("; "));
+  }
+  // Validation succeeded – return parsed data
+  return result.data;
+}
+
+// ---------------------------------------------------------------------------
+// Zod schemas
+// ---------------------------------------------------------------------------
+
+const createConversationDtoSchema = z.object({
+  customerId:      z.any().optional(),
+  type:            z.enum(["ai", "support"], { message: "type must be one of: ai, support" }).default("ai"),
+  status:          z.enum(["open", "waiting_admin", "waiting_customer", "closed"], { message: "status must be one of: open, waiting_admin, waiting_customer, closed" }).default("open"),
+  assignedAdminId: z.any().optional(),
+  source:          z.enum(["manual", "ai_handoff"], { message: "source must be one of: manual, ai_handoff" }).default("manual"),
+  metadata:        z.record(z.string(), z.any()).optional().default({}),
+});
+
+const createMessageDtoSchema = z.object({
+  conversationId: z.any().optional(),
+  senderType:     z.enum(["user", "admin", "ai", "system"], { message: "senderType must be one of: user, admin, ai, system" }),
+  senderId:       z.any().optional(),
+  messageType:    z.enum(["text", "image", "file", "product_card", "order_card", "system"], { message: "messageType must be one of: text, image, file, product_card, order_card, system" }).default("text"),
+  content:        z.string({ required_error: "content is required" }).max(10000, "content must be at most 10000 characters"),
+  metadata:       z.record(z.string(), z.any()).optional().default({}),
+  clientMessageId: z.string().trim().min(1).max(128).optional(),
+});
+
+const textMessageDtoSchema = z.object({
+  conversationId:   z.any().optional(),
+  // Accept either 'content' or 'message'
+  content:          z.string().max(10000, "content must be at most 10000 characters").optional(),
+  message:          z.string().max(10000).optional(),
+  currentProductId: z.any().optional(),
+  messageType:      z.enum(["text", "image", "file", "product_card", "order_card", "system"]).optional(),
+  metadata:         z.record(z.string(), z.any()).optional().default({}),
+  clientMessageId:  z.string().trim().min(1).max(128).optional(),
+  history:          z.array(z.any()).optional(),
+  confirmAction:    z.any().optional(),
+  cancelAction:     z.any().optional(),
+})
+  // Require at least one of the two fields
+  .refine((data) => !!data.content || !!data.message, {
+    message: "content is required (or message)",
+    path: ["content"],
+  })
+  // Normalize so downstream code always sees `content`
+  .transform((data) => ({
+    ...data,
+    content: data.content ?? data.message,
+  }));
+
+const aiChatMessageDtoSchema = z.object({
+  conversationId: z.any().optional(),
+  content: z.string().max(2000, "content must be at most 2000 characters").optional(),
+  message: z.string().max(2000, "message must be at most 2000 characters").optional(),
+  currentProductId: z.any().optional(),
+  messageType: z.enum(["text", "image", "file", "product_card", "order_card", "system"]).optional(),
+  metadata: z.record(z.string(), z.any()).optional().default({}),
+  history: z.array(z.any()).optional(),
+  confirmAction: z.any().optional(),
+  cancelAction: z.any().optional(),
+})
+  .refine((data) => !!data.content || !!data.message, {
+    message: "content is required (or message)",
+    path: ["content"],
+  })
+  .transform((data) => ({ ...data, content: data.content ?? data.message }));
+
+// ---------------------------------------------------------------------------
+// Utility exports — tên và signature giữ nguyên, backward compatible
+// ---------------------------------------------------------------------------
+
+/**
+ * @param {object} payload
+ * @returns {object} validated DTO
+ * @throws {ValidationError}
+ */
+export const validateCreateConversationDto = (payload = {}) =>
+  parseOrThrow(createConversationDtoSchema, payload);
+
+/**
+ * @param {object} payload
+ * @returns {object} validated DTO
+ * @throws {ValidationError}
+ */
+export const validateCreateMessageDto = (payload = {}) =>
+  parseOrThrow(createMessageDtoSchema, payload);
+
+/**
+ * @param {object} payload
+ * @returns {object} validated DTO
+ * @throws {ValidationError}
+ */
+export const validateTextMessageDto = (payload = {}) =>
+  parseOrThrow(textMessageDtoSchema, payload);
+
+/** AI input is deliberately smaller than human support chat to cap provider cost. */
+export const validateAiChatMessageDto = (payload = {}) =>
+  parseOrThrow(aiChatMessageDtoSchema, payload);
