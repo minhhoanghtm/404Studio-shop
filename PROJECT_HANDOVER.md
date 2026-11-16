@@ -37,6 +37,7 @@
 | **ThreeUI & WebGL** | Immersive 3D shaders, WebGL error boundaries, reduced-motion fallbacks, and resource disposal | **PASS** | `LiquidFormBackground`, `ClothStudy`, `BrandOrbs`, and `WebGLErrorBoundary` functioning smoothly. |
 | **E2E Testing** | Multi-viewport automated end-to-end tests passing without failures | **PASS** | **36/36 tests passed** in Playwright across Desktop, Tablet, and Mobile viewports. See [INTEGRATION_TEST_REPORT.md](file:///d:/Project/404Studio/INTEGRATION_TEST_REPORT.md). |
 | **Production Build** | Clean build with zero TypeScript errors and optimized chunk splitting | **PASS** | `npm run build` completes in < 4.0s with clean assets output in `dist/`. |
+| **AI Sensitive Actions & OTP** | Phase 14 AI Chat guardrails, OTP challenge, PII/password isolation, and security modal | **PASS** (Email OTP: `BLOCKED_BY_BACKEND`) | Verified across Vitest (55/55 passed) and Playwright E2E suites. Full documentation in `docs/`. |
 
 ---
 
@@ -317,4 +318,75 @@ npm run backend:seed
   - `Docker Build & Compose Verification`: Buildx image builds and syntax validation across all Compose stacks.
   - `Playwright E2E & Legal Privacy Suite`: Full headless verification of customer journeys and prior consent tracking blocking.
 - **Remote Verification**: 100% Green on GitHub Actions (Run ID `43916740884` completed with `success`).
+
+---
+
+## 10. Intelligent Home Recommendation & Behavioral Personalization Engine
+
+### 10.1. Architecture & Design Principles
+- **Editorial Curation Tabs**: The static catalog displays on the homepage were elevated into a dynamic 4-tab curation matrix:
+  1. `for-you` (Dành Riêng Cho Bạn): Adaptive hybrid ranking combining client-side behavioral signals and backend recommendations.
+  2. `trending` (Xu Hướng Mới): Popularity-driven curated silhouettes with aggregate velocity.
+  3. `new-arrivals` (Tuyển Tập Mới): Chronologically sorted runway pieces and latest releases.
+  4. `best-sellers` (Kiệt Tác Bán Chạy): Top customer-demand iconic pieces.
+- **Strict Privacy Compliance (Vietnam Law 91/2025/QH15 & Decree 356/2025/NĐ-CP)**:
+  - Non-essential tracking and behavioral profiling are strictly blocked before patron consent.
+  - When personalization is denied, the engine automatically degrades to non-personalized editorial popular curations (`mode: "popular"`).
+  - Storage keys (`atelier_recent_views`, `atelier_recent_searches`, `atelier_category_counts`, `atelier_product_click_counts`) are completely purged on consent withdrawal or account sign-out.
+  - An elegant unconsented privacy notice with a 1-click modal opener is rendered in the UI without degrading layout.
+- **Hybrid Signal Weighting**:
+  - Recent searches & views: **35%**
+  - Category interaction frequency: **25%**
+  - Global popularity metrics: **20%**
+  - Product recency: **10%**
+  - Merchandising boost & In-stock guarantee: **10%** (+100 score priority for available inventory)
+- **Performance & Resiliency**:
+  - In-memory 3-minute TTL cache keyed by active tab and consent state.
+  - Automatic `AbortController` cancellation on tab switches to prevent race conditions.
+  - `adaptBackendProduct` adapter ensuring resilience against raw/sparse MongoDB responses.
+  - Zero modifications to backend business logic in `backend/` or source repository.
+
+### 10.2. Documentation & Audit Deliverables
+- [HOME_RECOMMENDATION_AUDIT.md](file:///d:/Project/404Studio/HOME_RECOMMENDATION_AUDIT.md): Comprehensive audit of backend routes, event taxonomy, guest identification, and consent constraints.
+- [HOME_RECOMMENDATION_DESIGN.md](file:///d:/Project/404Studio/HOME_RECOMMENDATION_DESIGN.md): Detailed architectural design, signal scoring mathematics, and UI/UX states.
+- [RECOMMENDATION_API_MAPPING.md](file:///d:/Project/404Studio/RECOMMENDATION_API_MAPPING.md): Exact request/response payloads, headers, query parameters, and fallback mappings.
+- [HOME_RECOMMENDATION_TEST_REPORT.md](file:///d:/Project/404Studio/HOME_RECOMMENDATION_TEST_REPORT.md): Complete test matrix, Vitest unit verification (55/55 passed), and Playwright cross-device E2E validation.
+
+---
+
+## 11. AI Sensitive Account Actions, OTP & Privacy Protection (Phase 14)
+
+### 11.1. Architecture Overview & Core Security Principles
+Phase 14 equips the Atelier Vérité AI Shopping Assistant with intelligent capability to assist patrons with sensitive account mutations while strictly enforcing zero-trust identity verification:
+1. **Never mutate sensitive account state verbally**: AI Agent cannot modify credentials or profile data purely based on chat dialogue.
+2. **Never expose credentials or secrets**: Passwords (cleartext or hash), active OTP codes, JWT tokens, session cookies, and API keys are strictly forbidden from AI context and chat logs.
+3. **Never expose cross-user PII**: Complete tenant isolation. An attacker cannot query email, phone, address, orders, or passwords of other patrons.
+4. **Never bypass OTP / RBAC**: AI has no authority to validate OTPs or grant administrative escalation.
+5. **Zero backend tampering**: Backend source at `D:\Project\REACT-WebFashion` was kept 100% untouched.
+
+### 11.2. Zero-Knowledge AI Isolation Boundary
+- **Sensitive Action Classifier (`src/shared/utils/aiSecurityGuard.ts`)**:
+  - Classifies user intents into 4 strict tiers: `READ_ONLY`, `NORMAL_ACCOUNT_ACTION`, `SENSITIVE_ACCOUNT_ACTION`, and `FORBIDDEN_ACTION`.
+  - Blocks prompt injection attempts, persona hijacking, and verbal bypasses.
+- **Dedicated Independent Verification Modal (`src/shared/components/security/SecurityVerificationModal.tsx`)**:
+  - Operates on high-priority stacking layer `z-[70]`, entirely separate from AI Assistant Modal (`z-50`).
+  - Contains hardened `OtpInput` with 6 auto-advancing fields, backspace navigation, and clipboard paste sanitization.
+  - Implements 60-second resend cooldown timer and 300-second session TTL countdown (`VerificationExpiredState`).
+  - Limits invalid attempts to 5 before triggering a 60-second security lockout.
+
+### 11.3. Backend Integration & Capability Matrix
+- **Native Phone OTP**: Fully integrated with `/api/v1/user/phone/send-otp` and `/api/v1/user/phone/verify` (`sendPhoneUpdateOtp`, `verifyAndUpdatePhone`).
+- **Hardened Password Change**: Direct frontend-to-backend submission via `/api/v1/user/updatePassword` with masked inputs and strong password validation (`ChangePasswordForm`).
+- **Blocked Backend Gaps**:
+  - Authenticated Email Change lacks native OTP in backend (`/user/updateProfile` accepts raw email). Marked transparently as `BLOCKED_BY_BACKEND`.
+  - Authenticated Password Change lacks native OTP challenge. Documented with comprehensive RFC specifications.
+
+### 11.4. Phase 14 Audit & Handover Deliverables
+- [AI_SENSITIVE_ACTION_AUDIT.md](file:///d:/Project/404Studio/docs/AI_SENSITIVE_ACTION_AUDIT.md): Comprehensive security audit and 4-tier action classification.
+- [OTP_SECURITY_FLOW.md](file:///d:/Project/404Studio/docs/OTP_SECURITY_FLOW.md): Cryptographic OTP lifecycle, sequence flows, and UX defense.
+- [ACCOUNT_CHANGE_SECURITY_TESTS.md](file:///d:/Project/404Studio/docs/ACCOUNT_CHANGE_SECURITY_TESTS.md): Test matrix covering Vitest unit tests and Playwright E2E suites.
+- [CROSS_USER_PRIVACY_TESTS.md](file:///d:/Project/404Studio/docs/CROSS_USER_PRIVACY_TESTS.md): Cross-user privacy isolation and prompt injection defense report.
+- [BACKEND_SECURITY_API_GAPS.md](file:///d:/Project/404Studio/docs/BACKEND_SECURITY_API_GAPS.md): Formal analysis of `BLOCKED_BY_BACKEND` gaps with RFC designs.
+
+
 

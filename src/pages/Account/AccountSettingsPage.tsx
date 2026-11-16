@@ -2,39 +2,32 @@ import React, { useState } from 'react';
 import { AccountLayout } from './AccountLayout';
 import { useAuthStore } from '../../shared/stores/useAuthStore';
 import { useToastStore } from '../../shared/stores/useToastStore';
-import { ShieldCheck, UserCheck, Bell, Lock } from 'lucide-react';
+import { ShieldCheck, UserCheck, Bell, Lock, Phone, Mail, KeyRound } from 'lucide-react';
+import { SecurityVerificationModal, SensitiveActionType } from '../../shared/components/security/SecurityVerificationModal';
 
 export const AccountSettingsPage: React.FC = () => {
   const { user, updateProfile } = useAuthStore();
   const { addToast } = useToastStore();
 
   const [name, setName] = useState(user?.name || '');
-  const [phone, setPhone] = useState(user?.phone || '');
   const [newsletterSubscribed, setNewsletterSubscribed] = useState(true);
 
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
+  // Security Modal state
+  const [securityModalOpen, setSecurityModalOpen] = useState(false);
+  const [activeActionType, setActiveActionType] = useState<SensitiveActionType>('PASSWORD_CHANGE');
+
+  const handleOpenSecurityModal = (actionType: SensitiveActionType) => {
+    setActiveActionType(actionType);
+    setSecurityModalOpen(true);
+  };
 
   const handleProfileSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    updateProfile({ name, phone });
+    updateProfile({ name });
     addToast({
       type: 'success',
       title: 'Đã cập nhật hồ sơ',
       message: 'Thông tin cá nhân của quý khách đã được lưu thành công.',
-    });
-  };
-
-  const handlePasswordSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!currentPassword || !newPassword) return;
-
-    setCurrentPassword('');
-    setNewPassword('');
-    addToast({
-      type: 'success',
-      title: 'Mật khẩu đã đổi',
-      message: 'Mật khẩu tài khoản Patron đã được cập nhật bảo mật an toàn.',
     });
   };
 
@@ -49,7 +42,7 @@ export const AccountSettingsPage: React.FC = () => {
             Cài Đặt Tài Khoản Patron
           </h1>
           <p className="text-xs text-platinum-dark font-sans mt-0.5">
-            Cập nhật thông tin định danh thành viên, phương thức bảo mật và kênh nhận thư mời Runway riêng.
+            Cập nhật thông tin định danh thành viên, phương thức bảo mật hai lớp OTP và kênh nhận thư mời Runway riêng.
           </p>
         </div>
 
@@ -71,76 +64,86 @@ export const AccountSettingsPage: React.FC = () => {
               />
             </div>
 
-            <div>
-              <label className="block text-white/60 mb-1.5">Email tài khoản (Cố định theo thẻ Patron)</label>
-              <input
-                type="email"
-                value={user?.email || ''}
-                disabled
-                className="w-full px-4 py-3 bg-noir-900/50 border border-white/10 rounded-lg text-white/50 cursor-not-allowed outline-none font-mono"
-              />
-            </div>
-
-            <div>
-              <label className="block text-white/60 mb-1.5">Số điện thoại liên hệ riêng</label>
-              <input
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="w-full px-4 py-3 bg-noir-900 border border-white/15 rounded-lg text-white focus:border-champagne outline-none font-mono"
-              />
-            </div>
-
             <div className="pt-2">
               <button
                 type="submit"
                 className="px-6 py-3 bg-champagne hover:bg-champagne-hover text-noir-950 font-semibold uppercase tracking-wider rounded-lg transition-colors text-xs"
               >
-                Lưu thay đổi hồ sơ
+                Lưu thay đổi họ tên
               </button>
             </div>
           </form>
         </div>
 
-        {/* Password Reset Form */}
+        {/* Sensitive Information Security Management (OTP Protected) */}
+        <div className="p-8 rounded-2xl bg-noir-950 border border-white/5 space-y-6">
+          <div className="flex items-center gap-2 border-b border-white/10 pb-4">
+            <ShieldCheck className="w-4 h-4 text-champagne" />
+            <h3 className="font-display text-lg text-white">Thông Tin Liên Hệ & Xác Thực Nhạy Cảm</h3>
+          </div>
+          <p className="text-xs text-platinum-dark font-sans">
+            Theo tiêu chuẩn an ninh thông tin, việc thay đổi email, số điện thoại hoặc mật khẩu bắt buộc phải xác minh quyền sở hữu qua mã OTP gửi tới kênh tin cậy của bạn.
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl text-xs font-sans">
+            {/* Email Card */}
+            <div className="p-5 rounded-xl bg-noir-900 border border-white/10 space-y-3">
+              <div className="flex items-center gap-2 text-white/80">
+                <Mail className="w-4 h-4 text-champagne" />
+                <span className="font-medium">Email Tài Khoản</span>
+              </div>
+              <div className="font-mono text-white text-xs truncate">
+                {user?.email || 'Chưa thiết lập'}
+              </div>
+              <button
+                type="button"
+                onClick={() => handleOpenSecurityModal('EMAIL_CHANGE')}
+                className="w-full py-2.5 px-3 rounded-lg border border-white/20 hover:border-champagne text-white hover:text-champagne transition-colors font-medium uppercase tracking-wider text-[11px]"
+              >
+                Yêu cầu đổi email
+              </button>
+            </div>
+
+            {/* Phone Card */}
+            <div className="p-5 rounded-xl bg-noir-900 border border-white/10 space-y-3">
+              <div className="flex items-center gap-2 text-white/80">
+                <Phone className="w-4 h-4 text-champagne" />
+                <span className="font-medium">Số Điện Thoại Xác Thực</span>
+              </div>
+              <div className="font-mono text-white text-xs">
+                {user?.phone || 'Chưa thiết lập'}
+              </div>
+              <button
+                type="button"
+                onClick={() => handleOpenSecurityModal('PHONE_CHANGE')}
+                className="w-full py-2.5 px-3 rounded-lg border border-white/20 hover:border-champagne text-white hover:text-champagne transition-colors font-medium uppercase tracking-wider text-[11px]"
+              >
+                Cập nhật số điện thoại (OTP)
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Password Security Management (OTP Protected) */}
         <div className="p-8 rounded-2xl bg-noir-950 border border-white/5 space-y-6">
           <div className="flex items-center gap-2 border-b border-white/10 pb-4">
             <Lock className="w-4 h-4 text-champagne" />
             <h3 className="font-display text-lg text-white">Bảo Mật Mật Khẩu</h3>
           </div>
+          <p className="text-xs text-platinum-dark font-sans max-w-xl">
+            Để bảo vệ tài khoản khỏi truy cập trái phép, thao tác đổi mật khẩu yêu cầu xác minh hai lớp bằng mã OTP trước khi thiết lập mật khẩu mới.
+          </p>
 
-          <form onSubmit={handlePasswordSubmit} className="space-y-4 text-xs font-sans max-w-xl">
-            <div>
-              <label className="block text-white/60 mb-1.5">Mật khẩu hiện tại</label>
-              <input
-                type="password"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                placeholder="••••••••••••"
-                className="w-full px-4 py-3 bg-noir-900 border border-white/15 rounded-lg text-white focus:border-champagne outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="block text-white/60 mb-1.5">Mật khẩu mới</label>
-              <input
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="••••••••••••"
-                className="w-full px-4 py-3 bg-noir-900 border border-white/15 rounded-lg text-white focus:border-champagne outline-none"
-              />
-            </div>
-
-            <div className="pt-2">
-              <button
-                type="submit"
-                className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white font-semibold uppercase tracking-wider rounded-lg transition-colors text-xs"
-              >
-                Cập nhật mật khẩu mới
-              </button>
-            </div>
-          </form>
+          <div>
+            <button
+              type="button"
+              onClick={() => handleOpenSecurityModal('PASSWORD_CHANGE')}
+              className="inline-flex items-center gap-2 px-6 py-3.5 bg-champagne hover:bg-champagne-hover text-noir-950 font-semibold uppercase tracking-wider rounded-lg transition-colors text-xs shadow-md shadow-champagne/20"
+            >
+              <KeyRound className="w-4 h-4" />
+              <span>Xác Minh OTP Để Đổi Mật Khẩu</span>
+            </button>
+          </div>
         </div>
 
         {/* Notifications & Gazette */}
@@ -163,6 +166,14 @@ export const AccountSettingsPage: React.FC = () => {
           </label>
         </div>
       </div>
+
+      {/* Security Verification Modal */}
+      <SecurityVerificationModal
+        isOpen={securityModalOpen}
+        onClose={() => setSecurityModalOpen(false)}
+        actionType={activeActionType}
+        initialIdentifier={user?.email || user?.phone || undefined}
+      />
     </AccountLayout>
   );
 };

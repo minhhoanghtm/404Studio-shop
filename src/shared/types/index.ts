@@ -48,6 +48,7 @@ export interface Product {
   isFeatured?: boolean;
   isNewArrival?: boolean;
   isTrending?: boolean;
+  inStock?: boolean;
   collectionSlug?: string;
   rating: number;
   reviewCount: number;

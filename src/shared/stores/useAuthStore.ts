@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { User, Order, ShippingAddress } from '../types';
 import { useToastStore } from './useToastStore';
+import { clearLocalBehaviorSignals } from '../tracking/useBehaviorTracking';
 
 const INITIAL_MOCK_USER: User = {
   id: 'usr_77491',
@@ -179,6 +180,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
     },
 
     logout: () => {
+      clearLocalBehaviorSignals();
       set({ isAuthenticated: false, user: null });
       localStorage.removeItem('atelier_user');
       useToastStore.getState().addToast({

@@ -5,6 +5,7 @@ import { useSearchStore } from '../stores/useSearchStore';
 import { PRODUCTS } from '../data/products';
 import { formatCurrency } from '../utils/formatters';
 import { vi } from '../locales/vi/common';
+import { useBehaviorTracking } from '../tracking/useBehaviorTracking';
 
 export const QuickSearchModal: React.FC = () => {
   const {
@@ -19,6 +20,7 @@ export const QuickSearchModal: React.FC = () => {
 
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
+  const { trackSearch } = useBehaviorTracking();
 
   // Focus input on open & listen to Cmd+K shortcut
   useEffect(() => {
@@ -60,6 +62,7 @@ export const QuickSearchModal: React.FC = () => {
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!query.trim()) return;
+    trackSearch(query.trim());
     addRecentSearch(query);
     closeSearch();
     navigate(`/search?q=${encodeURIComponent(query)}`);
@@ -67,6 +70,7 @@ export const QuickSearchModal: React.FC = () => {
 
   const handleRecentClick = (term: string) => {
     setQuery(term);
+    trackSearch(term);
     addRecentSearch(term);
   };
 

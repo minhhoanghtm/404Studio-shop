@@ -124,7 +124,7 @@ export function clearNonEssentialStorage(): void {
   // Tracking cookie prefixes
   deleteCookiesByPrefixes(['_ga', '_gid', '_gat', '_fbp', '_fbc', '_ttp', '_clck', '_clsk', 'sc_analytics', 'mkt_']);
 
-  // Clear non-essential tracking keys from sessionStorage
+  // Clear non-essential tracking keys from sessionStorage and localStorage
   try {
     const sessionKeysToDelete: string[] = [];
     for (let i = 0; i < sessionStorage.length; i++) {
@@ -134,5 +134,15 @@ export function clearNonEssentialStorage(): void {
       }
     }
     sessionKeysToDelete.forEach((k) => sessionStorage.removeItem(k));
+
+    // Clear local profiling signals
+    const localKeys = [
+      'atelier_recent_views',
+      'atelier_recent_categories',
+      'atelier_recent_searches',
+      'atelier_category_counts',
+      'atelier_product_click_counts',
+    ];
+    localKeys.forEach((k) => localStorage.removeItem(k));
   } catch {}
 }

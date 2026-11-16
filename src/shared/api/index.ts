@@ -32,6 +32,18 @@ export const authApi = {
 
   logout: () => api.post<ApiResponse>('/auth/logout'),
 
+  updatePassword: (payload: { currentPassword?: string; newPassword: string }) =>
+    api.put<ApiResponse<any>>('/user/updatePassword', payload),
+
+  sendPhoneUpdateOtp: (payload: { phone: string }) =>
+    api.put<ApiResponse<any>>('/user/phone/send-otp', payload),
+
+  verifyAndUpdatePhone: (payload: { phone: string; otp: string }) =>
+    api.put<ApiResponse<any>>('/user/phone/verify', payload),
+
+  resendOtp: (payload: { identifier: string; purpose: string }) =>
+    api.post<ApiResponse<any>>('/auth/otp/resend', payload),
+
   getMe: () => api.get<ApiResponse<any>>('/user/me'),
 
   updateProfile: (data: { fullName?: string; phone?: string; avatar_url?: string }) =>
@@ -180,6 +192,53 @@ export const lookbooksApi = {
 export const shippingApi = {
   calculateFee: (payload: { toDistrictId?: number; toWardCode?: string; weight?: number }) =>
     api.post<ApiResponse<{ totalFee: number; serviceFee?: number }>>('/shipping/fee', payload),
+};
+
+// ============================================================================
+// RECOMMENDATIONS & BEHAVIORAL TRACKING APIs
+// ============================================================================
+export interface RecommendationResponse {
+  mode: 'personalized' | 'popular' | 'empty';
+  algorithm?: string;
+  products: any[];
+  experiment?: {
+    experiment_id?: string;
+    variant?: string;
+    request_id?: string;
+    reason?: string;
+  };
+}
+
+export const recommendationsApi = {
+  getRecommendations: (params?: { limit?: number; anonymousId?: string }) => {
+    const qs = new URLSearchParams();
+    if (params?.limit) qs.set('limit', params.limit.toString());
+    if (params?.anonymousId) qs.set('anonymous_id', params.anonymousId);
+    return api.get<ApiResponse<RecommendationResponse>>(`/recommendations${qs.toString() ? `?${qs.toString()}` : ''}`, {
+      headers: params?.anonymousId ? { 'X-Anonymous-ID': params.anonymousId } : undefined,
+    });
+  },
+};
+
+export const trackingApi = {
+  trackEvent: (eventPayload: Record<string, unknown>) =>
+    api.post<ApiResponse<{ processed: number }>>('/events', eventPayload, {
+      headers: eventPayload.anonymous_id ? { 'X-Anonymous-ID': String(eventPayload.anonymous_id) } : undefined,
+    }),
+
+  trackBatch: (events: Record<string, unknown>[]) =>
+    api.post<ApiResponse<{ processed: number }>>('/events/batch', { events }),
+
+  getSearchHistory: () =>
+    api.get<ApiResponse<{ keywords: string[] }>>('/search/history'),
+
+  clearMyData: (anonymousId?: string, anonymousToken?: string) =>
+    api.delete<ApiResponse>('/events/me', {
+      headers: {
+        ...(anonymousId ? { 'X-Anonymous-ID': anonymousId } : {}),
+        ...(anonymousToken ? { 'X-Anonymous-Token': anonymousToken } : {}),
+      },
+    }),
 };
 
 // ============================================================================

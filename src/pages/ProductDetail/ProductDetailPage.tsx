@@ -13,6 +13,7 @@ import { AddToCartButton } from './components/AddToCartButton';
 import { ProductAccordion } from './components/ProductAccordion';
 import { RelatedProducts } from './components/RelatedProducts';
 import { Sparkles } from 'lucide-react';
+import { useBehaviorTracking } from '@/shared/tracking/useBehaviorTracking';
 
 export const ProductDetailPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -26,6 +27,13 @@ export const ProductDetailPage: React.FC = () => {
   const { addItem } = useCartStore();
   const { isInWishlist, toggleWishlist } = useWishlistStore();
   const { addToast } = useToastStore();
+  const { trackProductView, trackAddToCart: trackAddCartEvent } = useBehaviorTracking();
+
+  useEffect(() => {
+    if (product?.id) {
+      trackProductView(product.id, product.category, product.name);
+    }
+  }, [product?.id]);
 
   const activeVariant = product.variants[selectedVariantIndex] || product.variants[0];
   const isWishlisted = isInWishlist(product.id);
@@ -47,6 +55,8 @@ export const ProductDetailPage: React.FC = () => {
 
   const handleAddToCart = () => {
     if (!selectedSize || !isAvailable) return;
+
+    trackAddCartEvent(product.id, quantity);
 
     addItem({
       productId: product.id,

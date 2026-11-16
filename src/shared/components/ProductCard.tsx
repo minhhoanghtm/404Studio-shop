@@ -6,6 +6,7 @@ import { useWishlistStore } from '../stores/useWishlistStore';
 import { useCartStore } from '../stores/useCartStore';
 import { formatCurrency } from '../utils/formatters';
 import { vi } from '../locales/vi/common';
+import { useBehaviorTracking } from '../tracking/useBehaviorTracking';
 
 interface ProductCardProps {
   product: Product;
@@ -18,6 +19,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 }) => {
   const { isInWishlist, toggleWishlist } = useWishlistStore();
   const { addItem } = useCartStore();
+  const { trackProductClick, trackAddToCart: trackAddCart, trackWishlist } = useBehaviorTracking();
   const isWishlisted = isInWishlist(product.id);
 
   const [isHovered, setIsHovered] = useState(false);
@@ -32,6 +34,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     e.preventDefault();
     e.stopPropagation();
     setSelectedQuickSize(size);
+    trackAddCart(product.id, 1);
 
     addItem({
       productId: product.id,
@@ -52,6 +55,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const handleWishlistToggle = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    trackWishlist(product.id);
     toggleWishlist(product);
   };
 
@@ -70,7 +74,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     >
       {/* Product Image Stage */}
       <div className={`relative w-full ${aspectClass} overflow-hidden rounded-xl bg-noir-900 mb-4 transition-all duration-500`}>
-        <Link to={`/products/${product.slug}`} className="block w-full h-full">
+        <Link
+          to={`/products/${product.slug}`}
+          onClick={() => trackProductClick(product.id, product.category, 'product_card')}
+          className="block w-full h-full"
+        >
           {/* Primary Image */}
           <img
             src={product.featuredImage}

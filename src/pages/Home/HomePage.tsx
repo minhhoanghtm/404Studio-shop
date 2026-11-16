@@ -1,7 +1,7 @@
 import React from 'react';
 import { HeroSection } from './components/HeroSection';
 import { ManifestoSection } from './components/ManifestoSection';
-import { NewArrivals } from './components/NewArrivals';
+import { HomeRecommendationSection } from './components/HomeRecommendationSection';
 import { CategoryBespokeSection } from './components/CategoryBespokeSection';
 import { FeaturedCollections } from './components/FeaturedCollections';
 import { EditorialCampaignSection } from './components/EditorialCampaignSection';
@@ -15,7 +15,7 @@ export const HomePage: React.FC = () => {
     <div className="w-full bg-noir-950 text-white min-h-screen">
       <HeroSection />
       <ManifestoSection />
-      <NewArrivals />
+      <HomeRecommendationSection />
       <CategoryBespokeSection />
       <FeaturedCollections />
       <EditorialCampaignSection />
