@@ -160,7 +160,13 @@ export const CheckoutPage: React.FC = () => {
             />
             <PaymentMethodSelector
               method={paymentMethod}
-              onSelectMethod={setPaymentMethod}
+              onSelectMethod={(method) => {
+                if (pendingOrderId && method !== paymentMethod) {
+                  addToast({ type: 'info', title: 'Đơn hàng đang chờ thanh toán', message: 'Để tránh tạo hoặc thanh toán trùng, hãy hoàn tất hoặc liên hệ hỗ trợ cho đơn hàng hiện tại.' });
+                  return;
+                }
+                setPaymentMethod(method);
+              }}
             />
           </div>
 
