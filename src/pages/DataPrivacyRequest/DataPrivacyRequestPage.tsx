@@ -108,29 +108,8 @@ export const DataPrivacyRequestPage: React.FC = () => {
             }),
           });
 
-          let data: any = null;
-          try {
-            data = await res.json();
-          } catch {
-            data = null;
-          }
-
-          if (res.ok && data) {
-            setSubmissionResult({
-              status: 'pending',
-              message:
-                requestType === 'ERASURE'
-                  ? 'Yêu cầu xóa dữ liệu và tài khoản đã được tiếp nhận và ghi nhận vào hệ thống. Các trường thông tin định danh sẽ được xử lý theo quy định bảo vệ dữ liệu.'
-                  : 'Yêu cầu của quý khách đã được tiếp nhận thành công và chuyển tới Ban Pháp chế xử lý.',
-              requestCode: data.requestCode || 'REQ-' + Math.random().toString(36).substring(2, 9).toUpperCase(),
-            });
-            addToast({
-              title: 'Yêu cầu đã tiếp nhận',
-              message: 'Hệ thống đã tiếp nhận yêu cầu và đang tiến hành xử lý.',
-              type: 'info',
-            });
-          } else {
-            // Demo/mock fallback if backend endpoint is unavailable in staging/test
+          const data = await res.json();
+          if (res.ok) {
             setSubmissionResult({
               status: 'pending',
               message:
@@ -144,6 +123,8 @@ export const DataPrivacyRequestPage: React.FC = () => {
               message: 'Hệ thống đã tiếp nhận yêu cầu và đang tiến hành xử lý.',
               type: 'info',
             });
+          } else {
+            throw new Error(data.message || 'Không thể gửi yêu cầu. Vui lòng kiểm tra mật khẩu.');
           }
         }
       } else {
@@ -192,7 +173,7 @@ export const DataPrivacyRequestPage: React.FC = () => {
   return (
     <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#0b0b0e] text-[#f2f2f4] pt-28 pb-20 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto space-y-10 w-full overflow-hidden">
-        
+
         {/* Navigation Breadcrumb */}
         <div className="space-y-3">
           <Link
@@ -223,13 +204,12 @@ export const DataPrivacyRequestPage: React.FC = () => {
         {/* Result Message Container */}
         {submissionResult && (
           <div
-            className={`p-6 rounded-2xl border space-y-2 text-sm ${
-              submissionResult.status === 'completed'
-                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-100'
-                : submissionResult.status === 'pending'
+            className={`p-6 rounded-2xl border space-y-2 text-sm ${submissionResult.status === 'completed'
+              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-100'
+              : submissionResult.status === 'pending'
                 ? 'bg-amber-500/10 border-amber-500/30 text-amber-100'
                 : 'bg-rose-500/10 border-rose-500/30 text-rose-100'
-            }`}
+              }`}
           >
             <div className="flex items-center gap-2 font-serif text-base uppercase font-semibold">
               {submissionResult.status === 'completed' && <CheckCircle2 className="w-5 h-5 text-emerald-400" />}
@@ -239,8 +219,8 @@ export const DataPrivacyRequestPage: React.FC = () => {
                 {submissionResult.status === 'completed'
                   ? 'Đã Xử Lý Hoàn Tất'
                   : submissionResult.status === 'pending'
-                  ? 'Yêu Cầu Đang Trong Quá Trình Xử Lý'
-                  : 'Không Thể Xử Lý Yêu Cầu'}
+                    ? 'Yêu Cầu Đang Trong Quá Trình Xử Lý'
+                    : 'Không Thể Xử Lý Yêu Cầu'}
               </span>
             </div>
             <p className="text-xs sm:text-sm leading-relaxed">{submissionResult.message}</p>
@@ -253,12 +233,8 @@ export const DataPrivacyRequestPage: React.FC = () => {
         )}
 
         {/* Main Form */}
-        <form
-          data-testid="privacy-request-form"
-          onSubmit={handleSubmit}
-          className="p-6 sm:p-8 rounded-2xl bg-white/[0.02] border border-white/10 space-y-6"
-        >
-          
+        <form onSubmit={handleSubmit} className="p-6 sm:p-8 rounded-2xl bg-white/[0.02] border border-white/10 space-y-6">
+
           {/* Request Type Selector */}
           <div className="space-y-2">
             <label className="block text-xs uppercase tracking-wider font-serif font-medium text-white">
@@ -376,11 +352,10 @@ export const DataPrivacyRequestPage: React.FC = () => {
             <button
               type="submit"
               disabled={submitting}
-              className={`w-full py-3.5 rounded-xl font-semibold text-xs tracking-wider uppercase flex items-center justify-center gap-2 transition-all shadow-lg ${
-                requestType === 'ERASURE'
-                  ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-600/20'
-                  : 'bg-[#d4af37] hover:bg-[#e5c158] text-black shadow-[#d4af37]/20'
-              } ${submitting ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`w-full py-3.5 rounded-xl font-semibold text-xs tracking-wider uppercase flex items-center justify-center gap-2 transition-all shadow-lg ${requestType === 'ERASURE'
+                ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-600/20'
+                : 'bg-[#d4af37] hover:bg-[#e5c158] text-black shadow-[#d4af37]/20'
+                } ${submitting ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               {submitting ? (
                 <span>Đang xử lý yêu cầu...</span>
