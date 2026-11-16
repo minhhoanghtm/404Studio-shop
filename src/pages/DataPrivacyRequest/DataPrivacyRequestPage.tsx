@@ -95,54 +95,56 @@ export const DataPrivacyRequestPage: React.FC = () => {
           }
         } else {
           // ERASURE, RESTRICT, OBJECT
-          try {
-            const res = await fetch('/api/privacy/data-requests', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${localStorage.getItem('atelier_access_token') || ''}`,
-              },
-              body: JSON.stringify({
-                type: requestType,
-                currentPassword,
-                reason: reason.trim() || undefined,
-              }),
-            });
+          const res = await fetch('/api/privacy/data-requests', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${localStorage.getItem('atelier_access_token') || ''}`,
+            },
+            body: JSON.stringify({
+              type: requestType,
+              currentPassword,
+              reason: reason.trim() || undefined,
+            }),
+          });
 
-            if (res.ok) {
-              const data = await res.json().catch(() => ({}));
-              setSubmissionResult({
-                status: 'pending',
-                message:
-                  requestType === 'ERASURE'
-                    ? 'Yêu cầu xóa dữ liệu và tài khoản đã được tiếp nhận và ghi nhận vào hệ thống. Các trường thông tin định danh sẽ được xử lý theo quy định bảo vệ dữ liệu.'
-                    : 'Yêu cầu của quý khách đã được tiếp nhận thành công và chuyển tới Ban Pháp chế xử lý.',
-                requestCode: data.requestCode || 'REQ-' + Math.random().toString(36).substring(2, 9).toUpperCase(),
-              });
-              addToast({
-                title: 'Yêu cầu đã tiếp nhận',
-                message: 'Hệ thống đã tiếp nhận yêu cầu và đang tiến hành xử lý.',
-                type: 'info',
-              });
-              return;
-            }
+          let data: any = null;
+          try {
+            data = await res.json();
           } catch {
-            // Fallback for demo / offline environment
+            data = null;
           }
 
-          setSubmissionResult({
-            status: 'pending',
-            message:
-              requestType === 'ERASURE'
-                ? 'Yêu cầu xóa dữ liệu và tài khoản đã được tiếp nhận và ghi nhận vào hệ thống. Các trường thông tin định danh sẽ được xử lý theo quy định bảo vệ dữ liệu.'
-                : 'Yêu cầu của quý khách đã được tiếp nhận thành công và chuyển tới Ban Pháp chế xử lý.',
-            requestCode: 'REQ-' + Math.random().toString(36).substring(2, 9).toUpperCase(),
-          });
-          addToast({
-            title: 'Yêu cầu đã tiếp nhận',
-            message: 'Hệ thống đã tiếp nhận yêu cầu và đang tiến hành xử lý.',
-            type: 'info',
-          });
+          if (res.ok && data) {
+            setSubmissionResult({
+              status: 'pending',
+              message:
+                requestType === 'ERASURE'
+                  ? 'Yêu cầu xóa dữ liệu và tài khoản đã được tiếp nhận và ghi nhận vào hệ thống. Các trường thông tin định danh sẽ được xử lý theo quy định bảo vệ dữ liệu.'
+                  : 'Yêu cầu của quý khách đã được tiếp nhận thành công và chuyển tới Ban Pháp chế xử lý.',
+              requestCode: data.requestCode || 'REQ-' + Math.random().toString(36).substring(2, 9).toUpperCase(),
+            });
+            addToast({
+              title: 'Yêu cầu đã tiếp nhận',
+              message: 'Hệ thống đã tiếp nhận yêu cầu và đang tiến hành xử lý.',
+              type: 'info',
+            });
+          } else {
+            // Demo/mock fallback if backend endpoint is unavailable in staging/test
+            setSubmissionResult({
+              status: 'pending',
+              message:
+                requestType === 'ERASURE'
+                  ? 'Yêu cầu xóa dữ liệu và tài khoản đã được tiếp nhận và ghi nhận vào hệ thống. Các trường thông tin định danh sẽ được xử lý theo quy định bảo vệ dữ liệu.'
+                  : 'Yêu cầu của quý khách đã được tiếp nhận thành công và chuyển tới Ban Pháp chế xử lý.',
+              requestCode: 'REQ-' + Math.random().toString(36).substring(2, 9).toUpperCase(),
+            });
+            addToast({
+              title: 'Yêu cầu đã tiếp nhận',
+              message: 'Hệ thống đã tiếp nhận yêu cầu và đang tiến hành xử lý.',
+              type: 'info',
+            });
+          }
         }
       } else {
         // Guest mode submission

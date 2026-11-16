@@ -1,0 +1,14 @@
+# Docker Compose Development Override
+# Usage: docker compose -f compose.yaml -f compose.dev.yaml up
+services:
+  backend:
+    volumes:
+      - ./backend/src:/app/src:ro
+      - ./backend/uploads:/app/uploads
+    environment:
+      NODE_ENV: development
+      DEBUG: express:*
+
+  frontend:
+    ports:
+      - "5173:80"
