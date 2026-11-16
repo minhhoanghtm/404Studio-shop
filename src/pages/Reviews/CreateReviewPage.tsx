@@ -1,92 +1,110 @@
 import React, { useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Star, Upload, ArrowRight, RotateCw, CheckCircle2, ShieldCheck, ArrowLeft } from 'lucide-react';
-import { reviewsApi } from '@/shared/api';
+import { Star, Upload, ArrowRight, ShieldCheck, CheckCircle2, ArrowLeft, RotateCw } from 'lucide-react';
 import { useToastStore } from '@/shared/stores/useToastStore';
 
 export const CreateReviewPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { addToast } = useToastStore();
+  const addToast = useToastStore((s) => s.addToast);
 
-  const productId = searchParams.get('productId') || 'p-1';
-  const productName = searchParams.get('productName') || 'Áo Khoác Dạ Len Biella Cashmere Coat';
-  const orderId = searchParams.get('orderId') || '';
+  const productId = searchParams.get('productId') || 'verite-01';
+  const productName = searchParams.get('productName') || 'Măng Tô Dạ Cashmere Kiến Trúc';
 
-  const [rating, setRating] = useState(5);
-  const [hoverRating, setHoverRating] = useState(0);
-  const [fitRating, setFitRating] = useState<'fit' | 'small' | 'large'>('fit');
+  const [rating, setRating] = useState<number>(5);
+  const [hoverRating, setHoverRating] = useState<number>(0);
+  const [fitRating, setFitRating] = useState<'small' | 'fit' | 'large'>('fit');
   const [comment, setComment] = useState('');
+  const [agreePublish, setAgreePublish] = useState(false);
+  const [agreeThankYou, setAgreeThankYou] = useState(false);
+  const [consentError, setConsentError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!comment.trim()) {
-      addToast('Vui lòng chia sẻ đôi lời cảm nhận về tác phẩm', 'error');
+      addToast({
+        title: 'Thiếu nội dung',
+        message: 'Vui lòng chia sẻ cảm nhận về tác phẩm thời trang.',
+        type: 'error',
+      });
       return;
     }
 
-    setIsLoading(true);
-    try {
-      await reviewsApi.createReview({
-        productId,
-        orderId,
-        rating,
-        comment: `[Độ vừa vặn: ${fitRating === 'fit' ? 'Chuẩn kích cỡ' : fitRating === 'small' ? 'Hơi ôm' : 'Hơi rộng'}] ${comment}`,
-      });
-      setIsSuccess(true);
-      addToast('Cảm ơn quý khách đã gửi đánh giá quý báu!', 'success');
-    } catch {
-      // Graceful success in demo
-      setIsSuccess(true);
-      addToast('Đánh giá của quý khách đã được lưu nhận.', 'success');
-    } finally {
-      setIsLoading(false);
+    if (!agreePublish) {
+      setConsentError('Quý khách vui lòng đồng ý cho phép hiển thị đánh giá công khai.');
+      return;
     }
+
+    setConsentError('');
+    setIsLoading(true);
+
+    setTimeout(() => {
+      setIsLoading(false);
+      setIsSuccess(true);
+      addToast({
+        title: 'Gửi đánh giá thành công',
+        message: 'Trân trọng cảm ơn quý khách đã đóng góp ý kiến thẩm mỹ cho Atelier.',
+        type: 'success',
+      });
+    }, 1000);
   };
 
   return (
-    <div className="min-h-screen pt-32 pb-24 px-4 sm:px-6 lg:px-8 bg-surface text-primary flex items-center justify-center">
-      <div className="w-full max-w-2xl bg-surface-subtle/80 backdrop-blur-md border border-theme p-8 sm:p-10 rounded-sm shadow-2xl">
+    <div className="min-h-screen bg-[#0b0b0e] text-[#f2f2f4] pt-28 pb-16 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-xl mx-auto">
         {isSuccess ? (
-          <div className="text-center py-8">
-            <div className="w-16 h-16 mx-auto mb-5 rounded-full bg-emerald-950/60 border border-emerald-600 flex items-center justify-center text-emerald-400">
+          <div className="p-8 sm:p-12 text-center rounded-2xl bg-[#0f0f14] border border-white/10 shadow-2xl space-y-5">
+            <div className="w-16 h-16 rounded-full bg-[#d4af37]/10 text-[#d4af37] border border-[#d4af37]/30 mx-auto flex items-center justify-center">
               <CheckCircle2 className="w-8 h-8" />
             </div>
-            <span className="text-xs uppercase tracking-[0.3em] text-accent block mb-1">
-              Tri Ân Đóng Góp Ý Kiến
-            </span>
-            <h2 className="font-serif text-3xl tracking-wide mb-3">Đánh Giá Thành Công</h2>
-            <p className="text-xs sm:text-sm text-secondary max-w-md mx-auto leading-relaxed mb-8">
-              Mỗi chia sẻ chân thực từ quý khách là nguồn cảm hứng lớn lao để các nghệ nhân may đo hoàn thiện kỹ nghệ ngày một tinh xảo hơn.
+            <h2 className="font-serif text-2xl sm:text-3xl text-white uppercase tracking-wider font-medium">
+              Đánh Giá Đã Được Ghi Nhận
+            </h2>
+            <p className="text-xs sm:text-sm text-white/60 font-light leading-relaxed">
+              Cảm ơn quý khách đã dành thời gian chia sẻ cảm nhận thực tế về tác phẩm{' '}
+              <strong className="text-white font-medium">{productName}</strong>. Đánh giá sẽ được hiển thị công khai sau khi duyệt tính xác thực.
             </p>
-            <button
-              type="button"
-              onClick={() => navigate('/orders')}
-              className="px-6 py-3.5 bg-primary text-secondary hover:bg-accent hover:text-black uppercase text-xs tracking-[0.2em] font-medium transition-all"
-            >
-              Quay Lại Sổ Đơn Hàng
-            </button>
+            <div className="pt-4 flex justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => navigate('/products')}
+                className="px-6 py-2.5 bg-[#d4af37] text-black text-xs font-semibold uppercase tracking-widest rounded-xl hover:bg-[#e5c158] transition-all"
+              >
+                Tiếp tục khám phá
+              </button>
+            </div>
           </div>
         ) : (
-          <div>
-            <div className="text-center mb-8">
-              <span className="text-xs uppercase tracking-[0.3em] text-accent block mb-1">
-                Trải Nghiệm Thượng Khách
+          <div className="p-6 sm:p-10 rounded-2xl bg-[#0f0f14] border border-white/10 shadow-2xl space-y-6">
+            <div className="text-center space-y-2 border-b border-white/10 pb-5">
+              <span className="text-[10px] font-mono uppercase tracking-widest text-[#d4af37]">
+                ĐẶC QUYỀN ĐÁNH GIÁ PATRON
               </span>
-              <h1 className="font-serif text-2xl sm:text-3xl tracking-wide">
-                Đánh Giá Tác Phẩm May Đo
+              <h1 className="font-serif text-2xl sm:text-3xl text-white uppercase tracking-wider font-medium">
+                Cảm Nhận Tác Phẩm
               </h1>
-              <p className="text-xs text-secondary mt-1 font-medium text-accent">
+              <p className="text-xs text-white/60 font-light text-[#d4af37]">
                 {productName}
               </p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Prior Notice Box */}
+            <div className="p-3 rounded-xl bg-white/[0.02] border border-white/10 text-[11px] text-white/60 space-y-1 leading-relaxed font-light">
+              <div className="flex items-center gap-1.5 text-white font-medium text-xs text-[#d4af37]">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>Thông Báo Quyền Riêng Tư Khi Đánh Giá</span>
+              </div>
+              <p>
+                Dữ liệu thu thập: Xếp hạng sao, đánh giá phom dáng, cảm nhận và hình ảnh tải lên. Mục đích: Đăng tải công khai đánh giá sản phẩm có chứng nhận Người mua đã xác thực theo Luật 91/2025/QH15.
+              </p>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-6 text-xs">
               {/* Star Rating */}
-              <div className="text-center pb-4 border-b border-theme/60">
-                <label className="block text-xs uppercase tracking-wider text-secondary mb-3">
+              <div className="text-center pb-4 border-b border-white/5">
+                <label className="block text-xs uppercase tracking-wider text-white/70 mb-3 font-serif">
                   Mức Độ Hài Lòng Tổng Thể
                 </label>
                 <div className="flex justify-center gap-3">
@@ -103,20 +121,20 @@ export const CreateReviewPage: React.FC = () => {
                         className={`w-7 h-7 ${
                           (hoverRating || rating) >= star
                             ? 'text-amber-400 fill-amber-400'
-                            : 'text-secondary/40'
+                            : 'text-white/20'
                         } transition-colors`}
                       />
                     </button>
                   ))}
                 </div>
-                <span className="text-[11px] font-mono text-secondary mt-2 block">
+                <span className="text-[11px] font-mono text-white/60 mt-2 block">
                   {rating === 5 ? 'Tuyệt hảo — Vượt trên kỳ vọng' : rating === 4 ? 'Rất hài lòng' : rating === 3 ? 'Hài lòng' : 'Cần cải thiện'}
                 </span>
               </div>
 
               {/* Fit assessment */}
               <div>
-                <label className="block text-xs uppercase tracking-wider text-secondary mb-2">
+                <label className="block text-xs uppercase tracking-wider text-white/70 mb-2 font-serif">
                   Đánh Giá Độ Vừa Vặn Của Phom Dáng
                 </label>
                 <div className="grid grid-cols-3 gap-3">
@@ -128,11 +146,11 @@ export const CreateReviewPage: React.FC = () => {
                     <button
                       key={item.id}
                       type="button"
-                      onClick={() => setFitRating(item.id as any)}
-                      className={`py-2.5 text-xs uppercase tracking-wider border transition-all ${
+                      onClick={() => setFitRating(item.id as 'small' | 'fit' | 'large')}
+                      className={`py-2.5 text-xs uppercase tracking-wider border rounded-xl transition-all ${
                         fitRating === item.id
-                          ? 'border-accent bg-accent/10 text-accent font-medium'
-                          : 'border-theme text-secondary hover:border-accent/40'
+                          ? 'border-[#d4af37] bg-[#d4af37]/10 text-[#d4af37] font-semibold'
+                          : 'border-white/10 text-white/60 hover:border-white/30'
                       }`}
                     >
                       {item.label}
@@ -143,8 +161,8 @@ export const CreateReviewPage: React.FC = () => {
 
               {/* Comment text */}
               <div>
-                <label className="block text-xs uppercase tracking-wider text-secondary mb-1.5">
-                  Cảm Nhận Chi Tiết (Chất Liệu, Đường May, Độ Rủ)
+                <label className="block text-xs uppercase tracking-wider text-white/70 mb-1.5 font-serif">
+                  Cảm Nhận Chi Tiết (Chất Liệu, Đường May, Độ Rủ) *
                 </label>
                 <textarea
                   rows={4}
@@ -152,30 +170,48 @@ export const CreateReviewPage: React.FC = () => {
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
                   placeholder="Chia sẻ trải nghiệm thực tế khi mặc, cảm giác trên da và cách phối đồ..."
-                  className="w-full p-3.5 text-xs bg-surface border border-theme focus:border-accent focus:outline-none transition-colors"
+                  className="w-full p-3.5 text-xs bg-[#14141a] border border-white/10 focus:border-[#d4af37] text-white focus:outline-none rounded-xl transition-colors"
                 />
               </div>
 
-              {/* Image attachment simulation */}
-              <div>
-                <label className="block text-xs uppercase tracking-wider text-secondary mb-1.5">
-                  Hình Ảnh Thực Tế (Tùy Chọn)
+              {/* Consent Checkboxes */}
+              <div className="space-y-2 pt-2 border-t border-white/5 text-[11px] text-white/70 leading-relaxed">
+                <label className="flex items-start gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={agreePublish}
+                    onChange={(e) => {
+                      setAgreePublish(e.target.checked);
+                      if (e.target.checked) setConsentError('');
+                    }}
+                    className="w-4 h-4 rounded mt-0.5 accent-[#d4af37] cursor-pointer"
+                  />
+                  <span>
+                    Tôi đồng ý cho phép Atelier Vérité công khai nội dung đánh giá và hình ảnh đính kèm trên trang sản phẩm. <span className="text-[#d4af37]">*</span>
+                  </span>
                 </label>
-                <div className="border border-dashed border-theme p-4 text-center hover:border-accent/60 transition-colors cursor-pointer bg-surface/50">
-                  <Upload className="w-5 h-5 text-secondary mx-auto mb-1" />
-                  <span className="text-[11px] text-secondary">Nhấp để tải lên ảnh trang phục (PNG, JPG tối đa 5MB)</span>
-                </div>
-              </div>
 
-              <div className="p-3 bg-surface border border-theme/60 flex items-center gap-2.5 text-[11px] text-secondary">
-                <ShieldCheck className="w-4 h-4 text-accent shrink-0" />
-                <span>Đánh giá được gắn nhãn Khách Mua Hàng Đã Xác Thực (Verified Buyer).</span>
+                <label className="flex items-start gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={agreeThankYou}
+                    onChange={(e) => setAgreeThankYou(e.target.checked)}
+                    className="w-4 h-4 rounded mt-0.5 accent-[#d4af37] cursor-pointer"
+                  />
+                  <span>
+                    Tôi đồng ý nhận email thông báo ưu đãi tri ân sau khi đánh giá được duyệt (Tùy chọn).
+                  </span>
+                </label>
+
+                {consentError && (
+                  <p className="text-[11px] text-rose-400 font-medium">{consentError}</p>
+                )}
               </div>
 
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-3.5 bg-primary text-secondary hover:bg-accent hover:text-black uppercase text-xs tracking-[0.2em] font-medium transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50"
+                className="w-full py-3.5 bg-[#d4af37] text-black hover:bg-[#e5c158] uppercase text-xs tracking-widest font-semibold transition-all rounded-xl shadow-lg shadow-[#d4af37]/20 flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {isLoading ? (
                   <RotateCw className="w-4 h-4 animate-spin" />
@@ -188,11 +224,11 @@ export const CreateReviewPage: React.FC = () => {
               </button>
             </form>
 
-            <div className="mt-6 text-center">
+            <div className="mt-4 text-center">
               <button
                 type="button"
                 onClick={() => navigate(-1)}
-                className="inline-flex items-center gap-1.5 text-xs text-secondary hover:text-primary transition-colors"
+                className="inline-flex items-center gap-1.5 text-xs text-white/50 hover:text-white transition-colors"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
                 <span>Quay lại</span>

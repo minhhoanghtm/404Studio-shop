@@ -1,109 +1,125 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, CheckCircle2 } from 'lucide-react';
-import { useToastStore } from '../stores/useToastStore';
 import { vi } from '../locales/vi/common';
+import { ArrowRight, CheckCircle2, ShieldCheck, SlidersHorizontal } from 'lucide-react';
+import { useConsentStore } from '../consent';
 
 export const Footer: React.FC = () => {
   const [email, setEmail] = useState('');
+  const [agreeNewsletter, setAgreeNewsletter] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [currency, setCurrency] = useState('VND (₫)');
-  const { addToast } = useToastStore();
+  const [errorMsg, setErrorMsg] = useState('');
+
+  const openPreferences = useConsentStore((state) => state.openPreferences);
 
   const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !email.includes('@')) {
-      addToast({
-        type: 'error',
-        title: 'Email không hợp lệ',
-        message: 'Vui lòng cung cấp địa chỉ email chính xác để nhận thư mời riêng.',
-      });
+    if (!email) return;
+
+    if (!agreeNewsletter) {
+      setErrorMsg('Quý khách vui lòng xác nhận đồng ý nhận thư tiếp thị.');
       return;
     }
 
+    setErrorMsg('');
     setIsSubscribed(true);
-    addToast({
-      type: 'success',
-      title: 'Đã cấp đặc quyền Patron',
-      message: 'Quý khách đã được ghi danh vào danh bạ khách mời danh dự của Atelier Vérité.',
-    });
   };
 
   return (
-    <footer className="w-full bg-noir-950 text-white/80 border-t border-white/10 pt-20 pb-12 transition-colors duration-300">
+    <footer className="w-full bg-[#070709] border-t border-white/10 text-white pt-20 pb-12 transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Top Newsletter & Brand Ethos */}
+        
+        {/* Top Newsletter & Brand Narrative */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 pb-16 border-b border-white/10">
           <div className="lg:col-span-6 space-y-4">
-            <span className="text-[10px] font-sans font-semibold tracking-widest text-champagne uppercase block">
+            <span className="text-[10px] font-mono uppercase tracking-widest text-[#d4af37]">
               {vi.footer.newsletterBadge}
             </span>
-            <h3 className="font-display text-3xl sm:text-4xl text-white tracking-wide">
+            <h4 className="font-serif text-2xl sm:text-3xl text-white tracking-wide font-medium">
               {vi.footer.newsletterTitle}
-            </h3>
-            <p className="text-sm font-sans text-platinum-dark max-w-lg leading-relaxed font-light">
+            </h4>
+            <p className="text-xs text-white/60 leading-relaxed font-sans max-w-md font-light">
               {vi.footer.newsletterDesc}
             </p>
 
             {isSubscribed ? (
-              <div className="flex items-center gap-3 p-4 rounded-lg bg-champagne/10 border border-champagne/30 text-champagne text-xs uppercase tracking-widest font-medium">
-                <CheckCircle2 className="w-4 h-4 text-champagne" />
-                <span>{vi.footer.newsletterSuccess}</span>
+              <div className="flex items-center gap-3 p-4 rounded-xl bg-white/5 border border-white/10 text-xs text-[#d4af37]">
+                <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
+                <span>Trân trọng cảm ơn quý khách. Chúng tôi sẽ gửi thư mời chuyên khảo sớm nhất.</span>
               </div>
             ) : (
-              <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-3 max-w-md pt-2">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder={vi.footer.newsletterPlaceholder}
-                  className="flex-1 px-4 py-3.5 bg-noir-900 border border-white/15 focus:border-champagne text-white placeholder-white/30 text-xs tracking-wider outline-none rounded-none transition-colors"
-                  required
-                />
-                <button
-                  type="submit"
-                  className="px-6 py-3.5 bg-champagne hover:bg-champagne-hover text-noir-950 text-xs font-semibold uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
-                >
-                  <span>{vi.footer.newsletterCta}</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
+              <form onSubmit={handleSubscribe} className="space-y-3 pt-2">
+                <div className="flex flex-col sm:flex-row max-w-md gap-2">
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder={vi.footer.newsletterPlaceholder}
+                    className="flex-1 px-4 py-3 bg-[#0f0f14] border border-white/15 focus:border-[#d4af37] text-white placeholder-white/30 text-xs tracking-wider outline-none rounded-xl transition-colors"
+                    required
+                  />
+                  <button
+                    type="submit"
+                    className="px-6 py-3 bg-[#d4af37] hover:bg-[#e5c158] text-black text-xs font-semibold uppercase tracking-widest transition-colors flex items-center justify-center gap-2 rounded-xl shrink-0"
+                  >
+                    <span>{vi.footer.newsletterCta}</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                {/* Consent Checkbox for Marketing Subscription */}
+                <div className="space-y-1">
+                  <label className="flex items-start gap-2.5 cursor-pointer text-[11px] text-white/60 leading-relaxed">
+                    <input
+                      type="checkbox"
+                      checked={agreeNewsletter}
+                      onChange={(e) => {
+                        setAgreeNewsletter(e.target.checked);
+                        if (e.target.checked) setErrorMsg('');
+                      }}
+                      className="w-3.5 h-3.5 rounded mt-0.5 accent-[#d4af37] cursor-pointer"
+                    />
+                    <span>
+                      Tôi đồng ý nhận nội dung tiếp thị và thư mời sự kiện qua email. Quý khách có thể hủy nhận tin bất cứ lúc nào.
+                    </span>
+                  </label>
+                  {errorMsg && <p className="text-[11px] text-rose-400">{errorMsg}</p>}
+                </div>
               </form>
             )}
-            <p className="text-[10px] text-white/40 tracking-wider">
-              Khi đăng ký, quý khách đồng ý tiếp nhận các bản tin nghiên cứu định kỳ. Có thể hủy đăng ký bất cứ lúc nào.
-            </p>
           </div>
 
           <div className="lg:col-span-6 flex flex-col justify-between border-t lg:border-t-0 lg:border-l border-white/10 lg:pl-12 pt-8 lg:pt-0">
             <div>
-              <span className="font-display text-4xl sm:text-5xl text-white tracking-widest block font-medium">
+              <span className="font-serif text-3xl sm:text-4xl text-white tracking-widest block font-medium">
                 {vi.brand.name}
               </span>
-              <p className="font-serif italic text-base text-champagne-light/90 mt-2">
+              <p className="font-serif italic text-base text-[#d4af37]/90 mt-2">
                 {vi.brand.tagline}
               </p>
-              <p className="text-xs text-platinum-dark mt-4 leading-relaxed font-light">
+              <p className="text-xs text-white/60 mt-4 leading-relaxed font-light">
                 {vi.footer.brandDesc}
               </p>
             </div>
 
             <div className="flex items-center gap-6 mt-8 text-xs font-sans tracking-widest uppercase text-white/50">
               <span>Paris</span>
-              <span className="w-1 h-1 rounded-full bg-champagne" />
+              <span className="w-1 h-1 rounded-full bg-[#d4af37]" />
               <span>Milan</span>
-              <span className="w-1 h-1 rounded-full bg-champagne" />
+              <span className="w-1 h-1 rounded-full bg-[#d4af37]" />
               <span>Tokyo</span>
-              <span className="w-1 h-1 rounded-full bg-champagne" />
-              <span>New York</span>
+              <span className="w-1 h-1 rounded-full bg-[#d4af37]" />
+              <span>TP. Hồ Chí Minh</span>
             </div>
           </div>
         </div>
 
         {/* Links Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 py-16 border-b border-white/10 text-xs font-sans">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 py-14 border-b border-white/10 text-xs font-sans">
           {/* Column 1: Collections */}
           <div className="space-y-4">
-            <h5 className="font-semibold text-champagne uppercase tracking-widest text-[11px]">
+            <h5 className="font-semibold text-[#d4af37] uppercase tracking-widest text-[11px]">
               {vi.footer.collectionsCol}
             </h5>
             <ul className="space-y-2.5 text-white/60">
@@ -123,55 +139,64 @@ export const Footer: React.FC = () => {
                 </Link>
               </li>
               <li>
-                <Link to="/collections/silence-organique" className="hover:text-white transition-colors">
-                  Silence Organique
+                <Link to="/lookbooks" className="hover:text-white transition-colors">
+                  Ấn phẩm Lookbooks mùa mới
                 </Link>
               </li>
               <li>
-                <Link to="/collections/chroma-arch" className="hover:text-white transition-colors">
-                  Chroma Architecture
+                <Link to="/products" className="hover:text-white transition-colors">
+                  Toàn bộ danh mục sản phẩm
                 </Link>
               </li>
             </ul>
           </div>
 
-          {/* Column 2: Ready-To-Wear */}
+          {/* Column 2: Legal & Privacy (Pháp Lý & Bảo Vệ Dữ Liệu) */}
           <div className="space-y-4">
-            <h5 className="font-semibold text-champagne uppercase tracking-widest text-[11px]">
-              {vi.footer.readyToWearCol}
+            <h5 className="font-semibold text-[#d4af37] uppercase tracking-widest text-[11px]">
+              Pháp Lý & Quyền Riêng Tư
             </h5>
             <ul className="space-y-2.5 text-white/60">
               <li>
-                <Link to="/products?category=women" className="hover:text-white transition-colors">
-                  Thời trang Nữ
+                <Link to="/privacy-policy" className="hover:text-white transition-colors">
+                  Chính sách bảo mật (Luật 91/2025)
                 </Link>
               </li>
               <li>
-                <Link to="/products?category=men" className="hover:text-white transition-colors">
-                  Thời trang Nam
+                <Link to="/terms-of-service" className="hover:text-white transition-colors">
+                  Điều khoản sử dụng dịch vụ
                 </Link>
               </li>
               <li>
-                <Link to="/products?category=outerwear" className="hover:text-white transition-colors">
-                  Áo khoác Tailoring & Trench
+                <Link to="/cookie-policy" className="hover:text-white transition-colors">
+                  Chính sách Cookie riêng biệt
                 </Link>
               </li>
               <li>
-                <Link to="/products?category=silk" className="hover:text-white transition-colors">
-                  Đầm dạ hội & Lụa tơ tằm
+                <Link to="/returns-refunds" className="hover:text-white transition-colors">
+                  Chính sách đổi trả & hoàn tiền
                 </Link>
               </li>
               <li>
-                <Link to="/products?category=accessories" className="hover:text-white transition-colors">
-                  Túi xách & Đồ da thủ công
+                <Link to="/data-privacy" className="hover:text-white transition-colors">
+                  Trung tâm quyền riêng tư
                 </Link>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={openPreferences}
+                  className="text-[#d4af37] hover:underline flex items-center gap-1.5 pt-1 font-medium"
+                >
+                  <SlidersHorizontal className="w-3 h-3" /> Cài đặt Cookie
+                </button>
               </li>
             </ul>
           </div>
 
-          {/* Column 3: Concierge */}
+          {/* Column 3: Client Service (Chăm sóc khách hàng) */}
           <div className="space-y-4">
-            <h5 className="font-semibold text-champagne uppercase tracking-widest text-[11px]">
+            <h5 className="font-semibold text-[#d4af37] uppercase tracking-widest text-[11px]">
               {vi.footer.conciergeCol}
             </h5>
             <ul className="space-y-2.5 text-white/60">
@@ -186,13 +211,18 @@ export const Footer: React.FC = () => {
                 </Link>
               </li>
               <li>
-                <Link to="/support#returns" className="hover:text-white transition-colors">
-                  Chính sách đổi trả 30 ngày
+                <Link to="/returns-refunds" className="hover:text-white transition-colors">
+                  Đổi trả trong 07 ngày
                 </Link>
               </li>
               <li>
-                <Link to="/support#size-guide" className="hover:text-white transition-colors">
-                  Bảng đo kích cỡ Haute Couture
+                <Link to="/order-lookup" className="hover:text-white transition-colors">
+                  Tra cứu đơn hàng vãng lai
+                </Link>
+              </li>
+              <li>
+                <Link to="/vouchers" className="hover:text-white transition-colors">
+                  Kho ưu đãi & Mã đặc quyền
                 </Link>
               </li>
               <li>
@@ -205,7 +235,7 @@ export const Footer: React.FC = () => {
 
           {/* Column 4: The Maison */}
           <div className="space-y-4">
-            <h5 className="font-semibold text-champagne uppercase tracking-widest text-[11px]">
+            <h5 className="font-semibold text-[#d4af37] uppercase tracking-widest text-[11px]">
               {vi.footer.maisonCol}
             </h5>
             <ul className="space-y-2.5 text-white/60">
@@ -225,8 +255,8 @@ export const Footer: React.FC = () => {
                 </Link>
               </li>
               <li>
-                <Link to="/orders" className="hover:text-white transition-colors">
-                  Tra cứu đơn hàng
+                <Link to="/admin" className="hover:text-white transition-colors text-white/40">
+                  Cổng quản trị Atelier (Admin)
                 </Link>
               </li>
             </ul>
@@ -236,9 +266,9 @@ export const Footer: React.FC = () => {
         {/* Bottom Bar: Copyright, Currency, Disclaimer */}
         <div className="pt-8 flex flex-col md:flex-row items-center justify-between gap-6 text-[11px] font-sans text-white/40">
           <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
-            <span>{vi.footer.copyright}</span>
+            <span>© 2026 Atelier Vérité. Mọi quyền được bảo lưu.</span>
             <span className="hidden sm:inline-block">•</span>
-            <span>{vi.footer.disclaimer}</span>
+            <span>Tuân thủ Luật Bảo vệ dữ liệu cá nhân 91/2025/QH15 & Luật BVQLNTD 19/2023/QH15</span>
           </div>
 
           {/* Regional Currency Selector */}
@@ -247,7 +277,7 @@ export const Footer: React.FC = () => {
             <select
               value={currency}
               onChange={(e) => setCurrency(e.target.value)}
-              className="bg-noir-900 border border-white/10 text-white/80 text-xs px-2.5 py-1 rounded focus:outline-none focus:border-champagne"
+              className="bg-[#14141a] border border-white/10 text-white/80 text-xs px-2.5 py-1 rounded-lg focus:outline-none focus:border-[#d4af37]"
               aria-label="Lựa chọn tiền tệ hiển thị"
             >
               <option value="VND (₫)">VND (₫) — Việt Nam Đồng</option>

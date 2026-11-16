@@ -41,16 +41,16 @@ export const AnnouncementBar: React.FC = () => {
   const Icon = current.icon;
 
   return (
-    <aside aria-label="Thông báo cửa hàng" className="relative w-full bg-noir-950 text-white/90 border-b border-white/5 py-2 px-4 text-[11px] font-sans tracking-editorial uppercase z-50 transition-colors duration-300">
-      <div className="max-w-7xl mx-auto flex items-center justify-between">
-        <div className="flex-1 flex items-center justify-center gap-2.5 text-center">
-          <Icon className="w-3 h-3 text-champagne hidden sm:inline-block animate-pulse" />
-          <span className="truncate max-w-[80vw] sm:max-w-none text-white/90 font-light">
+    <aside aria-label="Thông báo cửa hàng" className="relative w-full overflow-hidden bg-noir-950 text-white/90 border-b border-white/5 py-2 px-3 sm:px-4 text-[11px] font-sans tracking-editorial uppercase z-50 transition-colors duration-300">
+      <div className="max-w-7xl mx-auto flex items-center justify-between overflow-hidden">
+        <div className="flex-1 min-w-0 flex items-center justify-center gap-1.5 sm:gap-2.5 text-center truncate">
+          <Icon className="w-3 h-3 text-champagne hidden sm:inline-block animate-pulse shrink-0" />
+          <span className="truncate text-white/90 font-light">
             {current.text}
           </span>
           <Link
             to={current.linkUrl}
-            className="text-champagne hover:text-champagne-light underline underline-offset-4 font-medium transition-colors ml-1"
+            className="text-champagne hover:text-champagne-light underline underline-offset-4 font-medium transition-colors shrink-0 ml-1"
           >
             {current.linkText}
           </Link>

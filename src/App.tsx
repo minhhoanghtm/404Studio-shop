@@ -10,6 +10,7 @@ import {
   ScrollToTop,
 } from './shared/components';
 import { AiAssistantModal } from './shared/components/AiAssistantModal';
+import { ConsentProvider } from './shared/consent';
 import { Sparkles } from 'lucide-react';
 
 // Direct import for immediate zero-latency hero rendering
@@ -31,6 +32,14 @@ const JournalDetailPage = lazy(() => import('./pages/Journal').then(m => ({ defa
 const ContactPage = lazy(() => import('./pages/Contact').then(m => ({ default: m.ContactPage })));
 const SupportPage = lazy(() => import('./pages/Support').then(m => ({ default: m.SupportPage })));
 const NotFoundPage = lazy(() => import('./pages/NotFound').then(m => ({ default: m.NotFoundPage })));
+
+// Legal & Privacy Compliance Pages (Phase 11)
+const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicy').then(m => ({ default: m.PrivacyPolicyPage })));
+const TermsOfServicePage = lazy(() => import('./pages/TermsOfService').then(m => ({ default: m.TermsOfServicePage })));
+const CookiePolicyPage = lazy(() => import('./pages/CookiePolicy').then(m => ({ default: m.CookiePolicyPage })));
+const ReturnsRefundsPage = lazy(() => import('./pages/ReturnsRefunds').then(m => ({ default: m.ReturnsRefundsPage })));
+const DataPrivacyPage = lazy(() => import('./pages/DataPrivacy').then(m => ({ default: m.DataPrivacyPage })));
+const DataPrivacyRequestPage = lazy(() => import('./pages/DataPrivacyRequest').then(m => ({ default: m.DataPrivacyRequestPage })));
 
 // Specialized Customer Feature Pages
 const VerifyOtpPage = lazy(() => import('./pages/Auth').then(m => ({ default: m.VerifyOtpPage })));
@@ -79,29 +88,31 @@ const RootLayout: React.FC = () => {
     <div className="min-h-screen flex flex-col bg-noir-950 text-white selection:bg-champagne/30 selection:text-white relative">
       <AnnouncementBar />
       <Header />
-      <main className="flex-1">
+      <main className="flex-1 flex flex-col">
         <Suspense fallback={<PageLoadingFallback />}>
           <Outlet />
         </Suspense>
       </main>
       <Footer />
-
-      {/* Global Interactive Overlays */}
       <CartDrawer />
       <QuickSearchModal />
       <ToastContainer />
-      <AiAssistantModal isOpen={isAiOpen} onClose={() => setIsAiOpen(false)} />
+      <ScrollToTop />
 
-      {/* Floating AI Stylist Trigger Button */}
+      {/* Stylist AI Assistant Floating Action Button */}
       <button
-        type="button"
         onClick={() => setIsAiOpen(true)}
-        className="fixed bottom-6 right-6 z-40 px-4 py-2.5 bg-champagne text-noir-950 rounded-full shadow-2xl hover:scale-105 transition-all duration-300 flex items-center gap-2 border border-champagne/50 group"
-        aria-label="Tư vấn Stylist AI"
+        className="fixed bottom-6 right-6 z-40 bg-[#0e0e12] border border-[#d4af37]/40 hover:border-[#d4af37] text-[#d4af37] p-3.5 rounded-full shadow-2xl backdrop-blur-md flex items-center gap-2 group transition-all duration-300 hover:scale-105"
+        title="Trợ lý Stylist AI Maison"
+        aria-label="Mở Trợ lý Stylist AI"
       >
-        <Sparkles className="w-4 h-4 animate-spin-slow group-hover:rotate-12 transition-transform" />
-        <span className="text-xs uppercase tracking-wider font-semibold font-mono">Stylist AI</span>
+        <Sparkles className="w-5 h-5 text-[#d4af37] group-hover:rotate-12 transition-transform" />
+        <span className="text-xs uppercase tracking-widest font-serif font-medium pr-1 hidden sm:inline-block text-white">
+          Stylist AI
+        </span>
       </button>
+
+      <AiAssistantModal isOpen={isAiOpen} onClose={() => setIsAiOpen(false)} />
     </div>
   );
 };
@@ -109,135 +120,150 @@ const RootLayout: React.FC = () => {
 export function App() {
   return (
     <BrowserRouter>
-      <ScrollToTop />
-      <Routes>
-        {/* Storefront Layout */}
-        <Route path="/" element={<RootLayout />}>
-          {/* Public Routes */}
-          <Route index element={<HomePage />} />
-          <Route path="products" element={<ProductsPage />} />
-          <Route path="products/:slug" element={<ProductDetailPage />} />
-          <Route path="collections" element={<CollectionsPage />} />
-          <Route path="collections/:slug" element={<CollectionDetailPage />} />
-          <Route path="search" element={<SearchPage />} />
-          <Route path="wishlist" element={<WishlistPage />} />
-          <Route path="cart" element={<CartPage />} />
-          <Route path="checkout" element={<CheckoutPage />} />
-          <Route path="order-success" element={<OrderSuccessPage />} />
-          <Route path="about" element={<AboutPage />} />
-          <Route path="journal" element={<JournalPage />} />
-          <Route path="journal/:slug" element={<JournalDetailPage />} />
-          <Route path="contact" element={<ContactPage />} />
-          <Route path="support" element={<SupportPage />} />
+      <ConsentProvider>
+        <Routes>
+          {/* Main Customer Storefront Layout */}
+          <Route path="/" element={<RootLayout />}>
+            <Route index element={<HomePage />} />
+            <Route path="products" element={<ProductsPage />} />
+            <Route path="products/:slug" element={<ProductDetailPage />} />
+            <Route path="collections" element={<CollectionsPage />} />
+            <Route path="collections/:slug" element={<CollectionDetailPage />} />
+            <Route path="search" element={<SearchPage />} />
+            <Route path="wishlist" element={<WishlistPage />} />
+            <Route path="cart" element={<CartPage />} />
+            <Route path="checkout" element={<CheckoutPage />} />
+            <Route path="order-success" element={<OrderSuccessPage />} />
+            <Route path="about" element={<AboutPage />} />
+            <Route path="journal" element={<JournalPage />} />
+            <Route path="journal/:slug" element={<JournalDetailPage />} />
+            <Route path="contact" element={<ContactPage />} />
+            <Route path="support" element={<SupportPage />} />
 
-          {/* New Specialized Customer Routes */}
-          <Route path="verify-otp" element={<VerifyOtpPage />} />
-          <Route path="reset-password" element={<ResetPasswordPage />} />
-          <Route path="order-lookup" element={<OrderLookupPage />} />
-          <Route path="payment-result" element={<PaymentResultPage />} />
-          <Route path="vouchers" element={<VouchersPage />} />
-          <Route path="lookbooks" element={<LookbooksPage />} />
-          <Route path="reviews/create" element={<CreateReviewPage />} />
+            {/* Legal & Privacy Compliance Routes (Phase 11) */}
+            <Route path="privacy-policy" element={<PrivacyPolicyPage />} />
+            <Route path="terms-of-service" element={<TermsOfServicePage />} />
+            <Route path="cookie-policy" element={<CookiePolicyPage />} />
+            <Route path="returns-refunds" element={<ReturnsRefundsPage />} />
+            <Route path="data-privacy" element={<DataPrivacyPage />} />
+            <Route path="data-privacy/request" element={<DataPrivacyRequestPage />} />
 
-          {/* Support Anchor Aliases */}
-          <Route path="faq" element={<Navigate to="/support#faq" replace />} />
-          <Route path="size-guide" element={<Navigate to="/support#size-guide" replace />} />
-          <Route path="shipping" element={<Navigate to="/support#shipping" replace />} />
-          <Route path="returns" element={<Navigate to="/support#returns" replace />} />
+            {/* Legal Route Aliases */}
+            <Route path="privacy" element={<Navigate to="/privacy-policy" replace />} />
+            <Route path="terms" element={<Navigate to="/terms-of-service" replace />} />
+            <Route path="cookies" element={<Navigate to="/cookie-policy" replace />} />
+            <Route path="cookie-settings" element={<Navigate to="/data-privacy" replace />} />
+            <Route path="privacy-center" element={<Navigate to="/data-privacy" replace />} />
 
-          {/* Legacy Shop Aliases */}
-          <Route path="shop" element={<Navigate to="/products" replace />} />
-          <Route path="shop/women" element={<Navigate to="/products?category=women" replace />} />
-          <Route path="shop/men" element={<Navigate to="/products?category=men" replace />} />
-          <Route path="shop/accessories" element={<Navigate to="/products?category=accessories" replace />} />
-          <Route path="shop/:category" element={<ProductsPage />} />
+            {/* Specialized Customer Routes */}
+            <Route path="verify-otp" element={<VerifyOtpPage />} />
+            <Route path="reset-password" element={<ResetPasswordPage />} />
+            <Route path="order-lookup" element={<OrderLookupPage />} />
+            <Route path="payment-result" element={<PaymentResultPage />} />
+            <Route path="vouchers" element={<VouchersPage />} />
+            <Route path="lookbooks" element={<LookbooksPage />} />
+            <Route path="reviews/create" element={<CreateReviewPage />} />
 
-          {/* Auth Routes */}
-          <Route path="login" element={<LoginPage />} />
-          <Route path="register" element={<RegisterPage />} />
+            {/* Support Anchor Aliases */}
+            <Route path="faq" element={<Navigate to="/support#faq" replace />} />
+            <Route path="size-guide" element={<Navigate to="/support#size-guide" replace />} />
+            <Route path="shipping" element={<Navigate to="/support#shipping" replace />} />
+            <Route path="returns" element={<Navigate to="/returns-refunds" replace />} />
 
-          {/* Account Routes */}
-          <Route path="account" element={<AccountDashboardPage />} />
-          <Route path="orders" element={<AccountOrdersPage />} />
-          <Route path="orders/:id" element={<AccountOrderDetailPage />} />
-          <Route path="account/orders" element={<AccountOrdersPage />} />
-          <Route path="account/orders/:id" element={<AccountOrderDetailPage />} />
-          <Route path="account/addresses" element={<AccountAddressesPage />} />
-          <Route path="account/settings" element={<AccountSettingsPage />} />
-          <Route path="account/coupons" element={<MyCouponsPage />} />
-          <Route path="my-coupons" element={<MyCouponsPage />} />
+            {/* Legacy Shop Aliases */}
+            <Route path="shop" element={<Navigate to="/products" replace />} />
+            <Route path="shop/women" element={<Navigate to="/products?category=women" replace />} />
+            <Route path="shop/men" element={<Navigate to="/products?category=men" replace />} />
+            <Route path="shop/accessories" element={<Navigate to="/products?category=accessories" replace />} />
+            <Route path="shop/:category" element={<ProductsPage />} />
 
-          {/* 404 Catch-All */}
-          <Route path="404" element={<NotFoundPage />} />
-          <Route path="*" element={<NotFoundPage />} />
-        </Route>
+            {/* Auth Routes */}
+            <Route path="login" element={<LoginPage />} />
+            <Route path="register" element={<RegisterPage />} />
 
-        {/* Admin Portal Routes (Isolated Layout) */}
-        <Route
-          path="admin"
-          element={
-            <Suspense fallback={<PageLoadingFallback />}>
-              <AdminDashboardPage />
-            </Suspense>
-          }
-        />
-        <Route
-          path="admin/products"
-          element={
-            <Suspense fallback={<PageLoadingFallback />}>
-              <AdminProductsPage />
-            </Suspense>
-          }
-        />
-        <Route
-          path="admin/categories"
-          element={
-            <Suspense fallback={<PageLoadingFallback />}>
-              <AdminCategoriesPage />
-            </Suspense>
-          }
-        />
-        <Route
-          path="admin/orders"
-          element={
-            <Suspense fallback={<PageLoadingFallback />}>
-              <AdminOrdersPage />
-            </Suspense>
-          }
-        />
-        <Route
-          path="admin/customers"
-          element={
-            <Suspense fallback={<PageLoadingFallback />}>
-              <AdminCustomersPage />
-            </Suspense>
-          }
-        />
-        <Route
-          path="admin/coupons"
-          element={
-            <Suspense fallback={<PageLoadingFallback />}>
-              <AdminCouponsPage />
-            </Suspense>
-          }
-        />
-        <Route
-          path="admin/settings"
-          element={
-            <Suspense fallback={<PageLoadingFallback />}>
-              <AdminSettingsPage />
-            </Suspense>
-          }
-        />
-        <Route
-          path="admin/chats"
-          element={
-            <Suspense fallback={<PageLoadingFallback />}>
-              <AdminChatPage />
-            </Suspense>
-          }
-        />
-      </Routes>
+            {/* Account Routes */}
+            <Route path="account" element={<AccountDashboardPage />} />
+            <Route path="orders" element={<AccountOrdersPage />} />
+            <Route path="orders/:id" element={<AccountOrderDetailPage />} />
+            <Route path="account/orders" element={<AccountOrdersPage />} />
+            <Route path="account/orders/:id" element={<AccountOrderDetailPage />} />
+            <Route path="account/addresses" element={<AccountAddressesPage />} />
+            <Route path="account/settings" element={<AccountSettingsPage />} />
+            <Route path="account/coupons" element={<MyCouponsPage />} />
+            <Route path="my-coupons" element={<MyCouponsPage />} />
+
+            {/* 404 Catch-All */}
+            <Route path="404" element={<NotFoundPage />} />
+            <Route path="*" element={<NotFoundPage />} />
+          </Route>
+
+          {/* Admin Portal Routes (Isolated Layout) */}
+          <Route
+            path="admin"
+            element={
+              <Suspense fallback={<PageLoadingFallback />}>
+                <AdminDashboardPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="admin/products"
+            element={
+              <Suspense fallback={<PageLoadingFallback />}>
+                <AdminProductsPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="admin/categories"
+            element={
+              <Suspense fallback={<PageLoadingFallback />}>
+                <AdminCategoriesPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="admin/orders"
+            element={
+              <Suspense fallback={<PageLoadingFallback />}>
+                <AdminOrdersPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="admin/customers"
+            element={
+              <Suspense fallback={<PageLoadingFallback />}>
+                <AdminCustomersPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="admin/coupons"
+            element={
+              <Suspense fallback={<PageLoadingFallback />}>
+                <AdminCouponsPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="admin/settings"
+            element={
+              <Suspense fallback={<PageLoadingFallback />}>
+                <AdminSettingsPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="admin/chats"
+            element={
+              <Suspense fallback={<PageLoadingFallback />}>
+                <AdminChatPage />
+              </Suspense>
+            }
+          />
+        </Routes>
+      </ConsentProvider>
     </BrowserRouter>
   );
 }
