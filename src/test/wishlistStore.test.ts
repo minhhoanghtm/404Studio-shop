@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useWishlistStore } from '../stores/useWishlistStore';
-import { PRODUCTS } from '../data/products';
+import { useWishlistStore } from '@/shared/stores/useWishlistStore';
+import { PRODUCTS } from '@/shared/data/products';
 
 describe('useWishlistStore', () => {
   beforeEach(() => {

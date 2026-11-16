@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { PRODUCTS } from '../data/products';
-import { COLLECTIONS } from '../data/collections';
+import { PRODUCTS } from '@/shared/data/products';
+import { COLLECTIONS } from '@/shared/data/collections';
 
 describe('Catalog Data Integrity', () => {
   it('should have valid products with mandatory fields', () => {

@@ -6,7 +6,7 @@ test.describe('Atelier Vérité Storefront E2E Suite', () => {
     await expect(page).toHaveTitle(/ATELIER VÉRITÉ/i);
 
     // Verify Brand Logo Wordmark
-    const logo = page.locator('text=VÉRITÉ').first();
+    const logo = page.locator('text=ATELIER VÉRITÉ').first();
     await expect(logo).toBeVisible({ timeout: 10000 });
 
     // Verify Hero Heading
@@ -21,32 +21,32 @@ test.describe('Atelier Vérité Storefront E2E Suite', () => {
     const html = page.locator('html');
     await expect(html).toHaveClass(/dark|light/);
 
-    const themeBtn = page.getByLabel(/Switch to (light|dark) mode/i).first();
+    const themeBtn = page.locator('button[aria-label*="chế độ"]').first();
     await themeBtn.click();
 
     const currentClass = await html.getAttribute('class');
     expect(currentClass).toBeTruthy();
   });
 
-  test('should navigate to shop catalog, filter and sort products', async ({ page }) => {
-    await page.goto('/shop');
-    await expect(page.locator('h1')).toContainText(/Ready-to-Wear|Archive/i);
+  test('should navigate to products catalog, filter and sort products', async ({ page }) => {
+    await page.goto('/products');
+    await expect(page.locator('h1')).toContainText(/Kho Lưu trữ|Tác phẩm/i);
 
     // Verify product cards exist
     const cards = page.locator('.group.relative.flex.flex-col');
     await expect(cards.first()).toBeVisible();
 
     // Click Category Filter
-    const womenBtn = page.getByRole('button', { name: 'Women', exact: true });
+    const womenBtn = page.getByRole('button', { name: 'Thời trang Nữ', exact: true });
     if (await womenBtn.isVisible()) {
       await womenBtn.click();
-      await expect(page.locator('h1')).toContainText(/Women/i);
+      await expect(page.locator('h1')).toContainText(/Thời trang Nữ/i);
     }
   });
 
   test('should view product detail and add to bag', async ({ page }) => {
     await page.goto('/products/sculpted-wool-coat');
-    await expect(page.locator('h1')).toContainText(/The Architectural Wool Overcoat/i);
+    await expect(page.locator('h1')).toContainText(/Áo Khoác Dạ Kiến Trúc Len Nguyên Chất/i);
 
     // Select Size
     const sizeBtn = page.locator('button:has-text("38 FR")').first();
@@ -55,11 +55,11 @@ test.describe('Atelier Vérité Storefront E2E Suite', () => {
     }
 
     // Click Add to Bag
-    const addToBagBtn = page.locator('button:has-text("Add to Shopping Bag")');
+    const addToBagBtn = page.locator('button:has-text("Thêm vào giỏ hàng")');
     await addToBagBtn.click();
 
     // Verify Cart Drawer opens
-    const drawerTitle = page.locator('h3:has-text("Shopping Bag")');
+    const drawerTitle = page.locator('h3:has-text("Túi mua sắm")');
     await expect(drawerTitle).toBeVisible();
   });
 
@@ -67,50 +67,57 @@ test.describe('Atelier Vérité Storefront E2E Suite', () => {
     // Go directly to product detail page where wishlist button is prominent
     await page.goto('/products/sculpted-wool-coat');
 
-    const wishlistBtn = page.locator('button[aria-label*="wishlist"]').first();
+    const wishlistBtn = page.locator('button[aria-label*="yêu thích"]').first();
     await wishlistBtn.click();
 
     // Navigate to wishlist page
     await page.goto('/wishlist');
-    await expect(page.locator('h1')).toContainText(/Curated Wishlist/i);
-    await expect(page.locator('text=The Architectural Wool Overcoat')).toBeVisible();
+    await expect(page.locator('h1')).toContainText(/Danh sách yêu thích/i);
+    await expect(page.locator('text=Áo Khoác Dạ Kiến Trúc Len Nguyên Chất')).toBeVisible();
   });
 
   test('should open quick search modal and find silhouettes', async ({ page }) => {
     await page.goto('/');
 
-    const searchBtn = page.locator('button[aria-label*="Search"]:visible').first();
+    const searchBtn = page.locator('button[aria-label*="Tìm kiếm"]:visible').first();
     await searchBtn.click();
 
-    const searchInput = page.getByPlaceholder(/Search haute couture/i);
+    const searchInput = page.getByPlaceholder(/Tìm kiếm/i);
     await expect(searchInput).toBeVisible();
 
-    await searchInput.fill('Silk');
-    await expect(page.locator('text=Curated Matches')).toBeVisible();
+    await searchInput.fill('Lụa');
+    await expect(page.locator('text=Tác phẩm tương thích')).toBeVisible();
   });
 
   test('should navigate through full checkout simulation', async ({ page }) => {
     // Add product to bag first
-    await page.goto('/products/obsidian-leather-tote');
-    const addToBagBtn = page.locator('button:has-text("Add to Shopping Bag")');
+    await page.goto('/products/sculpted-wool-coat');
+    const sizeBtn = page.locator('button:has-text("38 FR")').first();
+    if (await sizeBtn.isVisible()) {
+      await sizeBtn.click();
+    }
+    const addToBagBtn = page.locator('button:has-text("Thêm vào giỏ hàng")');
     await addToBagBtn.click();
+
+    // Wait for cart state to persist
+    await page.waitForTimeout(500);
 
     // Navigate to checkout
     await page.goto('/checkout');
-    await expect(page.locator('h1')).toContainText(/Complete Acquisition/i);
+    await expect(page.locator('h1')).toContainText(/Hoàn tất sở hữu/i, { timeout: 10000 });
 
     // Submit checkout form
-    const authorizeBtn = page.locator('button:has-text("Confirm & Authorize Order")');
+    const authorizeBtn = page.locator('button:has-text("Xác nhận & Hoàn tất đơn hàng")');
     await authorizeBtn.click();
 
     // Verify redirect to order-success
     await page.waitForURL(/order-success/, { timeout: 10000 });
-    await expect(page.locator('h1')).toContainText(/Your Order Has Been Confirmed/i);
+    await expect(page.locator('h1')).toContainText(/Đơn hàng của quý khách đã được xác nhận/i);
   });
 
   test('should handle 404 route gracefully', async ({ page }) => {
     await page.goto('/non-existent-luxury-silhouette');
     await expect(page.locator('h1')).toContainText('404');
-    await expect(page.locator('text=The Requested Silhouette Does Not Exist')).toBeVisible();
+    await expect(page.locator('text=Kiểu Dáng Yêu Cầu Không Tồn Tại')).toBeVisible();
   });
 });

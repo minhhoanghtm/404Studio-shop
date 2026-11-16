@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useCartStore, VALID_COUPONS } from '../stores/useCartStore';
+import { useCartStore, VALID_COUPONS } from '@/shared/stores/useCartStore';
 
 describe('useCartStore', () => {
   beforeEach(() => {
@@ -19,10 +19,10 @@ describe('useCartStore', () => {
     addItem({
       productId: 'test-coat',
       productSlug: 'test-coat',
-      name: 'Architectural Overcoat',
-      price: 2000,
+      name: 'Áo Khoác Dạ Kiến Trúc',
+      price: 58500000,
       quantity: 1,
-      selectedColor: 'Noir',
+      selectedColor: 'Đen',
       selectedColorHex: '#000000',
       selectedSize: '38 FR',
       image: '/test.jpg',
@@ -31,7 +31,7 @@ describe('useCartStore', () => {
     const state = useCartStore.getState();
     expect(state.items.length).toBe(1);
     expect(state.getItemsCount()).toBe(1);
-    expect(state.getSubtotal()).toBe(2000);
+    expect(state.getSubtotal()).toBe(58500000);
   });
 
   it('should increment quantity when adding duplicate variant', () => {
@@ -39,10 +39,10 @@ describe('useCartStore', () => {
     const item = {
       productId: 'test-coat',
       productSlug: 'test-coat',
-      name: 'Architectural Overcoat',
-      price: 2000,
+      name: 'Áo Khoác Dạ Kiến Trúc',
+      price: 58500000,
       quantity: 1,
-      selectedColor: 'Noir',
+      selectedColor: 'Đen',
       selectedColorHex: '#000000',
       selectedSize: '38 FR',
       image: '/test.jpg',
@@ -54,7 +54,7 @@ describe('useCartStore', () => {
     const state = useCartStore.getState();
     expect(state.items.length).toBe(1);
     expect(state.items[0].quantity).toBe(2);
-    expect(state.getSubtotal()).toBe(4000);
+    expect(state.getSubtotal()).toBe(117000000);
   });
 
   it('should update quantity and remove item if quantity is zero', () => {
@@ -62,19 +62,19 @@ describe('useCartStore', () => {
     addItem({
       productId: 'test-coat',
       productSlug: 'test-coat',
-      name: 'Architectural Overcoat',
-      price: 1500,
+      name: 'Áo Khoác Dạ Kiến Trúc',
+      price: 15000000,
       quantity: 2,
-      selectedColor: 'Noir',
+      selectedColor: 'Đen',
       selectedColorHex: '#000000',
       selectedSize: '38 FR',
       image: '/test.jpg',
     });
 
-    updateQuantity('test-coat', 'Noir', '38 FR', 3);
+    updateQuantity('test-coat', 'Đen', '38 FR', 3);
     expect(useCartStore.getState().items[0].quantity).toBe(3);
 
-    updateQuantity('test-coat', 'Noir', '38 FR', 0);
+    updateQuantity('test-coat', 'Đen', '38 FR', 0);
     expect(useCartStore.getState().items.length).toBe(0);
   });
 
@@ -83,10 +83,10 @@ describe('useCartStore', () => {
     addItem({
       productId: 'test-dress',
       productSlug: 'test-dress',
-      name: 'Silk Gown',
-      price: 1000,
+      name: 'Đầm Lụa Dòng Nước',
+      price: 10000000,
       quantity: 1,
-      selectedColor: 'Gold',
+      selectedColor: 'Vàng Kim',
       selectedColorHex: '#FFD700',
       selectedSize: '36 FR',
       image: '/test.jpg',
@@ -97,8 +97,11 @@ describe('useCartStore', () => {
 
     const state = useCartStore.getState();
     expect(state.appliedCoupon?.code).toBe('VANGUARD15');
-    expect(state.getDiscount()).toBe(150); // 15% of 1000
-    expect(state.getTotal()).toBe(1000 - 150 + 0 + Math.round((1000 - 150) * 0.08));
+    expect(state.getDiscount()).toBe(1500000); // 15% of 10.000.000
+    const taxable = 10000000 - 1500000;
+    const tax = Math.round(taxable * 0.08);
+    const shipping = 850000; // < 12.000.000
+    expect(state.getTotal()).toBe(taxable + shipping + tax);
   });
 
   it('should reject invalid coupon codes', () => {
@@ -108,15 +111,15 @@ describe('useCartStore', () => {
     expect(useCartStore.getState().couponError).toBeTruthy();
   });
 
-  it('should calculate complimentary shipping for orders over $500', () => {
+  it('should calculate complimentary shipping for orders over 12.000.000 ₫', () => {
     const { addItem } = useCartStore.getState();
     addItem({
       productId: 'test-tote',
       productSlug: 'test-tote',
-      name: 'Leather Bag',
-      price: 600,
+      name: 'Túi Da Thảo Mộc',
+      price: 25000000,
       quantity: 1,
-      selectedColor: 'Noir',
+      selectedColor: 'Đen',
       selectedColorHex: '#000',
       selectedSize: 'One Size',
       image: '/test.jpg',
