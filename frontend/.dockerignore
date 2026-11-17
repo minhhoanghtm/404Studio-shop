@@ -1,0 +1,43 @@
+# Dependencies and package caches
+node_modules
+.pnpm-store
+.yarn
+
+# Build outputs
+dist
+dist-ssr
+build
+coverage
+
+# Environment & Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+
+# Logs & debugging
+*.log
+npm-debug.log*
+yarn-debug.log*
+
+# Testing & reports
+test-results/
+playwright-report/
+blob-report/
+playwright/.auth/
+*.har
+*.trace
+
+# Version control & IDE
+.git
+.github
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+
+# Documentation
+*.md
+docs/

@@ -37,10 +37,10 @@
 ## ✦ Source Code Organization (Page-Based Architecture)
 
 All source code, components, hooks, functions, variables, and types strictly use **English** naming.
-Each page or functional group resides in its own isolated module under `src/pages/<FeatureName>/`:
+Each page or functional group resides in its own isolated module under `frontend/src/pages/<FeatureName>/`:
 
 ```
-src/
+frontend/src/
 ├── pages/
 │   ├── About/             # AboutPage.tsx, index.ts
 │   ├── Account/           # AccountDashboardPage, Orders, Addresses, Settings, Layout
@@ -139,7 +139,8 @@ Selected components from Meng To's **ThreeUI Community** (`@designcodeio/threeui
 # Clone or navigate to the repository
 cd 404Studio
 
-# Install all dependencies
+# Install frontend dependencies
+cd frontend
 npm install
 
 # Start Vite development server

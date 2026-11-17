@@ -6,7 +6,7 @@ const projectRoot = fileURLToPath(new URL("../../../..", import.meta.url));
 
 const importModuleWithoutSecret = (modulePath, secretName, value) => {
   const env = { ...process.env };
-  if (value === undefined) delete env[secretName];
+  if (value === undefined) env[secretName] = "";
   else env[secretName] = value;
 
   return spawnSync(

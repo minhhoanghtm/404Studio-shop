@@ -1,6 +1,20 @@
 # PROJECT HANDOVER: ATELIER VÉRITÉ (HIGH FASHION E-COMMERCE WITH THREEUI & BACKEND INTEGRATION)
 
+> **Workspace structure update — 17/11/2026:** The React/Vite application, its tests, Dockerfile, Nginx configuration, and frontend-only environment template now live in `frontend/`. The Express application remains unchanged in `backend/`. Run frontend commands from `frontend/`; root Compose and GitHub Actions now target `frontend/` explicitly. The ignored root `.env` remains in place and Vite reads it through `envDir` for backward-compatible local configuration.
+>
+> **Restructure verification — 17/11/2026:** `npm run lint` completed with 0 errors (109 pre-existing warnings), `npm run build` passed cleanly in 3.9s, and Vitest passed **60/60** tests (100% green) across 11 test suites from `frontend/`. All Compose variants validate and the frontend Docker image builds from `frontend/`.
+>
+> **Light/Dark theme system fix & E2E verification — 17/11/2026:** Fixed theme toggle in `Header.tsx`, `App.tsx`, and `index.html`. Synchronized `document.documentElement` class (`dark`/`light`), `style.colorScheme`, and `localStorage` (`atelier_theme`). Added OS preference detection (`prefers-color-scheme`), anti-FOUC inline script, and cross-tab storage sync. Playwright E2E passed **3/3** tests (`e2e/themeToggle.spec.ts`) with captured screenshot artifacts for both Light and Dark modes. Vitest passed **5/5** unit tests (`src/test/themeToggle.test.ts`). See [Theme Toggle Test Report](project-management/test-reports/frontend/THEME_TOGGLE_TEST_REPORT.md).
+>
+> **Input contrast audit — 17/11/2026:** An in-progress frontend-wide audit replaced hard-coded control colors with light/dark semantic form tokens in `frontend/src/index.css`. It covers 96 native controls across 31 files, including autofill, placeholders, focus, disabled, error, and native select states. Browser-computed login controls meet WCAG AA in both themes; full cross-route Playwright verification remains pending. See `project-management/test-reports/frontend/INPUT_CONTRAST_TEST_REPORT.md`.
+>
+> **Documentation organization — 17/11/2026:** Root entry points remain `README.md` and this handover. Specialized documents are organized under `docs/` and `project-management/`; see [the technical documentation index](docs/README.md) and [the reorganization report](project-management/audits/DOCUMENTATION_REORGANIZATION_REPORT.md).
+
 > **AI/payment re-audit update — 17/11/2026:** Frontend mock AI fallback replies and local fake order confirmation were removed from the audited paths. The UI now calls the copied backend's actual AI/payment route contracts, preserves confirmation gates, and blocks checkout for local demo-only product IDs. Live AI, sandbox payment, IPN and E2E verification remain **BLOCKED_BY_BACKEND_ENVIRONMENT** because no safe configured backend/data/provider sandbox was available. See `docs/AI_SYSTEM_AUDIT.md` and related AI verification reports.
+>
+> **Backend setup & connectivity verification — 17/11/2026:** Backend dependencies were safely installed with immutable `npm ci` (652 packages, 0 install errors). MongoDB Atlas (34 collections) and local Redis (`redis_local:6379`) connectivity verified. Backend server boots cleanly on port 5000 with Socket.IO, BullMQ workers, and Cron jobs. All 24 Jest test suites and 215 tests passed (100% green). Healthcheck endpoints (`/api/health`, `/api/health/liveness`, `/api/health/readiness`), AI vector health (`/api/ai/health`), and product APIs return HTTP 200. Persistent task management structure initialized under `project-management/` and confirmed tracked in Git. See [Backend Setup Verification](project-management/test-reports/backend/BACKEND_SETUP_VERIFICATION.md) and [Backend Source Audit](project-management/audits/BACKEND_SOURCE_AUDIT.md).
+>
+> **Real API integration audit — 17/11/2026:** Source-level route discovery, client contract remediation, and removal of several runtime fake-data paths are in progress. Live API/E2E verification is **BLOCKED_BY_BACKEND_ENVIRONMENT**: no isolated MongoDB/Redis test environment, authorized test accounts, or payment sandbox configuration was available. See [the audit](project-management/audits/REAL_API_INTEGRATION_AUDIT.md), [contract mapping](docs/api/REAL_API_CONTRACT_MAPPING.md), and [missing APIs](docs/api/MISSING_BACKEND_APIS.md).
 
 ## 1. Executive Summary
 
@@ -25,17 +39,17 @@
 | Criterion | Requirement | Result | Evidence / Details |
 |---|---|:---:|---|
 | **Backend Copied** | Copy backend from `D:\Project\REACT-WebFashion\back-end` to `backend/` excluding `node_modules`, cache, `.env`, and git history | **PASS** | 496 files copied; 16,411 temporary files excluded. |
-| **Backend Checksum** | 100% identical SHA-256 byte-for-byte checksums for all source code files | **PASS** | Verified across all 496 files with 0 hash mismatches. See [BACKEND_MIGRATION_REPORT.md](file:///d:/Project/404Studio/BACKEND_MIGRATION_REPORT.md). |
+| **Backend Checksum** | 100% identical SHA-256 byte-for-byte checksums for all source code files | **PASS** | Verified across all 496 files with 0 hash mismatches. See [backend migration report](project-management/audits/BACKEND_MIGRATION_REPORT.md). |
 | **Backend Unchanged** | Zero changes to backend business logic, controllers, routes, models, schemas, or middlewares | **PASS** | Backend logic preserved with zero modifications. |
 | **Backend Startup Config** | Clean environment variable templates and container orchestration | **PASS** | `backend/.env.example` created with sanitized variables; root `docker-compose.yml` configured for Mongo 7, Redis 7, and Node backend. |
-| **API Discovery** | Comprehensive cataloging of all 36+ backend REST endpoints and socket events | **PASS** | Fully documented in [BACKEND_AUDIT.md](file:///d:/Project/404Studio/BACKEND_AUDIT.md) and [API_FRONTEND_MAPPING.md](file:///d:/Project/404Studio/API_FRONTEND_MAPPING.md). |
-| **Screen Coverage** | Complete implementation of all missing customer and administrative screens | **PASS** | All missing screens designed and built: OTP verification, password reset, order lookup, payment result, vouchers, my coupons, lookbooks, reviews, stylist AI assistant, and full Admin portal. See [FRONTEND_SCREEN_COVERAGE.md](file:///d:/Project/404Studio/FRONTEND_SCREEN_COVERAGE.md). |
+| **API Discovery** | Comprehensive cataloging of all 36+ backend REST endpoints and socket events | **PASS** | Fully documented in [backend audit](project-management/audits/BACKEND_AUDIT.md) and [API/frontend mapping](docs/api/API_FRONTEND_MAPPING.md). |
+| **Screen Coverage** | Complete implementation of all missing customer and administrative screens | **PASS** | All missing screens designed and built: OTP verification, password reset, order lookup, payment result, vouchers, my coupons, lookbooks, reviews, stylist AI assistant, and full Admin portal. See [frontend screen coverage](project-management/audits/FRONTEND_SCREEN_COVERAGE.md). |
 | **API Integration** | Centralized API client with JWT bearer auth, auto-token refresh, error interceptor, and mock fallback | **PASS** | Implemented in `src/shared/api/client.ts` and `src/shared/api/index.ts`. Proxy configured in `vite.config.ts`. |
 | **Vietnamese UI** | 100% Vietnamese localized UI with full diacritics, VND currency formatting, and `dd/MM/yyyy` dates | **PASS** | Verified across all 38+ customer and admin views. |
 | **English Code** | 100% English naming for files, directories, components, functions, hooks, and types | **PASS** | Verified across entire codebase under `src/pages/` and `src/shared/`. |
-| **Responsive UI** | Zero horizontal overflow across mobile, tablet, and desktop viewports | **PASS** | Verified via Playwright automated responsive suites. See [UI_VISUAL_TEST_REPORT.md](file:///d:/Project/404Studio/UI_VISUAL_TEST_REPORT.md). |
+| **Responsive UI** | Zero horizontal overflow across mobile, tablet, and desktop viewports | **PASS** | Verified via Playwright automated responsive suites. See [UI visual report](project-management/test-reports/frontend/UI_VISUAL_TEST_REPORT.md). |
 | **ThreeUI & WebGL** | Immersive 3D shaders, WebGL error boundaries, reduced-motion fallbacks, and resource disposal | **PASS** | `LiquidFormBackground`, `ClothStudy`, `BrandOrbs`, and `WebGLErrorBoundary` functioning smoothly. |
-| **E2E Testing** | Multi-viewport automated end-to-end tests passing without failures | **PASS** | **36/36 tests passed** in Playwright across Desktop, Tablet, and Mobile viewports. See [INTEGRATION_TEST_REPORT.md](file:///d:/Project/404Studio/INTEGRATION_TEST_REPORT.md). |
+| **E2E Testing** | Multi-viewport automated end-to-end tests passing without failures | **PASS** | **36/36 tests passed** in Playwright across Desktop, Tablet, and Mobile viewports. See [integration report](project-management/test-reports/integration/INTEGRATION_TEST_REPORT.md). |
 | **Production Build** | Clean build with zero TypeScript errors and optimized chunk splitting | **PASS** | `npm run build` completes in < 4.0s with clean assets output in `dist/`. |
 | **AI Sensitive Actions & OTP** | Phase 14 AI Chat guardrails, OTP challenge, PII/password isolation, and security modal | **PASS** (Email OTP: `BLOCKED_BY_BACKEND`) | Verified across Vitest (55/55 passed) and Playwright E2E suites. Full documentation in `docs/`. |
 
@@ -59,15 +73,18 @@
 - `@playwright/test`: `^1.65.1`
 
 ### Backend Architecture (in `backend/`)
-- `express`: `^4.21.0`
-- `mongoose`: `^8.7.0` (MongoDB 7.0+)
-- `redis` / `ioredis`: `^5.4.1` (Redis 7.0+)
-- `bullmq`: `^5.14.0` (Background jobs & queue workers)
-- `socket.io`: `^4.8.0` (Real-time admin/customer communication)
-- `jsonwebtoken`: `^9.0.2` (Dual Access + Refresh token flow)
-- `bcryptjs`: `^2.4.3`
-- `multer` & `cloudinary`: Media and asset management
-- `node-cron`: Scheduled maintenance tasks
+- `express`: `^4.18.2` (Node.js LTS `v24.13.0` / `>= 22.0.0`, ESM `"type": "module"`)
+- `mongoose`: `^9.3.0` (MongoDB Atlas Cloud Cluster)
+- `ioredis`: `^5.11.1` (Redis 7.0 container on port 6379)
+- `bullmq`: `^5.78.0` (Email, Tracking, Vector sync asynchronous queues)
+- `socket.io` & `@socket.io/redis-adapter`: `^4.8.3` / `^8.3.0` (Real-time cluster communication)
+- `jsonwebtoken`: `^9.0.3` (Dual Access + Refresh token flow)
+- `bcrypt`: `^6.0.0` (Password hashing)
+- `sharp` & `multer`: `^0.34.5` / `^2.1.1` (Image processing and local/remote uploads)
+- `zod`: `^4.4.3` (Request schema validation)
+- `helmet`, `express-rate-limit`, `express-mongo-sanitize`: `^8.2.0`, `^8.5.2`, `^2.2.0`
+- `node-cron`: `^4.2.1` (Scheduled vouchers, reservations, campaigns)
+- `winston`: `^3.19.0` (Structured logging)
 
 ---
 
@@ -88,12 +105,12 @@ d:\Project\404Studio\
 │   ├── .env.example                   # Sanitized configuration template
 │   └── package.json                   # Backend dependencies & startup scripts
 ├── docker-compose.yml                 # Multi-service local orchestrator (Node + Mongo + Redis)
-├── e2e/
-│   └── storefront.spec.ts             # 36 cross-device Playwright E2E scenarios
-├── public/
-│   ├── assets/                        # ThreeUI runtime shaders & HTML bundles
-│   └── brand-icon.svg                 # Atelier emblem
-├── src/
+├── frontend/                          # React/Vite storefront application
+│   ├── e2e/                           # Playwright cross-device E2E scenarios
+│   ├── public/
+│   │   ├── assets/                    # ThreeUI runtime shaders & HTML bundles
+│   │   └── brand-icon.svg             # Atelier emblem
+│   ├── src/
 │   ├── pages/                         # Page-Based Feature Modules (English Naming)
 │   │   ├── About/                     # Di sản & Triết lý (/about)
 │   │   ├── Account/                   # Trung tâm khách hàng (/account, /orders, /account/coupons)
@@ -140,22 +157,19 @@ d:\Project\404Studio\
 │   │   ├── threeui/                   # WebGL shaders, simulations & error boundaries
 │   │   ├── types/                     # Shared TypeScript interfaces
 │   │   └── utils/                     # Formatting utilities (VND, dd/MM/yyyy)
-│   ├── test/                          # Vitest unit & integration test suites
-│   ├── App.tsx                        # English route configuration & lazy-loading code splitting
-│   ├── index.css                      # Tailwind custom luxury typography & themes
-│   └── main.tsx                       # Root React 19 entry point
-├── BACKEND_AUDIT.md                   # Full backend audit document
-├── BACKEND_MIGRATION_REPORT.md        # Migration report & SHA-256 verification log
-├── BACKEND_ISSUES.md                  # Backend issues & environment considerations
-├── API_FRONTEND_MAPPING.md            # Endpoint-to-screen matrix (36+ endpoints)
-├── FRONTEND_SCREEN_COVERAGE.md        # Screen coverage audit & verification
-├── INTEGRATION_TEST_REPORT.md         # Comprehensive test report (Vitest + Playwright)
-├── UI_VISUAL_TEST_REPORT.md           # Visual & responsive test report
-├── package.json                       # Scripts for both frontend & backend orchestration
-├── playwright.config.ts               # Playwright cross-device test configuration
-├── tailwind.config.js                 # Luxury color palette & typography tokens
-├── tsconfig.json                      # Strict mode TypeScript configuration
-└── vite.config.ts                     # Vite 8 config with proxy forwarding to :5000
+│   │   ├── test/                      # Vitest unit & integration test suites
+│   │   ├── App.tsx                    # English route configuration & lazy-loading code splitting
+│   │   ├── index.css                  # Tailwind custom luxury typography & themes
+│   │   └── main.tsx                   # Root React 19 entry point
+│   ├── package.json                   # Frontend scripts and dependencies
+│   ├── package-lock.json
+│   ├── vite.config.ts                 # Vite proxy and workspace env loading
+│   ├── Dockerfile                     # Nginx production image
+│   └── .env.example                   # Frontend-safe VITE_* template
+├── docs/                              # Topic-organized technical documentation
+├── project-management/                # Audits, test reports, handovers, and task records
+├── compose.yaml                       # Multi-service frontend/backend orchestrator
+└── .github/workflows/                 # CI/CD with frontend working directory
 ```
 
 ---
@@ -242,8 +256,10 @@ d:\Project\404Studio\
 
 ## 7. Execution & Development Guide
 
-### Frontend Commands (Workspace Root)
+### Frontend Commands (`frontend/`)
 ```bash
+cd frontend
+
 # Install frontend dependencies
 npm install
 
@@ -266,16 +282,16 @@ npm run preview
 ### Backend & Orchestration Commands (Workspace Root)
 ```bash
 # Install backend dependencies
-npm run backend:install
+npm --prefix backend install
 
 # Start backend in development mode (with nodemon)
-npm run backend:dev
+npm --prefix backend run dev
 
 # Start local infrastructure with Docker Compose (MongoDB 7 + Redis 7 + Backend)
 docker compose up -d
 
 # Seed database with sample fashion collections
-npm run backend:seed
+npm --prefix backend run seed:demo
 ```
 
 ---
@@ -347,10 +363,10 @@ npm run backend:seed
   - Zero modifications to backend business logic in `backend/` or source repository.
 
 ### 10.2. Documentation & Audit Deliverables
-- [HOME_RECOMMENDATION_AUDIT.md](file:///d:/Project/404Studio/HOME_RECOMMENDATION_AUDIT.md): Comprehensive audit of backend routes, event taxonomy, guest identification, and consent constraints.
-- [HOME_RECOMMENDATION_DESIGN.md](file:///d:/Project/404Studio/HOME_RECOMMENDATION_DESIGN.md): Detailed architectural design, signal scoring mathematics, and UI/UX states.
-- [RECOMMENDATION_API_MAPPING.md](file:///d:/Project/404Studio/RECOMMENDATION_API_MAPPING.md): Exact request/response payloads, headers, query parameters, and fallback mappings.
-- [HOME_RECOMMENDATION_TEST_REPORT.md](file:///d:/Project/404Studio/HOME_RECOMMENDATION_TEST_REPORT.md): Complete test matrix, Vitest unit verification (55/55 passed), and Playwright cross-device E2E validation.
+- [Home recommendation audit](project-management/audits/HOME_RECOMMENDATION_AUDIT.md): Comprehensive audit of backend routes, event taxonomy, guest identification, and consent constraints.
+- [Home recommendation design](docs/architecture/HOME_RECOMMENDATION_DESIGN.md): Detailed architectural design, signal scoring mathematics, and UI/UX states.
+- [Recommendation API mapping](docs/api/RECOMMENDATION_API_MAPPING.md): Exact request/response payloads, headers, query parameters, and fallback mappings.
+- [Home recommendation test report](project-management/test-reports/frontend/HOME_RECOMMENDATION_TEST_REPORT.md): Complete test matrix, Vitest unit verification (55/55 passed), and Playwright cross-device E2E validation.
 
 ---
 
@@ -387,6 +403,42 @@ Phase 14 equips the Atelier Vérité AI Shopping Assistant with intelligent capa
 - [ACCOUNT_CHANGE_SECURITY_TESTS.md](file:///d:/Project/404Studio/docs/ACCOUNT_CHANGE_SECURITY_TESTS.md): Test matrix covering Vitest unit tests and Playwright E2E suites.
 - [CROSS_USER_PRIVACY_TESTS.md](file:///d:/Project/404Studio/docs/CROSS_USER_PRIVACY_TESTS.md): Cross-user privacy isolation and prompt injection defense report.
 - [BACKEND_SECURITY_API_GAPS.md](file:///d:/Project/404Studio/docs/BACKEND_SECURITY_API_GAPS.md): Formal analysis of `BLOCKED_BY_BACKEND` gaps with RFC designs.
+
+---
+
+## 12. Backend Setup, Dependency Repair & Persistent Task Management (TASK-001)
+
+### 12.1. Backend Execution & Service Health Status
+- **Backend Framework**: Express.js `4.18.2` running on Node.js `v24.13.0` (ESM mode).
+- **Installed Dependencies**: Installed cleanly with immutable `npm ci` (652 packages, 0 install errors).
+- **Adjusted Dependencies & Test Fixtures**: Tinh chỉnh test fixture sub-process mock secret trong `requireSecret.test.js` (`env[secretName] = ""` thay vì `delete` để không bị `dotenv` re-load đè từ file `.env` root). Không sửa đổi bất kỳ business logic nào của backend.
+- **Database Connectivity**: MongoDB Atlas kết nối ổn định (`readyState: 1`, 34 collections truy vấn thành công).
+- **Redis Connectivity**: Local Redis container (`redis_local:6379`) trả lời `PONG` ổn định, hỗ trợ session rate limiting, Socket.IO adapter, và BullMQ queues.
+- **API Health Status**: Cả 3 probe `/api/health`, `/api/health/liveness`, `/api/health/readiness` đều trả về HTTP 200 OK.
+- **AI Vector Service**: `/api/ai/health` trả về HTTP 200 OK, engine `mongo_cosine`, 33 vectors (28 active).
+- **Product Catalog API**: `/api/products` và `/api/categories` hoạt động với dữ liệu thực từ MongoDB Atlas.
+- **Docker Compose Status**: Xác minh thành công cú pháp và cấu hình cho `compose.yaml`, `compose.dev.yaml`, `compose.prod.yaml`.
+- **CI/CD Status**: GitHub Actions workflows `.github/workflows/ci.yml` và `release.yml` được đồng bộ chính xác với cấu trúc monorepo (`frontend/`, `backend/`).
+- **Jest Test Suite**: **24/24 test suites passed (100%)**, **215/215 tests passed**, thời gian chạy 47.6s.
+
+### 12.2. Persistent Task Management Hierarchy
+Toàn bộ hệ thống quản lý task và kết quả kiểm thử được lưu trữ cố định trong repository tại `project-management/`:
+- `project-management/tasks/pending/`: Hàng đợi task cho các sprint tiếp theo.
+- `project-management/tasks/in-progress/`: Các task đang được thực hiện.
+- `project-management/tasks/completed/`: Các task đã hoàn thành với đầy đủ bằng chứng kiểm thử (`TASK-001-backend-setup.md`, `TASK-002-frontend-restructure.md`, `TASK-DOCS-ORGANIZATION.md`).
+- `project-management/tasks/blocked/`: Các task bị chặn kèm lý do và điều kiện tiếp tục.
+- `project-management/test-reports/backend/`: Báo cáo kiểm thử backend (`BACKEND_SETUP_VERIFICATION.md`).
+- `project-management/audits/`: Báo cáo audit mã nguồn (`BACKEND_SOURCE_AUDIT.md`, `BACKEND_AUDIT.md`, `BACKEND_MIGRATION_REPORT.md`).
+- `project-management/TASK_INDEX.md`: Bảng mục lục task trung tâm.
+- Thư mục `project-management/` được Git theo dõi (đã xác minh bằng `git check-ignore -v`).
+
+### 12.3. Key Deliverables & Evidence Links
+- [Backend Source Audit](project-management/audits/BACKEND_SOURCE_AUDIT.md): Báo cáo đối chiếu và phân tích kiến trúc backend.
+- [Backend Setup Verification Report](project-management/test-reports/backend/BACKEND_SETUP_VERIFICATION.md): Báo cáo 15 bước kiểm thử có bằng chứng thực tế.
+- [Task TASK-001 Specification](project-management/tasks/completed/TASK-001-backend-setup.md): Hồ sơ chi tiết task TASK-001.
+- [Sanitized Environment Template](backend/.env.example): Mẫu biến môi trường đầy đủ 15 nhóm.
+- [Task Master Index](project-management/TASK_INDEX.md): Bảng trạng thái task tổng thể.
+
 
 
 
