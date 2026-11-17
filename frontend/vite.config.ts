@@ -20,22 +20,18 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true,
-    ...(process.env.VITE_BACKEND_URL
-      ? {
-          proxy: {
-            '/api': {
-              target: process.env.VITE_BACKEND_URL,
-              changeOrigin: true,
-              secure: false,
-            },
-            '/uploads': {
-              target: process.env.VITE_BACKEND_URL,
-              changeOrigin: true,
-              secure: false,
-            },
-          },
-        }
-      : {}),
+    proxy: {
+      '/api': {
+        target: process.env.VITE_BACKEND_URL || 'http://localhost:5000',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/uploads': {
+        target: process.env.VITE_BACKEND_URL || 'http://localhost:5000',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
   },
   // @ts-expect-error - Vitest types
   test: {

@@ -4,8 +4,10 @@
  * Fully handles Bearer Tokens, Refresh Tokens, and Graceful Error Handling
  */
 
-const configuredBaseUrl = import.meta.env.VITE_API_URL || '/api';
-const API_BASE_URL = configuredBaseUrl.replace(/\/$/, '');
+const configuredBaseUrl = (import.meta.env.VITE_API_URL || '/api').trim().replace(/\/$/, '');
+const API_BASE_URL = configuredBaseUrl.endsWith('/api')
+  ? configuredBaseUrl
+  : (configuredBaseUrl === '' ? '/api' : `${configuredBaseUrl}/api`);
 const REQUEST_TIMEOUT_MS = Number(import.meta.env.VITE_API_TIMEOUT_MS || 15_000);
 
 export interface ApiResponse<T = any> {
