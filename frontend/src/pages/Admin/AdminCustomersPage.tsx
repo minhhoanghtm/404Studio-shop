@@ -4,6 +4,7 @@ import { Users, Search, Shield, Ban, CheckCircle, Mail, Phone } from 'lucide-rea
 import { adminApi } from '@/shared/api';
 import { useToastStore } from '@/shared/stores/useToastStore';
 import { formatDate } from '@/shared/utils/formatters';
+import { getTierForPoints } from '@/shared/loyalty';
 
 export const AdminCustomersPage: React.FC = () => {
   const [customers, setCustomers] = useState<any[]>([]);
@@ -166,9 +167,20 @@ export const AdminCustomersPage: React.FC = () => {
                       )}
                     </td>
                     <td className="py-3.5 px-4">
-                      <span className="px-2.5 py-0.5 bg-champagne/15 text-champagne border border-champagne/30 text-[10px] font-mono uppercase tracking-wider rounded-sm">
-                        {c.tier || 'Haute Circle'}
-                      </span>
+                      {(() => {
+                        const calculatedPoints = Math.floor((c.totalSpent || c.totalSpend || 0) / 10000);
+                        const tier = getTierForPoints(calculatedPoints);
+                        return (
+                          <div className="space-y-0.5">
+                            <span className={`px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider rounded-sm border inline-block ${tier.badgeColor}`}>
+                              {tier.nameVi}
+                            </span>
+                            <span className="block text-[10px] font-mono text-platinum-dark">
+                              {calculatedPoints.toLocaleString('vi-VN')} pts
+                            </span>
+                          </div>
+                        );
+                      })()}
                     </td>
                     <td className="py-3.5 px-4 font-mono">{c.ordersCount || 0} đơn</td>
                     <td className="py-3.5 px-4 text-platinum-dark">{formatDate(c.createdAt)}</td>

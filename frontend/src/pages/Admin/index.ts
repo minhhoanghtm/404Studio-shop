@@ -7,3 +7,7 @@ export * from './AdminCustomersPage';
 export * from './AdminCouponsPage';
 export * from './AdminSettingsPage';
 export * from './AdminChatPage';
+export * from './AdminLoyaltyPage';
+export * from './AdminLoyaltyCustomersPage';
+export * from './AdminLoyaltyTransactionsPage';
+export * from './AdminLoyaltySettingsPage';

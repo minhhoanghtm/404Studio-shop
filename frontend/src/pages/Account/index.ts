@@ -5,3 +5,4 @@ export * from './AccountOrderDetailPage';
 export * from './AccountAddressesPage';
 export * from './AccountSettingsPage';
 export * from './MyCouponsPage';
+export * from './AccountLoyaltyPage';

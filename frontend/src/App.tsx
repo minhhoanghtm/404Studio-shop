@@ -59,6 +59,7 @@ const AccountOrderDetailPage = lazy(() => import('./pages/Account').then(m => ({
 const AccountAddressesPage = lazy(() => import('./pages/Account').then(m => ({ default: m.AccountAddressesPage })));
 const AccountSettingsPage = lazy(() => import('./pages/Account').then(m => ({ default: m.AccountSettingsPage })));
 const MyCouponsPage = lazy(() => import('./pages/Account').then(m => ({ default: m.MyCouponsPage })));
+const AccountLoyaltyPage = lazy(() => import('./pages/Account').then(m => ({ default: m.AccountLoyaltyPage })));
 
 // Admin Portal Pages
 const AdminDashboardPage = lazy(() => import('./pages/Admin').then(m => ({ default: m.AdminDashboardPage })));
@@ -71,6 +72,10 @@ const AdminCustomersPage = lazy(() => import('./pages/Admin').then(m => ({ defau
 const AdminCouponsPage = lazy(() => import('./pages/Admin').then(m => ({ default: m.AdminCouponsPage })));
 const AdminSettingsPage = lazy(() => import('./pages/Admin').then(m => ({ default: m.AdminSettingsPage })));
 const AdminChatPage = lazy(() => import('./pages/Admin').then(m => ({ default: m.AdminChatPage })));
+const AdminLoyaltyPage = lazy(() => import('./pages/Admin').then(m => ({ default: m.AdminLoyaltyPage })));
+const AdminLoyaltyCustomersPage = lazy(() => import('./pages/Admin').then(m => ({ default: m.AdminLoyaltyCustomersPage })));
+const AdminLoyaltyTransactionsPage = lazy(() => import('./pages/Admin').then(m => ({ default: m.AdminLoyaltyTransactionsPage })));
+const AdminLoyaltySettingsPage = lazy(() => import('./pages/Admin').then(m => ({ default: m.AdminLoyaltySettingsPage })));
 
 // Admin Enterprise Policy Management Pages
 const AdminPoliciesPage = lazy(() => import('./pages/AdminPolicies').then(m => ({ default: m.AdminPoliciesPage })));
@@ -206,6 +211,8 @@ export function App() {
             <Route path="account/settings" element={<AccountSettingsPage />} />
             <Route path="account/coupons" element={<MyCouponsPage />} />
             <Route path="my-coupons" element={<MyCouponsPage />} />
+            <Route path="account/loyalty" element={<AccountLoyaltyPage />} />
+            <Route path="loyalty" element={<AccountLoyaltyPage />} />
 
             {/* 404 Catch-All */}
             <Route path="404" element={<NotFoundPage />} />
@@ -290,6 +297,40 @@ export function App() {
             element={
               <Suspense fallback={<PageLoadingFallback />}>
                 <AdminChatPage />
+              </Suspense>
+            }
+          />
+
+          {/* Admin Loyalty & 12-Tier Membership Routes */}
+          <Route
+            path="admin/loyalty"
+            element={
+              <Suspense fallback={<PageLoadingFallback />}>
+                <AdminLoyaltyPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="admin/loyalty/customers"
+            element={
+              <Suspense fallback={<PageLoadingFallback />}>
+                <AdminLoyaltyCustomersPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="admin/loyalty/transactions"
+            element={
+              <Suspense fallback={<PageLoadingFallback />}>
+                <AdminLoyaltyTransactionsPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="admin/loyalty/settings"
+            element={
+              <Suspense fallback={<PageLoadingFallback />}>
+                <AdminLoyaltySettingsPage />
               </Suspense>
             }
           />

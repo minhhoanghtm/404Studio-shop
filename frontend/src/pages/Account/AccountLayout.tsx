@@ -1,11 +1,13 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../shared/stores/useAuthStore';
-import { User, Package, MapPin, Settings, LogOut, Sparkles, Tag } from 'lucide-react';
+import { useLoyalty } from '../../shared/hooks/useLoyalty';
+import { User, Package, MapPin, Settings, LogOut, Sparkles, Tag, Award } from 'lucide-react';
 import { vi } from '../../shared/locales/vi/common';
 
 export const AccountLayout: React.FC<{ children: React.ReactNode; activeTab?: string }> = ({ children }) => {
   const { user, logout } = useAuthStore();
+  const { profile } = useLoyalty();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -15,6 +17,7 @@ export const AccountLayout: React.FC<{ children: React.ReactNode; activeTab?: st
 
   const navItems = [
     { label: 'Tổng quan tài khoản', to: '/account', icon: User, end: true },
+    { label: 'Hạng Patron & Điểm thưởng', to: '/account/loyalty', icon: Award },
     { label: 'Đơn hàng & Biên lai', to: '/orders', icon: Package },
     { label: 'Sổ địa chỉ giao hàng', to: '/account/addresses', icon: MapPin },
     { label: 'Ví phiếu ưu đãi', to: '/account/coupons', icon: Tag },
@@ -36,7 +39,7 @@ export const AccountLayout: React.FC<{ children: React.ReactNode; activeTab?: st
                   {user?.name || 'Khách Quý Patron'}
                 </h1>
                 <span className="px-2.5 py-0.5 rounded-full bg-champagne/20 text-champagne text-[10px] font-mono uppercase tracking-widest flex items-center gap-1">
-                  <Sparkles className="w-3 h-3" /> {user?.vipTier || 'Haute Circle'}
+                  <Sparkles className="w-3 h-3" /> {profile?.currentTier?.nameVi || user?.vipTier || 'Đồng I'}
                 </span>
               </div>
               <p className="text-xs text-platinum-dark font-sans mt-0.5">

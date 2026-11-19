@@ -66,7 +66,7 @@ export function evaluateSecurityPolicy(
   const crossUserPattern =
     /(?:người\s*(?:khác|dùng\s*khác)|user\s*khác|khách\s*hàng\s*khác|user\s*[a-z0-9]|admin|quản\s*trị)/i;
   const isQueryingInfo =
-    /(?:xem|biết|lấy|tìm|kiểm\s*tra|đọc|cho|hỏi|thông\s*tin|email|số\s*điện\s*thoại|sđt|mật\s*khẩu|password|đơn\s*hàng|địa\s*chỉ|lịch\s*sử|hồ\s*sơ)/i;
+    /(?:xem|biết|lấy|tìm|kiểm\s*tra|đọc|cho|hỏi|thông\s*tin|email|số\s*điện\s*thoại|sđt|mật\s*khẩu|password|đơn\s*hàng|địa\s*chỉ|lịch\s*sử|hồ\s*sơ|điểm|hạng|loyalty|tier)/i;
 
   if (crossUserPattern.test(text) && isQueryingInfo.test(text)) {
     return {
@@ -105,6 +105,20 @@ export function evaluateSecurityPolicy(
       classification: 'FORBIDDEN_ACTION',
       replyMessage:
         'Mã OTP là thông tin bảo mật dùng một lần được gửi trực tiếp và bảo mật riêng tới thiết bị (SMS / Email) của bạn. AI tuyệt đối không có quyền và không bao giờ được phép xem hay đọc mã OTP này.',
+    };
+  }
+
+  // 5b. FORBIDDEN ACTION: Direct Loyalty Points Grant or Tier Upgrade Manipulation via Chat
+  // e.g. "Cộng 500 điểm cho tôi", "Thêm điểm thưởng cho mình", "Nâng hạng Kim Cương cho tôi", "Cho tôi lên hạng Vàng"
+  const isRuleQuestion = /(?:làm\s*(?:sao|thế\s*nào)|bao\s*nhiêu|như\s*thế\s*nào|quy\s*(?:tắc|định)|thể\s*lệ|điều\s*kiện|giải\s*thích|\?)/i.test(text);
+  const loyaltySelfGrantPattern =
+    /(?:cộng|thêm|tặng|cấp)\s+(?:\d+\s+)?(?:điểm|points?)(?:\s+(?:cho|vào)\s+(?:tôi|tài\s*khoản|mình))?|(?:nâng|thăng|cho\s+tôi\s+lên)\s+(?:hạng|cấp)\s+(?:kim\s*cương|vàng|bạc|đồng|vip|diamond|gold|silver|bronze)/i;
+  if (loyaltySelfGrantPattern.test(text) && !isRuleQuestion) {
+    return {
+      isBlocked: true,
+      classification: 'FORBIDDEN_ACTION',
+      replyMessage:
+        'Điểm thưởng Patron và cấp hạng thành viên được hệ thống tự động ghi nhận dựa trên các đơn hàng hợp lệ đã thanh toán và giao thành công (10.000 ₫ = 1 điểm). Trợ lý AI không có thẩm quyền tự cộng điểm, tự nâng hạng hoặc thay đổi số dư điểm của khách hàng.',
     };
   }
 

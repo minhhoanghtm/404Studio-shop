@@ -538,3 +538,25 @@ export const adminTrackingApi = {
   getDataSubjectRequests: () =>
     api.get<ApiResponse<any[]>>('/privacy/data-requests'),
 };
+
+export const loyaltyApi = {
+  getProfile: () => api.get<ApiResponse<any>>('/loyalty/profile'),
+  getTransactions: (params?: any) => {
+    const query = new URLSearchParams(params || {});
+    const qs = query.toString();
+    return api.get<ApiResponse<any>>(`/loyalty/transactions${qs ? `?${qs}` : ''}`);
+  },
+  getTiers: () => api.get<ApiResponse<any>>('/loyalty/tiers'),
+  getAdminStats: () => api.get<ApiResponse<any>>('/loyalty/admin/stats'),
+  getAdminCustomers: (params?: any) => {
+    const query = new URLSearchParams(params || {});
+    const qs = query.toString();
+    return api.get<ApiResponse<any>>(`/loyalty/admin/customers${qs ? `?${qs}` : ''}`);
+  },
+  getAdminTransactions: (params?: any) => {
+    const query = new URLSearchParams(params || {});
+    const qs = query.toString();
+    return api.get<ApiResponse<any>>(`/loyalty/admin/transactions${qs ? `?${qs}` : ''}`);
+  },
+  updateTierSettings: (data: any) => api.put<ApiResponse<any>>('/loyalty/admin/tiers', data),
+};

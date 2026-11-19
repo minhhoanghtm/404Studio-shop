@@ -2,12 +2,18 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { AccountLayout } from './AccountLayout';
 import { useAuthStore } from '../../shared/stores/useAuthStore';
-import { Package, ArrowRight, Sparkles, MapPin, ShieldCheck } from 'lucide-react';
+import { useLoyalty } from '../../shared/hooks/useLoyalty';
+import { Package, ArrowRight, Sparkles, MapPin, ShieldCheck, Award } from 'lucide-react';
 import { formatCurrency } from '../../shared/utils/formatters';
 
 export const AccountDashboardPage: React.FC = () => {
   const { user, orders } = useAuthStore();
+  const { profile } = useLoyalty();
   const recentOrder = orders[0];
+  const currentTier = profile?.currentTier;
+  const nextTier = profile?.nextTier;
+  const qualifyingPoints = profile?.qualifyingPoints || 0;
+  const pointsToNextTier = profile?.pointsToNextTier || 0;
 
   return (
     <AccountLayout>
@@ -23,18 +29,38 @@ export const AccountDashboardPage: React.FC = () => {
 
         {/* Tier Status Card */}
         <div className="p-6 rounded-xl bg-gradient-to-r from-noir-950 via-noir-850 to-noir-900 border border-champagne/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
+          <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-champagne" />
-              <h4 className="font-display text-lg text-white">Thành viên Danh dự Haute Circle</h4>
+              <Award className="w-5 h-5 text-champagne" />
+              <h4 className="font-display text-lg text-white">
+                Cấp Hạng Thành Viên: <span className="text-champagne font-bold">{currentTier?.nameVi || 'Đồng I'}</span>
+              </h4>
+              <span className="text-xs font-mono text-champagne bg-champagne/10 px-2.5 py-0.5 rounded-full border border-champagne/30">
+                {qualifyingPoints.toLocaleString('vi-VN')} điểm
+              </span>
             </div>
-            <p className="text-xs text-platinum-dark font-sans mt-1">
-              Đặc quyền kích hoạt: Ưu tiên giữ chỗ tham dự Runway Paris & Tokyo, Concierge thử đồ tại salon riêng, và miễn phí vận chuyển găng tay trắng toàn cầu.
+            <p className="text-xs text-platinum-dark font-sans">
+              {nextTier ? (
+                <span>
+                  Bạn đang ở nhóm <strong className="text-white">{currentTier?.nameEn}</strong>. Cần thêm{' '}
+                  <strong className="text-champagne font-mono">{pointsToNextTier.toLocaleString('vi-VN')} điểm</strong> nữa để thăng hạng lên{' '}
+                  <strong className="text-white">{nextTier.nameVi}</strong>.
+                </span>
+              ) : (
+                <span className="text-cyan-300 font-medium">
+                  Quý khách đang sở hữu cấp hạng vinh dự tối thượng Kim Cương III của Maison.
+                </span>
+              )}
             </p>
           </div>
-          <span className="text-xs font-mono text-champagne bg-champagne/10 px-3 py-1.5 rounded-full border border-champagne/30 self-start sm:self-auto">
-            Hạng VIP: Cấp 1
-          </span>
+          <Link
+            to="/account/loyalty"
+            className="text-xs font-mono text-champagne hover:text-white bg-champagne/10 hover:bg-champagne/20 px-3.5 py-2 rounded-full border border-champagne/30 self-start sm:self-auto flex items-center gap-1.5 transition-colors"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Xem chi tiết sổ cái điểm & đặc quyền</span>
+            <ArrowRight className="w-3 h-3" />
+          </Link>
         </div>
 
         {/* Recent Order Preview */}
