@@ -280,3 +280,231 @@ export const adminApi = {
   deleteVoucher: (id: string) => api.delete<ApiResponse<any>>(`/vouchers/${id}`),
   updateSettings: (data: any) => api.put<ApiResponse<any>>('/settings', data),
 };
+
+// ============================================================================
+// POLICY MANAGEMENT APIs (Admin & Public Synchronized)
+// ============================================================================
+export interface PolicySection {
+  _id?: string;
+  type: 'hero' | 'story' | 'gallery' | 'quote' | 'image_text' | 'products' | 'banner' | 'cta';
+  order?: number;
+  sortOrder?: number;
+  isActive?: boolean;
+  data: Record<string, any>;
+}
+
+export interface PolicyDocument {
+  _id: string;
+  title: string;
+  slug: string;
+  type: string;
+  excerpt?: string;
+  status: 'draft' | 'published' | 'archived';
+  seoTitle?: string;
+  seoDescription?: string;
+  seoKeywords?: string;
+  displayOrder?: number;
+  publishedAt?: string | null;
+  viewCount?: number;
+  isFeatured?: boolean;
+  sections?: PolicySection[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface PolicyListResponse {
+  pages: PolicyDocument[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export const adminPoliciesApi = {
+  getPolicies: (params?: {
+    type?: string;
+    status?: string;
+    search?: string;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+    page?: number;
+    limit?: number;
+  }) => {
+    const query = new URLSearchParams();
+    query.set('type', params?.type || 'policy');
+    if (params?.status) query.set('status', params.status);
+    if (params?.search) query.set('search', params.search);
+    if (params?.sortBy) query.set('sortBy', params.sortBy);
+    if (params?.sortOrder) query.set('sortOrder', params.sortOrder);
+    if (params?.page) query.set('page', params.page.toString());
+    if (params?.limit) query.set('limit', params.limit.toString());
+    return api.get<ApiResponse<PolicyListResponse>>(`/admin/pages?${query.toString()}`);
+  },
+
+  getPolicyById: (id: string) =>
+    api.get<ApiResponse<PolicyDocument>>(`/admin/pages/${encodeURIComponent(id)}`),
+
+  getPolicyDetail: (id: string) =>
+    api.get<ApiResponse<{ page: PolicyDocument; sections: PolicySection[] }>>(`/admin/pages/${encodeURIComponent(id)}/detail`),
+
+  createPolicy: (data: Partial<PolicyDocument> & { sections?: PolicySection[] }) =>
+    api.post<ApiResponse<PolicyDocument>>('/admin/pages', {
+      ...data,
+      type: data.type || 'policy',
+    }),
+
+  updatePolicy: (id: string, data: Partial<PolicyDocument> & { sections?: PolicySection[] }) =>
+    api.put<ApiResponse<PolicyDocument>>(`/admin/pages/${encodeURIComponent(id)}`, data),
+
+  deletePolicy: (id: string) =>
+    api.delete<ApiResponse<null>>(`/admin/pages/${encodeURIComponent(id)}`),
+
+  toggleFeature: (id: string) =>
+    api.put<ApiResponse<PolicyDocument>>(`/admin/pages/${encodeURIComponent(id)}/feature`, {}),
+};
+
+export const publicPoliciesApi = {
+  getPublishedPolicies: (type: string = 'policy') =>
+    api.get<ApiResponse<PolicyListResponse>>(`/pages?type=${encodeURIComponent(type)}&status=published`),
+
+  getPolicyBySlug: (slug: string) =>
+    api.get<ApiResponse<PolicyDocument>>(`/pages/${encodeURIComponent(slug)}`),
+
+  incrementPageView: (slug: string) =>
+    api.patch<ApiResponse<{ viewCount: number }>>(`/pages/${encodeURIComponent(slug)}/view`, {}),
+};
+
+// ============================================================================
+// ADMIN TRACKING & BEHAVIORAL ANALYTICS APIs
+// ============================================================================
+export interface TrackingOverviewMetrics {
+  totalEvents: number;
+  activeUsersCount: number;
+  activeSessionsCount: number;
+  eventTypeStats: Record<string, number>;
+  recommendationMetrics: {
+    impressions: number;
+    clicks: number;
+    ctrPercentage: number;
+  };
+  aiMetrics: {
+    recommendedCount: number;
+    clickedCount: number;
+    ctrPercentage: number;
+    cartActionConfirmedCount: number;
+  };
+  topViewedProducts: Array<{
+    _id: string;
+    views: number;
+    name: string;
+    price: number;
+    image?: string;
+  }>;
+  topSearches: Array<{
+    query: string;
+    count: number;
+  }>;
+}
+
+export interface FunnelStage {
+  stage: string;
+  count: number;
+  dropOffRate?: number;
+  conversionRate?: number;
+}
+
+export interface FunnelAnalyticsResponse {
+  sessionFunnel: FunnelStage[];
+  userFunnel: FunnelStage[];
+  rawStages: Record<string, number>;
+}
+
+export interface ActivityAnalyticsResponse {
+  period: { start: string; end: string };
+  pageAnalytics: Array<{
+    pathname: string;
+    views: number;
+    avgDwellSec: number;
+    avgActiveSec: number;
+    avgIdleSec: number;
+  }>;
+  trafficSources: Array<{ source: string; count: number }>;
+  apiMetrics: Array<{
+    endpoint: string;
+    count: number;
+    avgLatencyMs: number;
+    slowCount: number;
+    errorCount: number;
+  }>;
+  checkoutFunnel: Record<string, number>;
+}
+
+export interface LiveSession {
+  sessionId: string;
+  userId?: string;
+  isAnonymous: boolean;
+  currentRoute?: string;
+  status: 'active' | 'idle' | 'away' | 'background' | 'disconnected';
+  lastSeen: string;
+  deviceType?: string;
+  tabCount: number;
+}
+
+export interface LivePresenceResponse {
+  sessions: LiveSession[];
+  counts: {
+    total: number;
+    active: number;
+    idle: number;
+    away: number;
+    background: number;
+    disconnected: number;
+    guestCount?: number;
+    authenticatedCount?: number;
+  };
+  redisConnected: boolean;
+}
+
+export const adminTrackingApi = {
+  getOverview: (params?: { startDate?: string; endDate?: string }) => {
+    const query = new URLSearchParams();
+    if (params?.startDate) query.set('startDate', params.startDate);
+    if (params?.endDate) query.set('endDate', params.endDate);
+    const qs = query.toString();
+    return api.get<ApiResponse<TrackingOverviewMetrics>>(`/events/analytics/overview${qs ? `?${qs}` : ''}`);
+  },
+
+  getFunnel: (params?: { startDate?: string; endDate?: string }) => {
+    const query = new URLSearchParams();
+    if (params?.startDate) query.set('startDate', params.startDate);
+    if (params?.endDate) query.set('endDate', params.endDate);
+    const qs = query.toString();
+    return api.get<ApiResponse<FunnelAnalyticsResponse>>(`/events/analytics/funnel${qs ? `?${qs}` : ''}`);
+  },
+
+  getActivity: (params?: { startDate?: string; endDate?: string }) => {
+    const query = new URLSearchParams();
+    if (params?.startDate) query.set('startDate', params.startDate);
+    if (params?.endDate) query.set('endDate', params.endDate);
+    const qs = query.toString();
+    return api.get<ApiResponse<ActivityAnalyticsResponse>>(`/events/analytics/activity${qs ? `?${qs}` : ''}`);
+  },
+
+  getLiveSessions: (params?: { statusFilter?: string; routeFilter?: string; limit?: number }) => {
+    const query = new URLSearchParams();
+    if (params?.statusFilter) query.set('statusFilter', params.statusFilter);
+    if (params?.routeFilter) query.set('routeFilter', params.routeFilter);
+    if (params?.limit) query.set('limit', params.limit.toString());
+    const qs = query.toString();
+    return api.get<ApiResponse<LivePresenceResponse>>(`/events/presence/live${qs ? `?${qs}` : ''}`);
+  },
+
+  getSessionTimeline: (sessionId: string) =>
+    api.get<ApiResponse<any>>(`/events/presence/session/${encodeURIComponent(sessionId)}`),
+
+  getPolicyMetadata: () =>
+    api.get<ApiResponse<{ version: string; effectiveDate: string }>>('/privacy/policy'),
+
+  getDataSubjectRequests: () =>
+    api.get<ApiResponse<any[]>>('/privacy/data-requests'),
+};

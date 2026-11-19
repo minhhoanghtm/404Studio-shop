@@ -13,6 +13,8 @@ import {
   Sparkles,
   Shield,
   LogOut,
+  FileText,
+  Activity,
 } from 'lucide-react';
 import { useAuthStore } from '@/shared/stores/useAuthStore';
 
@@ -31,7 +33,9 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
   const navigate = useNavigate();
 
   const navLinks = [
-    { label: 'Thống Kê Tổng Quan', to: '/admin', icon: LayoutDashboard, end: true },
+    { label: 'Thống Kê Doanh Thu', to: '/admin', icon: LayoutDashboard, end: true },
+    { label: 'Chính Sách Doanh Nghiệp', to: '/admin/policies', icon: FileText },
+    { label: 'Phân Tích & Tracking', to: '/admin/tracking', icon: Activity },
     { label: 'Quản Lý Tác Phẩm', to: '/admin/products', icon: Shirt },
     { label: 'Danh Mục Thời Trang', to: '/admin/categories', icon: FolderTree },
     { label: 'Quản Lý Đơn Hàng', to: '/admin/orders', icon: ShoppingBag },

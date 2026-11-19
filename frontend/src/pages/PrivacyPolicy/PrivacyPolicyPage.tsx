@@ -1,10 +1,13 @@
 import React from 'react';
-import { ShieldCheck, Mail, Phone, MapPin, Lock, FileText, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { ShieldCheck, Lock, FileText, ArrowRight, CheckCircle2, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useConsentStore } from '@/shared/consent';
+import { usePublicPolicy } from '@/shared/hooks/usePublicPolicy';
+import { sanitizeHtml } from '@/shared/utils/sanitizeHtml';
 
 export const PrivacyPolicyPage: React.FC = () => {
   const openPreferences = useConsentStore((state) => state.openPreferences);
+  const { policy, dynamicContent, isLivePolicy } = usePublicPolicy('privacy-policy');
 
   return (
     <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#0b0b0e] text-[#f2f2f4] pt-28 pb-20 px-4 sm:px-6 lg:px-8">
@@ -18,14 +21,25 @@ export const PrivacyPolicyPage: React.FC = () => {
             <span className="text-white/60">Pháp lý & Quyền riêng tư</span>
           </div>
           <h1 className="font-serif text-3xl sm:text-5xl uppercase tracking-wider text-white font-medium">
-            Chính Sách Bảo Mật
+            {isLivePolicy && policy ? policy.title : 'Chính Sách Bảo Mật'}
           </h1>
           <p className="text-sm text-white/60 font-light max-w-2xl">
-            Quy định về bảo vệ dữ liệu cá nhân theo Luật Bảo vệ dữ liệu cá nhân số 91/2025/QH15 và Nghị định số 356/2025/NĐ-CP của Chính phủ.
+            {isLivePolicy && policy?.excerpt
+              ? policy.excerpt
+              : 'Quy định về bảo vệ dữ liệu cá nhân theo Luật Bảo vệ dữ liệu cá nhân số 91/2025/QH15 và Nghị định số 356/2025/NĐ-CP của Chính phủ.'}
           </p>
           <div className="flex flex-wrap items-center gap-3 pt-2 text-xs text-white/50 font-mono">
-            <span className="px-2.5 py-1 rounded bg-white/5 border border-white/10">Phiên bản: 2026-11-07</span>
-            <span className="px-2.5 py-1 rounded bg-white/5 border border-white/10">Ngày hiệu lực: 16/11/2026</span>
+            <span className="px-2.5 py-1 rounded bg-white/5 border border-white/10">
+              Phiên bản: {policy?.updatedAt ? new Date(policy.updatedAt).toISOString().split('T')[0] : '2026-11-07'}
+            </span>
+            <span className="px-2.5 py-1 rounded bg-white/5 border border-white/10">
+              Ngày hiệu lực: {policy?.publishedAt ? new Date(policy.publishedAt).toLocaleDateString('vi-VN') : '16/11/2026'}
+            </span>
+            {isLivePolicy && (
+              <span className="px-2.5 py-1 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center gap-1">
+                <Sparkles className="w-3 h-3" /> Đã đồng bộ Backend
+              </span>
+            )}
             <button
               type="button"
               onClick={openPreferences}
@@ -35,6 +49,19 @@ export const PrivacyPolicyPage: React.FC = () => {
             </button>
           </div>
         </div>
+
+        {/* Dynamic Published Policy Content from Backend */}
+        {isLivePolicy && dynamicContent && (
+          <section className="p-8 rounded-2xl bg-white/[0.02] border border-[#d4af37]/30 space-y-4">
+            <div className="flex items-center gap-2 text-xs font-mono text-[#d4af37] uppercase tracking-wider">
+              <Sparkles className="w-3.5 h-3.5" /> Văn Bản Chính Thức Được Xuất Bản Bởi Ban Quản Trị
+            </div>
+            <div
+              className="prose prose-invert max-w-none text-sm text-white/80 leading-relaxed space-y-3"
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(dynamicContent) }}
+            />
+          </section>
+        )}
 
         {/* Section 1: Controller Info */}
         <section className="space-y-4">

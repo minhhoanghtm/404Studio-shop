@@ -1,7 +1,7 @@
 # ATELIER VÉRITÉ — TASK & EXECUTION INDEX
 **Architecture**: Monorepo with separated `frontend/` & `backend/`
 **Compliance**: Vietnam Law 91/2025/QH15 & Decree 356/2025/NĐ-CP
-**Last Updated**: 17/11/2026
+**Last Updated**: 19/11/2026
 
 ---
 
@@ -14,6 +14,8 @@
 | **TASK-FIX-THEME-TOGGLE** | Fix Light/Dark Mode Toggle & Full UI Theme System Synchronization | `COMPLETED` | HIGH | Senior React/TypeScript & UI/UX Engineer | [TASK-FIX-THEME-TOGGLE.md](file:///d:/Project/404Studio/project-management/tasks/completed/TASK-FIX-THEME-TOGGLE.md) |
 | **TASK-INPUT-CONTRAST** | Global Input Contrast, Readability & Form UI Audit | `IN_PROGRESS` | HIGH | Senior Frontend / Accessibility Engineer | [TASK-INPUT-CONTRAST.md](file:///d:/Project/404Studio/project-management/tasks/in-progress/TASK-INPUT-CONTRAST.md) |
 | **TASK-REAL-API-INTEGRATION** | Real API Integration, Client Contracts & Mock Cleanup | `IN_PROGRESS` | HIGH | Senior Fullstack / API Integration Specialist | [TASK-REAL-API-INTEGRATION.md](file:///d:/Project/404Studio/project-management/tasks/in-progress/TASK-REAL-API-INTEGRATION.md) |
+| **TASK-ADMIN-POLICY-MANAGEMENT** | Enterprise Policy Lifecycle Management System & Public Sync | `COMPLETED` | CRITICAL | Principal Fullstack / Senior React & Privacy Engineer | [TASK-ADMIN-POLICY-MANAGEMENT.md](file:///d:/Project/404Studio/project-management/tasks/completed/TASK-ADMIN-POLICY-MANAGEMENT.md) |
+| **TASK-ADMIN-TRACKING-ANALYTICS** | Enterprise User Tracking & Behavioral Analytics Dashboard | `COMPLETED` | CRITICAL | Senior Fullstack / Data Analytics & Security Specialist | [TASK-ADMIN-TRACKING-ANALYTICS.md](file:///d:/Project/404Studio/project-management/tasks/completed/TASK-ADMIN-TRACKING-ANALYTICS.md) |
 | **TASK-DOCS-ORGANIZATION** | Audit, Classify & Organize Root Documentation | `COMPLETED` | HIGH | Documentation Engineer / Repository Maintainer | [TASK-DOCS-ORGANIZATION.md](file:///d:/Project/404Studio/project-management/tasks/completed/TASK-DOCS-ORGANIZATION.md) |
 
 ---

@@ -70,6 +70,19 @@ const AdminCouponsPage = lazy(() => import('./pages/Admin').then(m => ({ default
 const AdminSettingsPage = lazy(() => import('./pages/Admin').then(m => ({ default: m.AdminSettingsPage })));
 const AdminChatPage = lazy(() => import('./pages/Admin').then(m => ({ default: m.AdminChatPage })));
 
+// Admin Enterprise Policy Management Pages
+const AdminPoliciesPage = lazy(() => import('./pages/AdminPolicies').then(m => ({ default: m.AdminPoliciesPage })));
+const AdminPolicyCreatePage = lazy(() => import('./pages/AdminPolicyCreate').then(m => ({ default: m.AdminPolicyCreatePage })));
+const AdminPolicyEditPage = lazy(() => import('./pages/AdminPolicyEdit').then(m => ({ default: m.AdminPolicyEditPage })));
+const AdminPolicyHistoryPage = lazy(() => import('./pages/AdminPolicyHistory').then(m => ({ default: m.AdminPolicyHistoryPage })));
+
+// Admin User Tracking & Behavioral Analytics Pages
+const AdminTrackingPage = lazy(() => import('./pages/AdminTracking').then(m => ({ default: m.AdminTrackingPage })));
+const AdminTrackingUsersPage = lazy(() => import('./pages/AdminTrackingUsers').then(m => ({ default: m.AdminTrackingUsersPage })));
+const AdminTrackingEventsPage = lazy(() => import('./pages/AdminTrackingEvents').then(m => ({ default: m.AdminTrackingEventsPage })));
+const AdminTrackingProductsPage = lazy(() => import('./pages/AdminTrackingProducts').then(m => ({ default: m.AdminTrackingProductsPage })));
+const AdminTrackingConsentPage = lazy(() => import('./pages/AdminTrackingConsent').then(m => ({ default: m.AdminTrackingConsentPage })));
+
 // High-Fashion Loading Fallback
 const PageLoadingFallback: React.FC = () => (
   <div className="w-full min-h-[60vh] flex flex-col items-center justify-center bg-ivory-50 text-noir-900 dark:bg-noir-950 dark:text-white p-8 transition-colors duration-300">
@@ -259,6 +272,82 @@ export function App() {
             element={
               <Suspense fallback={<PageLoadingFallback />}>
                 <AdminChatPage />
+              </Suspense>
+            }
+          />
+
+          {/* Admin Policy Management Routes */}
+          <Route
+            path="admin/policies"
+            element={
+              <Suspense fallback={<PageLoadingFallback />}>
+                <AdminPoliciesPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="admin/policies/new"
+            element={
+              <Suspense fallback={<PageLoadingFallback />}>
+                <AdminPolicyCreatePage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="admin/policies/:id/edit"
+            element={
+              <Suspense fallback={<PageLoadingFallback />}>
+                <AdminPolicyEditPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="admin/policies/:id/history"
+            element={
+              <Suspense fallback={<PageLoadingFallback />}>
+                <AdminPolicyHistoryPage />
+              </Suspense>
+            }
+          />
+
+          {/* Admin User Tracking & Behavioral Analytics Routes */}
+          <Route
+            path="admin/tracking"
+            element={
+              <Suspense fallback={<PageLoadingFallback />}>
+                <AdminTrackingPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="admin/tracking/users"
+            element={
+              <Suspense fallback={<PageLoadingFallback />}>
+                <AdminTrackingUsersPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="admin/tracking/events"
+            element={
+              <Suspense fallback={<PageLoadingFallback />}>
+                <AdminTrackingEventsPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="admin/tracking/products"
+            element={
+              <Suspense fallback={<PageLoadingFallback />}>
+                <AdminTrackingProductsPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="admin/tracking/consent"
+            element={
+              <Suspense fallback={<PageLoadingFallback />}>
+                <AdminTrackingConsentPage />
               </Suspense>
             }
           />

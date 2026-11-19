@@ -1,8 +1,12 @@
 import React from 'react';
-import { ScrollText, ShieldCheck, Scale, Package, HelpCircle } from 'lucide-react';
+import { ScrollText, ShieldCheck, Scale, Package, HelpCircle, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { usePublicPolicy } from '@/shared/hooks/usePublicPolicy';
+import { sanitizeHtml } from '@/shared/utils/sanitizeHtml';
 
 export const TermsOfServicePage: React.FC = () => {
+  const { policy, dynamicContent, isLivePolicy } = usePublicPolicy('terms-of-service');
+
   return (
     <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#0b0b0e] text-[#f2f2f4] pt-28 pb-20 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto space-y-12 w-full overflow-hidden">
@@ -15,16 +19,40 @@ export const TermsOfServicePage: React.FC = () => {
             <span className="text-white/60">Pháp lý & Quy chế</span>
           </div>
           <h1 className="font-serif text-3xl sm:text-5xl uppercase tracking-wider text-white font-medium">
-            Điều Khoản Sử Dụng
+            {isLivePolicy && policy ? policy.title : 'Điều Khoản Sử Dụng'}
           </h1>
           <p className="text-sm text-white/60 font-light max-w-2xl">
-            Quy chế hoạt động và thỏa thuận giao kết hợp đồng mua bán điện tử tuân thủ Luật Bảo vệ quyền lợi người tiêu dùng 19/2023/QH15 và Luật Giao dịch điện tử 20/2023/QH15.
+            {isLivePolicy && policy?.excerpt
+              ? policy.excerpt
+              : 'Quy chế hoạt động và thỏa thuận giao kết hợp đồng mua bán điện tử tuân thủ Luật Bảo vệ quyền lợi người tiêu dùng 19/2023/QH15 và Luật Giao dịch điện tử 20/2023/QH15.'}
           </p>
           <div className="flex items-center gap-3 pt-2 text-xs text-white/50 font-mono">
-            <span className="px-2.5 py-1 rounded bg-white/5 border border-white/10">Phiên bản: 2026-11-07</span>
-            <span className="px-2.5 py-1 rounded bg-white/5 border border-white/10">Cập nhật: 16/11/2026</span>
+            <span className="px-2.5 py-1 rounded bg-white/5 border border-white/10">
+              Phiên bản: {policy?.updatedAt ? new Date(policy.updatedAt).toISOString().split('T')[0] : '2026-11-07'}
+            </span>
+            <span className="px-2.5 py-1 rounded bg-white/5 border border-white/10">
+              Cập nhật: {policy?.publishedAt ? new Date(policy.publishedAt).toLocaleDateString('vi-VN') : '16/11/2026'}
+            </span>
+            {isLivePolicy && (
+              <span className="px-2.5 py-1 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center gap-1">
+                <Sparkles className="w-3 h-3" /> Đã đồng bộ Backend
+              </span>
+            )}
           </div>
         </div>
+
+        {/* Dynamic Published Policy Content from Backend */}
+        {isLivePolicy && dynamicContent && (
+          <section className="p-8 rounded-2xl bg-white/[0.02] border border-[#d4af37]/30 space-y-4">
+            <div className="flex items-center gap-2 text-xs font-mono text-[#d4af37] uppercase tracking-wider">
+              <Sparkles className="w-3.5 h-3.5" /> Điều Khoản Chính Thức Được Xuất Bản Bởi Ban Quản Trị
+            </div>
+            <div
+              className="prose prose-invert max-w-none text-sm text-white/80 leading-relaxed space-y-3"
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(dynamicContent) }}
+            />
+          </section>
+        )}
 
         {/* Section 1: Acceptance of Terms */}
         <section className="space-y-4">
