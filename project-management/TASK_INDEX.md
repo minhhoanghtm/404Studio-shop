@@ -21,6 +21,8 @@
 | **TASK-CATEGORY-EXCEL-IMPORT-EXPORT** | Category Excel Template, Import & Export with Validation | `COMPLETED` | CRITICAL | Data Import/Export Engineer & Backend Integration Specialist | [TASK-CATEGORY-EXCEL-IMPORT-EXPORT.md](file:///d:/Project/404Studio/project-management/tasks/completed/TASK-CATEGORY-EXCEL-IMPORT-EXPORT.md) |
 | **TASK-PRODUCT-EXCEL-IMPORT-EXPORT** | Product & Multi-Variant Excel Import, Export & Template | `COMPLETED` | CRITICAL | Senior Fullstack Engineer & E-commerce Architect | [TASK-PRODUCT-EXCEL-IMPORT-EXPORT.md](file:///d:/Project/404Studio/project-management/tasks/completed/TASK-PRODUCT-EXCEL-IMPORT-EXPORT.md) |
 | **TASK-DOCS-ORGANIZATION** | Audit, Classify & Organize Root Documentation | `COMPLETED` | HIGH | Documentation Engineer / Repository Maintainer | [TASK-DOCS-ORGANIZATION.md](file:///d:/Project/404Studio/project-management/tasks/completed/TASK-DOCS-ORGANIZATION.md) |
+| **TASK-ADMIN-ORDER-EXCEL-EXPORT** | Admin Order Management & Multi-Scope Excel Export | `COMPLETED` | CRITICAL | Senior Fullstack Engineer & E-commerce Data Engineer | [TASK-ADMIN-ORDER-EXCEL-EXPORT.md](file:///d:/Project/404Studio/project-management/tasks/completed/TASK-ADMIN-ORDER-EXCEL-EXPORT.md) |
+| **TASK-ADMIN-ANALYTICS-EXCEL-EXPORT** | Enterprise Business, Inventory & Tracking Excel Export | `COMPLETED` | CRITICAL | E-commerce Data Engineer & Analytics Specialist | [TASK-ADMIN-ANALYTICS-EXCEL-EXPORT.md](file:///d:/Project/404Studio/project-management/tasks/completed/TASK-ADMIN-ANALYTICS-EXCEL-EXPORT.md) |
 
 ---
 

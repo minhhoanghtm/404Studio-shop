@@ -267,14 +267,27 @@ export const aiApi = {
 // ADMIN APIs
 // ============================================================================
 export const adminApi = {
-  getStats: () => api.get<ApiResponse<any>>('/admin/dashboard/stats'),
-  getRevenue: () => api.get<ApiResponse<any>>('/admin/dashboard/revenue'),
-  getAllOrders: (params?: any) => {
-    const query = new URLSearchParams(params || {});
-    return api.get<ApiResponse<any>>(`/order/admin/all${query.toString() ? `?${query.toString()}` : ''}`);
+  getStats: () => api.get<ApiResponse<any>>('/order/admin/kpi'),
+  getRevenue: (type: 'week' | 'month' | 'year' = 'month') =>
+    api.get<ApiResponse<any>>(`/order/admin/revenue?type=${type}`),
+  getOrderStats: (userId?: string) =>
+    api.get<ApiResponse<any>>(`/order/admin/stats${userId ? `?userId=${userId}` : ''}`),
+  getVoucherStats: () => api.get<ApiResponse<any>>('/vouchers/admin/stats'),
+  getAllOrders: (params?: { page?: number; limit?: number; status?: string; search?: string }) => {
+    const query = new URLSearchParams();
+    if (params?.page) query.set('page', String(params.page));
+    if (params?.limit) query.set('limit', String(params.limit));
+    if (params?.status && params.status !== 'all') query.set('status', params.status);
+    if (params?.search) query.set('search', params.search);
+    const qs = query.toString();
+    return api.get<ApiResponse<{ items: any[]; pagination: { page: number; limit: number; total: number; totalPages: number } }>>(
+      `/order/admin/orders${qs ? `?${qs}` : ''}`
+    );
   },
+  getOrderItems: (orderId: string) =>
+    api.get<ApiResponse<any[]>>(`/order_items/${encodeURIComponent(orderId)}`),
   updateOrderStatus: (id: string, status: string) =>
-    api.put<ApiResponse<any>>(`/order/${id}/status`, { status }),
+    api.patch<ApiResponse<any>>(`/order/admin/orders/${id}/status`, { status }),
   getCustomers: (params?: any) => {
     const query = new URLSearchParams(params || {});
     return api.get<ApiResponse<any>>(`/user/admin/all${query.toString() ? `?${query.toString()}` : ''}`);

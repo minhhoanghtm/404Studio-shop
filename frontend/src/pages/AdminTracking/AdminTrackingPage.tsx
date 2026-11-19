@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { AdminLayout } from '../Admin/AdminLayout';
 import { TrackingNav } from './components/TrackingNav';
+import { AnalyticsExportButton } from '@/shared/components/excel/AnalyticsExportButton';
 import {
   adminTrackingApi,
   TrackingOverviewMetrics,
@@ -152,7 +153,7 @@ export const AdminTrackingPage: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="text-[11px] font-mono text-emerald-400 flex items-center gap-1.5">
+            <span className="text-[11px] font-mono text-emerald-400 flex items-center gap-1.5 hidden md:flex">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               100% Real API Data
             </span>
@@ -165,6 +166,17 @@ export const AdminTrackingPage: React.FC = () => {
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </button>
+            <AnalyticsExportButton
+              periodLabel={`Thống kê hành vi: ${
+                dateRange === 'today'
+                  ? 'Hôm nay'
+                  : dateRange === '7days'
+                  ? '7 ngày qua'
+                  : dateRange === '30days'
+                  ? '30 ngày qua'
+                  : 'Toàn bộ thời gian'
+              }`}
+            />
           </div>
         </div>
 

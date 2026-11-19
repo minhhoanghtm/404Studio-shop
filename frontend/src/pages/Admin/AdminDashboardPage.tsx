@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { AdminLayout } from './AdminLayout';
-import { DollarSign, ShoppingBag, Users, TrendingUp, ArrowUpRight, Clock, PackageCheck } from 'lucide-react';
+import { DollarSign, ShoppingBag, Users, TrendingUp, ArrowUpRight, Clock, PackageCheck, AlertCircle } from 'lucide-react';
 import { adminApi } from '@/shared/api';
 import { formatCurrency, formatDate } from '@/shared/utils/formatters';
+import { AnalyticsExportButton } from '@/shared/components/excel/AnalyticsExportButton';
 
 export const AdminDashboardPage: React.FC = () => {
   const [stats, setStats] = useState({ totalRevenue: 0, totalOrders: 0, totalCustomers: 0, conversionRate: 0 });
@@ -17,16 +18,21 @@ export const AdminDashboardPage: React.FC = () => {
           setStats((prev) => ({ ...prev, ...res.data }));
         }
       } catch {
-        // Fallback demo stats
+        // Handled silently
       }
 
       try {
         const ordersRes = await adminApi.getAllOrders({ limit: 5 });
-        if (ordersRes?.data && Array.isArray(ordersRes.data)) {
-          setRecentOrders(ordersRes.data);
-        } else setRecentOrders([]);
+        const rawItems = Array.isArray(ordersRes?.data)
+          ? ordersRes.data
+          : (ordersRes?.data as any)?.items;
+        if (Array.isArray(rawItems)) {
+          setRecentOrders(rawItems);
+        } else {
+          setRecentOrders([]);
+        }
       } catch {
-        // Fallback assigned
+        setRecentOrders([]);
       } finally {
         setIsLoading(false);
       }
@@ -59,7 +65,7 @@ export const AdminDashboardPage: React.FC = () => {
     },
     {
       label: 'Tỷ Lệ Hoàn Tất Đơn',
-      value: `${stats.conversionRate}%`,
+      value: `${stats.conversionRate || 0}%`,
       change: 'Hiệu quả tư vấn may đo',
       icon: TrendingUp,
       color: 'text-amber-400',
@@ -72,6 +78,18 @@ export const AdminDashboardPage: React.FC = () => {
       subtitle="Báo cáo số liệu doanh thu, đơn hàng và khách hàng thời gian thực"
     >
       <div className="space-y-8">
+        {/* Action Header with Excel Export */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-white/5">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-platinum-dark">
+              Dữ liệu tài chính, phân loại đơn và tồn kho được đồng bộ trực tiếp từ máy chủ CSDL.
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            <AnalyticsExportButton periodLabel="Báo cáo tổng hợp quý" />
+          </div>
+        </div>
+
         {/* Top Metric Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {metricCards.map((card, idx) => {
@@ -131,36 +149,64 @@ export const AdminDashboardPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {recentOrders.map((ord) => (
-                  <tr key={ord.id} className="hover:bg-white/5 transition-colors">
-                    <td className="py-3.5 px-3 font-mono font-bold text-champagne">
-                      {ord.orderCode}
-                    </td>
-                    <td className="py-3.5 px-3 text-white font-medium">{ord.customer}</td>
-                    <td className="py-3.5 px-3 text-platinum-dark">{formatDate(ord.createdAt)}</td>
-                    <td className="py-3.5 px-3">{ord.itemCount} sản phẩm</td>
-                    <td className="py-3.5 px-3 font-mono font-bold text-white">
-                      {formatCurrency(ord.total)}
-                    </td>
-                    <td className="py-3.5 px-3">
-                      {ord.status === 'completed' && (
-                        <span className="px-2.5 py-1 bg-emerald-950/60 text-emerald-400 border border-emerald-800 text-[10px] uppercase tracking-wider rounded-sm flex items-center gap-1 w-max">
-                          <PackageCheck className="w-3 h-3" /> Đã Giao
-                        </span>
-                      )}
-                      {ord.status === 'shipping' && (
-                        <span className="px-2.5 py-1 bg-blue-950/60 text-blue-400 border border-blue-800 text-[10px] uppercase tracking-wider rounded-sm flex items-center gap-1 w-max">
-                          <Clock className="w-3 h-3" /> Đang Vận Chuyển
-                        </span>
-                      )}
-                      {ord.status === 'processing' && (
-                        <span className="px-2.5 py-1 bg-amber-950/60 text-amber-400 border border-amber-800 text-[10px] uppercase tracking-wider rounded-sm flex items-center gap-1 w-max">
-                          <Clock className="w-3 h-3" /> Đang May Đo
-                        </span>
-                      )}
+                {recentOrders.length === 0 && !isLoading && (
+                  <tr>
+                    <td colSpan={6} className="py-8 text-center text-platinum-dark text-xs font-mono">
+                      Chưa có đơn hàng gần đây
                     </td>
                   </tr>
-                ))}
+                )}
+                {recentOrders.map((ord) => {
+                  const orderCode =
+                    ord.orderCode || ord.order_code || (ord._id ? `ORD-${ord._id.slice(-6).toUpperCase()}` : 'ORD-VERITE');
+                  const customerName =
+                    ord.customer || ord.customer_name || ord.shipping_address?.name || ord.user_id?.name || 'Khách Vãng Lai';
+                  const orderDate = ord.createdAt || ord.created_at || new Date().toISOString();
+                  const totalAmt = ord.total || ord.total_price || ord.total_amount || 0;
+                  const count = ord.itemCount || (Array.isArray(ord.items) ? ord.items.length : 1);
+                  const status = ord.status || 'pending';
+
+                  return (
+                    <tr key={ord._id || ord.id || orderCode} className="hover:bg-white/5 transition-colors">
+                      <td className="py-3.5 px-3 font-mono font-bold text-champagne">
+                        {orderCode}
+                      </td>
+                      <td className="py-3.5 px-3 text-white font-medium">{customerName}</td>
+                      <td className="py-3.5 px-3 text-platinum-dark">{formatDate(orderDate)}</td>
+                      <td className="py-3.5 px-3">{count} sản phẩm</td>
+                      <td className="py-3.5 px-3 font-mono font-bold text-white">
+                        {formatCurrency(totalAmt)}
+                      </td>
+                      <td className="py-3.5 px-3">
+                        {status === 'delivered' && (
+                          <span className="px-2.5 py-1 bg-emerald-950/60 text-emerald-400 border border-emerald-800 text-[10px] uppercase tracking-wider rounded-sm flex items-center gap-1 w-max">
+                            <PackageCheck className="w-3 h-3" /> Đã Giao
+                          </span>
+                        )}
+                        {status === 'shipping' && (
+                          <span className="px-2.5 py-1 bg-blue-950/60 text-blue-400 border border-blue-800 text-[10px] uppercase tracking-wider rounded-sm flex items-center gap-1 w-max">
+                            <Clock className="w-3 h-3" /> Đang Giao
+                          </span>
+                        )}
+                        {(status === 'processing' || status === 'confirmed') && (
+                          <span className="px-2.5 py-1 bg-amber-950/60 text-amber-400 border border-amber-800 text-[10px] uppercase tracking-wider rounded-sm flex items-center gap-1 w-max">
+                            <Clock className="w-3 h-3" /> Đã Xác Nhận
+                          </span>
+                        )}
+                        {status === 'pending' && (
+                          <span className="px-2.5 py-1 bg-yellow-950/60 text-yellow-400 border border-yellow-800 text-[10px] uppercase tracking-wider rounded-sm flex items-center gap-1 w-max">
+                            <Clock className="w-3 h-3" /> Chờ Xử Lý
+                          </span>
+                        )}
+                        {status === 'cancelled' && (
+                          <span className="px-2.5 py-1 bg-red-950/60 text-red-400 border border-red-800 text-[10px] uppercase tracking-wider rounded-sm flex items-center gap-1 w-max">
+                            <AlertCircle className="w-3 h-3" /> Đã Hủy
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
