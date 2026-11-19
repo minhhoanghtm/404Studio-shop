@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { AdminLayout } from '../Admin/AdminLayout';
-import { Plus, Search, Edit3, Trash2, Eye, RotateCw, Layers, Package } from 'lucide-react';
+import { Plus, Search, Edit3, Trash2, Eye, RotateCw, Layers, Package, Upload } from 'lucide-react';
 import { productsApi, adminApi, categoriesApi } from '@/shared/api';
 import { formatCurrency } from '@/shared/utils/formatters';
 import { useToastStore } from '@/shared/stores/useToastStore';
 import { CategoryOption } from './types';
+import { ExcelTemplateButton } from '@/shared/components/excel/ExcelTemplateButton';
+import { ExcelExportButton } from '@/shared/components/excel/ExcelExportButton';
+import { ExcelImportModal } from '@/shared/components/excel/ExcelImportModal';
 
 export const AdminProductsPage: React.FC = () => {
   const { addToast } = useToastStore();
@@ -17,6 +20,7 @@ export const AdminProductsPage: React.FC = () => {
   const [stockFilter, setStockFilter] = useState<'all' | 'in_stock' | 'out_of_stock'>('all');
   const [isLoading, setIsLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   const fetchCategories = useCallback(async () => {
     try {
@@ -140,14 +144,30 @@ export const AdminProductsPage: React.FC = () => {
             </select>
           </div>
 
-          {/* Add Product Button */}
-          <Link
-            to="/admin/products/new"
-            className="px-4 py-2 bg-champagne text-noir-950 font-semibold text-xs uppercase tracking-wider rounded-sm hover:bg-champagne/90 transition-colors flex items-center justify-center gap-2 shrink-0"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Thêm Sản Phẩm Mới</span>
-          </Link>
+          {/* Action Buttons & Excel Tools */}
+          <div className="flex flex-wrap items-center gap-2">
+            <ExcelTemplateButton type="product" />
+
+            <button
+              type="button"
+              onClick={() => setIsImportModalOpen(true)}
+              className="px-3 py-2 text-xs font-mono uppercase tracking-wider text-platinum-light hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 rounded-sm transition-all flex items-center gap-1.5"
+              title="Nhập sản phẩm từ tệp Excel"
+            >
+              <Upload className="w-3.5 h-3.5 text-champagne" />
+              <span>Nhập Excel</span>
+            </button>
+
+            <ExcelExportButton type="product" />
+
+            <Link
+              to="/admin/products/new"
+              className="px-4 py-2 bg-champagne text-noir-950 font-semibold text-xs uppercase tracking-wider rounded-sm hover:bg-champagne/90 transition-colors flex items-center justify-center gap-1.5 shrink-0"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Thêm Sản Phẩm Mới</span>
+            </Link>
+          </div>
         </div>
 
         {/* Product Inventory Table */}
@@ -303,6 +323,14 @@ export const AdminProductsPage: React.FC = () => {
             </div>
           )}
         </div>
+
+        {/* Excel Import Modal */}
+        <ExcelImportModal
+          isOpen={isImportModalOpen}
+          onClose={() => setIsImportModalOpen(false)}
+          type="product"
+          onSuccess={fetchProducts}
+        />
       </div>
     </AdminLayout>
   );

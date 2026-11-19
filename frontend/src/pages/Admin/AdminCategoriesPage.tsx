@@ -1,187 +1,315 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { AdminLayout } from './AdminLayout';
-import { Plus, Edit3, Trash2, FolderTree } from 'lucide-react';
-import { categoriesApi, adminApi } from '@/shared/api';
+import { Plus, Edit3, Trash2, FolderTree, Upload, AlertCircle, Loader2, X } from 'lucide-react';
+import { categoriesApi, adminApi, productsApi } from '@/shared/api';
 import { useToastStore } from '@/shared/stores/useToastStore';
+import { CategoryImageUploader } from '@/shared/components/category/CategoryImageUploader';
+import { ExcelTemplateButton } from '@/shared/components/excel/ExcelTemplateButton';
+import { ExcelExportButton } from '@/shared/components/excel/ExcelExportButton';
+import { ExcelImportModal } from '@/shared/components/excel/ExcelImportModal';
 
 export const AdminCategoriesPage: React.FC = () => {
   const [categories, setCategories] = useState<any[]>([]);
+  const [productCounts, setProductCounts] = useState<Record<string, number>>({});
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Modal form states
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [editingCat, setEditingCat] = useState<any | null>(null);
   const [formName, setFormName] = useState('');
   const [formSlug, setFormSlug] = useState('');
+  const [formImage, setFormImage] = useState('');
   const [formDescription, setFormDescription] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
   const { addToast } = useToastStore();
+
+  const fetchCategories = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const [catRes, prodRes] = await Promise.all([
+        categoriesApi.getCategories(),
+        productsApi.getProducts({ limit: 500 }).catch(() => ({ data: [] })),
+      ]);
+
+      const catData = catRes?.data || (catRes as any);
+      if (Array.isArray(catData)) {
+        setCategories(catData);
+      } else {
+        setCategories([]);
+      }
+
+      // Calculate product count per category
+      const prods = prodRes?.data || (prodRes as any) || [];
+      const counts: Record<string, number> = {};
+      if (Array.isArray(prods)) {
+        prods.forEach((p: any) => {
+          if (p.category_id) {
+            const key = String(p.category_id);
+            counts[key] = (counts[key] || 0) + 1;
+          }
+        });
+      }
+      setProductCounts(counts);
+    } catch (_err: any) {
+      addToast('Không thể tải danh sách danh mục từ máy chủ.', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [addToast]);
 
   useEffect(() => {
     fetchCategories();
-  }, []);
+  }, [fetchCategories]);
 
-  const fetchCategories = async () => {
-    try {
-      const res = await categoriesApi.getCategories();
-      if (res?.data && Array.isArray(res.data) && res.data.length > 0) {
-        setCategories(res.data);
-      } else {
-        setCategories([
-          {
-            id: 'c-1',
-            name: 'Áo Khoác Haute Couture',
-            slug: 'outerwear',
-            description: 'Dạ len Cashmere Biella và Shearling đúc khối kiến trúc',
-            productCount: 8,
-          },
-          {
-            id: 'c-2',
-            name: 'Đầm Lụa Dạ Tiệc',
-            slug: 'gowns',
-            description: 'Cắt xéo 45 độ trên lụa Lyon 30-momme',
-            productCount: 12,
-          },
-          {
-            id: 'c-3',
-            name: 'Đồ May Đo Thượng Khách',
-            slug: 'tailoring',
-            description: 'Âu phục nam may đo thủ công, sơ mi lanh Normandy',
-            productCount: 6,
-          },
-          {
-            id: 'c-4',
-            name: 'Phụ Kiện Da Thật & Trang Sức',
-            slug: 'accessories',
-            description: 'Da Box Calfskin tay cầm gỗ sồi và bạc Vermeil mạ vàng',
-            productCount: 14,
-          },
-        ]);
-      }
-    } catch {
-      // Fallback
-    }
+  const handleOpenCreate = () => {
+    setEditingCat(null);
+    setFormName('');
+    setFormSlug('');
+    setFormImage('');
+    setFormDescription('');
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEdit = (cat: any) => {
+    setEditingCat(cat);
+    setFormName(cat.name || '');
+    setFormSlug(cat.slug || '');
+    setFormImage(cat.image || '');
+    setFormDescription(cat.description || '');
+    setIsModalOpen(true);
   };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formName.trim()) return;
-
-    if (editingCat) {
-      setCategories(
-        categories.map((c) =>
-          c.id === editingCat.id || c._id === editingCat.id
-            ? { ...c, name: formName, slug: formSlug, description: formDescription }
-            : c
-        )
-      );
-      addToast('Cập nhật danh mục thành công!', 'success');
-    } else {
-      const newCat = {
-        id: 'c-' + Date.now(),
-        name: formName,
-        slug: formSlug || formName.toLowerCase().replace(/\s+/g, '-'),
-        description: formDescription,
-        productCount: 0,
-      };
-      setCategories([...categories, newCat]);
-      addToast('Đã thêm danh mục mới thành công!', 'success');
+    const trimmedName = formName.trim();
+    if (!trimmedName) {
+      addToast('Vui lòng nhập tên danh mục.', 'error');
+      return;
     }
-    setIsModalOpen(false);
-    setEditingCat(null);
+
+    if (!formImage.trim()) {
+      addToast('Hình ảnh đại diện danh mục là bắt buộc theo quy định của hệ thống.', 'error');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const payload = {
+        name: trimmedName,
+        image: formImage.trim(),
+        slug: formSlug.trim() || undefined,
+        description: formDescription.trim() || undefined,
+      };
+
+      if (editingCat) {
+        const id = editingCat._id || editingCat.id;
+        await adminApi.updateCategory(id, payload);
+        addToast(`Cập nhật danh mục "${trimmedName}" thành công!`, 'success');
+      } else {
+        await adminApi.createCategory(payload);
+        addToast(`Đã thêm danh mục mới "${trimmedName}" thành công!`, 'success');
+      }
+
+      setIsModalOpen(false);
+      setEditingCat(null);
+      await fetchCategories();
+    } catch (err: any) {
+      const msg = err?.data?.message || err?.message || 'Lỗi khi lưu danh mục';
+      addToast(`Không thể lưu danh mục: ${msg}`, 'error');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleDelete = (id: string, name: string) => {
-    if (!window.confirm(`Xác nhận xóa danh mục "${name}"?`)) return;
-    setCategories(categories.filter((c) => c.id !== id && c._id !== id));
-    addToast(`Đã xóa danh mục ${name}`, 'success');
+  const handleDelete = async (id: string, name: string) => {
+    const count = productCounts[id] || 0;
+    if (count > 0) {
+      addToast(`Không thể xóa danh mục "${name}" vì đang có ${count} sản phẩm thuộc danh mục này.`, 'error');
+      return;
+    }
+
+    if (!window.confirm(`Quý khách có chắc chắn muốn xóa danh mục "${name}"?`)) return;
+
+    setDeletingId(id);
+    try {
+      await adminApi.deleteCategory(id);
+      addToast(`Đã xóa danh mục "${name}" thành công!`, 'success');
+      await fetchCategories();
+    } catch (err: any) {
+      const msg = err?.data?.message || err?.message || 'Lỗi khi xóa danh mục';
+      addToast(`Không thể xóa danh mục: ${msg}`, 'error');
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   return (
     <AdminLayout
-      title="Danh Mục Thời Trang Phân Cấp"
-      subtitle="Quản lý cấu trúc cây danh mục hiển thị trên Mega Menu và bộ lọc sản phẩm"
+      title="Quản Lý Danh Mục Thời Trang"
+      subtitle="Quản lý cấu trúc cây danh mục, hình ảnh đại diện, xuất nhập dữ liệu Excel"
     >
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
+        {/* Action Header & Toolbar */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
           <div className="text-xs text-platinum-dark">
             Tổng cộng: <strong className="text-white font-mono">{categories.length}</strong> danh mục
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              setEditingCat(null);
-              setFormName('');
-              setFormSlug('');
-              setFormDescription('');
-              setIsModalOpen(true);
-            }}
-            className="px-4 py-2 bg-champagne text-noir-950 font-semibold text-xs uppercase tracking-wider rounded-sm hover:bg-champagne/90 transition-colors flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Thêm Danh Mục Mới</span>
-          </button>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Download Template */}
+            <ExcelTemplateButton type="category" />
+
+            {/* Import Excel */}
+            <button
+              type="button"
+              onClick={() => setIsImportModalOpen(true)}
+              className="px-3 py-2 text-xs font-mono uppercase tracking-wider text-platinum-light hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 rounded-sm transition-all flex items-center gap-1.5"
+              title="Nhập danh mục từ tệp Excel"
+            >
+              <Upload className="w-3.5 h-3.5 text-champagne" />
+              <span>Nhập Excel</span>
+            </button>
+
+            {/* Export Excel */}
+            <ExcelExportButton type="category" />
+
+            {/* Add Category */}
+            <button
+              type="button"
+              onClick={handleOpenCreate}
+              className="px-4 py-2 bg-champagne text-noir-950 font-semibold text-xs uppercase tracking-wider rounded-sm hover:bg-champagne/90 transition-colors flex items-center gap-1.5 shrink-0"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Thêm Danh Mục Mới</span>
+            </button>
+          </div>
         </div>
 
+        {/* Categories Table */}
         <div className="bg-noir-900 border border-white/10 rounded-sm overflow-hidden">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="border-b border-white/10 text-platinum-dark uppercase tracking-wider bg-white/5">
-                <th className="py-3 px-4">Tên Danh Mục</th>
-                <th className="py-3 px-4">Đường Dẫn Slug</th>
-                <th className="py-3 px-4">Mô Tả Định Hướng</th>
-                <th className="py-3 px-4">Số Sản Phẩm</th>
-                <th className="py-3 px-4 text-right">Thao Tác</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {categories.map((cat) => (
-                <tr key={cat.id || cat._id} className="hover:bg-white/5 transition-colors">
-                  <td className="py-3.5 px-4 font-serif font-medium text-white text-sm">
-                    {cat.name}
-                  </td>
-                  <td className="py-3.5 px-4 font-mono text-champagne">{cat.slug}</td>
-                  <td className="py-3.5 px-4 text-platinum-dark max-w-xs truncate">
-                    {cat.description || 'Chưa có mô tả'}
-                  </td>
-                  <td className="py-3.5 px-4 font-mono">{cat.productCount || 0}</td>
-                  <td className="py-3.5 px-4 text-right space-x-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditingCat(cat);
-                        setFormName(cat.name);
-                        setFormSlug(cat.slug);
-                        setFormDescription(cat.description || '');
-                        setIsModalOpen(true);
-                      }}
-                      className="p-1.5 text-platinum-dark hover:text-champagne transition-colors"
-                      title="Chỉnh sửa"
-                    >
-                      <Edit3 className="w-4 h-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(cat.id || cat._id, cat.name)}
-                      className="p-1.5 text-platinum-dark hover:text-red-400 transition-colors"
-                      title="Xóa"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </td>
+          {isLoading ? (
+            <div className="p-16 text-center space-y-3">
+              <Loader2 className="w-8 h-8 text-champagne animate-spin mx-auto" />
+              <p className="text-xs text-platinum-dark">Đang nạp dữ liệu danh mục thời trang từ máy chủ...</p>
+            </div>
+          ) : categories.length === 0 ? (
+            <div className="p-16 text-center space-y-3">
+              <FolderTree className="w-10 h-10 text-platinum-dark/40 mx-auto" />
+              <h4 className="text-xs font-medium text-white">Chưa có danh mục nào</h4>
+              <p className="text-[11px] text-platinum-dark max-w-sm mx-auto">
+                Quý khách có thể thêm danh mục đầu tiên hoặc nhập hàng loạt từ tệp Excel.
+              </p>
+              <button
+                type="button"
+                onClick={handleOpenCreate}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-champagne text-noir-950 text-xs font-semibold rounded-sm mt-2"
+              >
+                <Plus className="w-3.5 h-3.5" /> Tạo Danh Mục Đầu Tiên
+              </button>
+            </div>
+          ) : (
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="border-b border-white/10 text-platinum-dark uppercase tracking-wider bg-white/5 font-mono text-[11px]">
+                  <th className="py-3 px-4 w-16">Hình Ảnh</th>
+                  <th className="py-3 px-4">Tên Danh Mục</th>
+                  <th className="py-3 px-4">Đường Dẫn Slug</th>
+                  <th className="py-3 px-4">Mô Tả Định Hướng</th>
+                  <th className="py-3 px-4">Số Sản Phẩm</th>
+                  <th className="py-3 px-4 text-right">Thao Tác</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {categories.map((cat) => {
+                  const id = cat._id || cat.id;
+                  const count = productCounts[id] || productCounts[cat.slug] || 0;
+                  return (
+                    <tr key={id} className="hover:bg-white/5 transition-colors">
+                      {/* Image Thumbnail */}
+                      <td className="py-3 px-4">
+                        {cat.image ? (
+                          <img
+                            src={cat.image}
+                            alt={cat.name}
+                            className="w-10 h-10 rounded-sm object-cover bg-noir-950 border border-white/10"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=200';
+                            }}
+                          />
+                        ) : (
+                          <div
+                            className="w-10 h-10 rounded-sm bg-white/5 border border-amber-800/40 flex items-center justify-center text-amber-400"
+                            title="Thiếu ảnh đại diện"
+                          >
+                            <AlertCircle className="w-5 h-5" />
+                          </div>
+                        )}
+                      </td>
+
+                      <td className="py-3.5 px-4 font-serif font-medium text-white text-sm">
+                        {cat.name}
+                      </td>
+                      <td className="py-3.5 px-4 font-mono text-champagne">{cat.slug}</td>
+                      <td className="py-3.5 px-4 text-platinum-dark max-w-xs truncate">
+                        {cat.description || 'Danh mục thời trang cao cấp'}
+                      </td>
+                      <td className="py-3.5 px-4 font-mono">
+                        <span className="px-2 py-0.5 bg-white/5 border border-white/10 rounded-sm text-platinum-light">
+                          {count} sản phẩm
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 text-right space-x-2">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEdit(cat)}
+                          className="p-1.5 text-platinum-dark hover:text-champagne transition-colors"
+                          title="Chỉnh sửa danh mục"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={deletingId === id}
+                          onClick={() => handleDelete(id, cat.name)}
+                          className="p-1.5 text-platinum-dark hover:text-red-400 transition-colors disabled:opacity-50"
+                          title="Xóa danh mục"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
         </div>
 
-        {/* Modal */}
+        {/* Modal Create / Edit */}
         {isModalOpen && (
           <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-noir-900 border border-white/10 w-full max-w-md p-6 rounded-sm text-white">
-              <h3 className="font-display text-lg mb-4">
-                {editingCat ? 'Chỉnh Sửa Danh Mục' : 'Tạo Danh Mục Mới'}
-              </h3>
+            <div className="bg-noir-900 border border-white/10 w-full max-w-md p-6 rounded-sm text-white space-y-4">
+              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                <h3 className="font-display text-base font-semibold text-white">
+                  {editingCat ? 'Chỉnh Sửa Danh Mục Thời Trang' : 'Tạo Danh Mục Thời Trang Mới'}
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="p-1 text-platinum-dark hover:text-white"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
               <form onSubmit={handleSave} className="space-y-4 text-xs">
+                {/* Category Name */}
                 <div>
                   <label className="block text-platinum-dark uppercase tracking-wider mb-1">
-                    Tên Danh Mục
+                    Tên Danh Mục <span className="text-red-400">*</span>
                   </label>
                   <input
                     type="text"
@@ -189,52 +317,76 @@ export const AdminCategoriesPage: React.FC = () => {
                     value={formName}
                     onChange={(e) => setFormName(e.target.value)}
                     placeholder="Ví dụ: Đầm Dạ Tiệc"
-                    className="w-full px-3 py-2 bg-noir-950 border border-white/15 focus:border-champagne focus:outline-none"
+                    className="w-full px-3 py-2 bg-noir-950 border border-white/15 focus:border-champagne focus:outline-none text-white rounded-sm"
                   />
                 </div>
+
+                {/* Category Image Uploader */}
+                <CategoryImageUploader
+                  value={formImage}
+                  onChange={setFormImage}
+                  required={true}
+                />
+
+                {/* Slug */}
                 <div>
                   <label className="block text-platinum-dark uppercase tracking-wider mb-1">
-                    Slug
+                    Đường Dẫn Slug (Tùy chọn)
                   </label>
                   <input
                     type="text"
                     value={formSlug}
                     onChange={(e) => setFormSlug(e.target.value)}
-                    placeholder="gowns"
-                    className="w-full px-3 py-2 bg-noir-950 border border-white/15 focus:border-champagne focus:outline-none font-mono"
+                    placeholder="Tuỳ chọn (hệ thống tự động sinh từ tên nếu để trống)"
+                    className="w-full px-3 py-2 bg-noir-950 border border-white/15 focus:border-champagne focus:outline-none font-mono text-white rounded-sm"
                   />
                 </div>
+
+                {/* Description */}
                 <div>
                   <label className="block text-platinum-dark uppercase tracking-wider mb-1">
-                    Mô Tả
+                    Mô Tả Định Hướng
                   </label>
                   <textarea
                     rows={3}
                     value={formDescription}
                     onChange={(e) => setFormDescription(e.target.value)}
-                    placeholder="Mô tả phong cách và chất liệu tiêu biểu..."
-                    className="w-full px-3 py-2 bg-noir-950 border border-white/15 focus:border-champagne focus:outline-none"
+                    placeholder="Mô tả phong cách, kiểu dáng hoặc chất liệu..."
+                    className="w-full px-3 py-2 bg-noir-950 border border-white/15 focus:border-champagne focus:outline-none text-white rounded-sm"
                   />
                 </div>
+
+                {/* Action buttons */}
                 <div className="pt-4 flex justify-end gap-3 border-t border-white/10">
                   <button
                     type="button"
                     onClick={() => setIsModalOpen(false)}
-                    className="px-4 py-2 border border-white/15 text-platinum-dark hover:text-white uppercase tracking-wider"
+                    disabled={isSaving}
+                    className="px-4 py-2 border border-white/15 text-platinum-dark hover:text-white uppercase tracking-wider rounded-sm"
                   >
                     Hủy
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 bg-champagne text-noir-950 font-semibold uppercase tracking-wider"
+                    disabled={isSaving}
+                    className="px-6 py-2 bg-champagne text-noir-950 font-semibold uppercase tracking-wider rounded-sm hover:bg-champagne/90 transition-all flex items-center gap-1.5 disabled:opacity-50"
                   >
-                    Lưu
+                    {isSaving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                    <span>{isSaving ? 'Đang Lưu...' : editingCat ? 'Cập Nhật' : 'Tạo Mới'}</span>
                   </button>
                 </div>
               </form>
             </div>
           </div>
         )}
+
+        {/* Excel Import Modal */}
+        <ExcelImportModal
+          isOpen={isImportModalOpen}
+          onClose={() => setIsImportModalOpen(false)}
+          type="category"
+          onSuccess={fetchCategories}
+        />
       </div>
     </AdminLayout>
   );

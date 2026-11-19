@@ -96,6 +96,17 @@ export const productsApi = {
 };
 
 // ============================================================================
+// UPLOAD APIs
+// ============================================================================
+export const uploadApi = {
+  uploadImage: (file: File) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    return api.post<ApiResponse<{ url: string }> & { url?: string }>('/upload', formData);
+  },
+};
+
+// ============================================================================
 // CATEGORIES APIs
 // ============================================================================
 export const categoriesApi = {
