@@ -36,7 +36,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
     { label: 'Thống Kê Doanh Thu', to: '/admin', icon: LayoutDashboard, end: true },
     { label: 'Chính Sách Doanh Nghiệp', to: '/admin/policies', icon: FileText },
     { label: 'Phân Tích & Tracking', to: '/admin/tracking', icon: Activity },
-    { label: 'Quản Lý Tác Phẩm', to: '/admin/products', icon: Shirt },
+    { label: 'Quản Lý Sản Phẩm', to: '/admin/products', icon: Shirt },
     { label: 'Danh Mục Thời Trang', to: '/admin/categories', icon: FolderTree },
     { label: 'Quản Lý Đơn Hàng', to: '/admin/orders', icon: ShoppingBag },
     { label: 'Hồ Sơ Khách Hàng', to: '/admin/customers', icon: Users },

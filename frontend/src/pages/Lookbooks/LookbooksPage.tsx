@@ -168,7 +168,7 @@ export const LookbooksPage: React.FC = () => {
                     className="px-4 py-2 bg-white/20 backdrop-blur-md hover:bg-accent hover:text-black text-white text-xs uppercase tracking-wider transition-all flex items-center gap-1.5"
                   >
                     <Eye className="w-3.5 h-3.5" />
-                    <span>Xem Tác Phẩm</span>
+                    <span>Xem Sản Phẩm</span>
                   </button>
                 </div>
               </div>
@@ -246,7 +246,7 @@ export const LookbooksPage: React.FC = () => {
                         className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-primary hover:text-accent font-medium transition-colors"
                       >
                         <ShoppingBag className="w-3 h-3" />
-                        <span>Xem Tác Phẩm</span>
+                        <span>Xem Sản Phẩm</span>
                       </Link>
                     </div>
                   </div>

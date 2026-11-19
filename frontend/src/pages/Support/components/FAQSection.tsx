@@ -20,7 +20,7 @@ export const FAQSection: React.FC = () => {
           Câu Hỏi Thường Gặp (FAQ)
         </h2>
         <p className="text-xs text-platinum-dark font-sans max-w-xl">
-          Những giải đáp chi tiết về dịch vụ ủy thác may đo, số lượng tác phẩm, biểu phí vận chuyển và bảo quản trang phục.
+          Những giải đáp chi tiết về dịch vụ ủy thác may đo, số lượng sản phẩm, biểu phí vận chuyển và bảo quản trang phục.
         </p>
       </div>
 

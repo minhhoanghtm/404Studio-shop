@@ -82,7 +82,7 @@ export const ProductDetailPage: React.FC = () => {
       addToast({
         type: 'info',
         title: 'Đã sao chép liên kết',
-        message: 'Đường dẫn tác phẩm đã được lưu vào bộ nhớ tạm của quý khách.',
+        message: 'Đường dẫn sản phẩm đã được lưu vào bộ nhớ tạm của quý khách.',
       });
     }
   };

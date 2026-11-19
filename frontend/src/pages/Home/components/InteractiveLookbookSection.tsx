@@ -87,7 +87,7 @@ export const InteractiveLookbookSection: React.FC = () => {
               to={`/products/${currentLook.productSlug}`}
               className="inline-flex items-center gap-2 text-xs uppercase tracking-widest text-white hover:text-champagne transition-colors"
             >
-              <span>Xem chi tiết tác phẩm</span>
+              <span>Xem chi tiết sản phẩm</span>
               <MoveRight className="w-4 h-4" />
             </Link>
           </div>

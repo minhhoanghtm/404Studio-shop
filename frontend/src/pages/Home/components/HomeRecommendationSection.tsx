@@ -38,7 +38,7 @@ export const HomeRecommendationSection: React.FC = () => {
           : {
               subtitle: 'Tuyển tập tinh hoa Atelier',
               title: 'Có Thể Quý Khách Sẽ Thích',
-              desc: 'Các tác phẩm may đo biểu tượng được chế tác thủ công với phom dáng kiến trúc và chất liệu thượng hạng.',
+              desc: 'Các sản phẩm may đo biểu tượng được chế tác thủ công với phom dáng kiến trúc và chất liệu thượng hạng.',
             };
       case 'trending':
         return {
@@ -49,13 +49,13 @@ export const HomeRecommendationSection: React.FC = () => {
       case 'new-arrivals':
         return {
           subtitle: 'Ấn bản phát hành đợt đầu',
-          title: 'Tác Phẩm Mới Ra Mắt',
+          title: 'Sản Phẩm Mới Ra Mắt',
           desc: 'Các tuyệt tác vừa hoàn thiện từ xưởng may Paris và Como, sản xuất giới hạn theo từng đợt cắt vải.',
         };
       case 'best-sellers':
         return {
           subtitle: 'Kiệt tác khẳng định đẳng cấp',
-          title: 'Tác Phẩm Bán Chạy Nhất',
+          title: 'Sản Phẩm Bán Chạy Nhất',
           desc: 'Những bộ trang phục và phụ kiện da được đặt may nhiều nhất bởi các thành viên danh dự của Maison.',
         };
     }
@@ -175,7 +175,7 @@ export const HomeRecommendationSection: React.FC = () => {
           className="py-16 text-center space-y-4 rounded-2xl bg-white/[0.01] border border-white/5"
         >
           <Sparkles className="w-8 h-8 text-champagne/40 mx-auto" />
-          <h3 className="font-serif text-lg text-white">Chưa có tác phẩm phù hợp</h3>
+          <h3 className="font-serif text-lg text-white">Chưa có sản phẩm phù hợp</h3>
           <p className="text-xs text-white/50 max-w-md mx-auto">
             Hệ thống đang cập nhật các thiết kế mới nhất. Quý khách vui lòng khám phá toàn bộ danh mục sản phẩm.
           </p>

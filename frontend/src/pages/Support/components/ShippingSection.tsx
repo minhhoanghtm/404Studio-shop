@@ -14,7 +14,7 @@ export const ShippingSection: React.FC = () => {
           Chính Sách Vận Chuyển Găng Tay Trắng
         </h2>
         <p className="text-xs text-platinum-dark font-sans max-w-xl">
-          Mỗi tác phẩm y phục được niêm phong trong hộp gỗ tuyết tùng Pháp và vận chuyển bảo mật trên toàn thế giới.
+          Mỗi sản phẩm y phục được niêm phong trong hộp gỗ tuyết tùng Pháp và vận chuyển bảo mật trên toàn thế giới.
         </p>
       </div>
 

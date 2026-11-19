@@ -162,7 +162,7 @@ export const ContactPage: React.FC = () => {
                       value={message}
                       onChange={(e) => setMessage(e.target.value)}
                       required
-                      placeholder="Quý khách vui lòng cho biết thời gian mong muốn, địa điểm salon hoặc thông tin tác phẩm quý khách quan tâm..."
+                      placeholder="Quý khách vui lòng cho biết thời gian mong muốn, địa điểm salon hoặc thông tin sản phẩm quý khách quan tâm..."
                       className="w-full px-4 py-3 bg-[#14141a] border border-white/15 rounded-xl text-white focus:border-[#d4af37] outline-none leading-relaxed"
                     />
                   </div>

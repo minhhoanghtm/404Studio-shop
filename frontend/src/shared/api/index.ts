@@ -85,6 +85,9 @@ export const productsApi = {
   getProductBySlug: (slug: string) =>
     api.get<ApiResponse<any>>(`/products/${slug}`),
 
+  getProductDetail: (id: string) =>
+    api.get<ApiResponse<any>>(`/products/detail/${id}`),
+
   checkAvailability: (productId: string) =>
     api.get<ApiResponse<{ available: boolean; stock: number }>>(`/products/${productId}/availability`),
 
@@ -272,6 +275,9 @@ export const adminApi = {
   createProduct: (data: any) => api.post<ApiResponse<any>>('/products', data),
   updateProduct: (id: string, data: any) => api.put<ApiResponse<any>>(`/products/${id}`, data),
   deleteProduct: (id: string) => api.delete<ApiResponse<any>>(`/products/${id}`),
+  createProductVariant: (data: any) => api.post<ApiResponse<any>>('/product_variants', data),
+  updateProductVariant: (id: string, data: any) => api.put<ApiResponse<any>>(`/product_variants/${id}`, data),
+  deleteProductVariant: (id: string) => api.delete<ApiResponse<any>>(`/product_variants/${id}`),
   createCategory: (data: any) => api.post<ApiResponse<any>>('/categories', data),
   updateCategory: (id: string, data: any) => api.put<ApiResponse<any>>(`/categories/${id}`, data),
   deleteCategory: (id: string) => api.delete<ApiResponse<any>>(`/categories/${id}`),

@@ -32,7 +32,7 @@ export const NotFoundPage: React.FC = () => {
             to="/products"
             className="w-full sm:w-auto px-8 py-3.5 border border-white/20 text-white hover:border-champagne text-xs uppercase tracking-widest font-medium transition-colors rounded-lg"
           >
-            Khám phá tác phẩm
+            Khám phá sản phẩm
           </Link>
         </div>
       </div>

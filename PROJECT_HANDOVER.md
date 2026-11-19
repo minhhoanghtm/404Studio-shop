@@ -441,6 +441,23 @@ Toàn bộ hệ thống quản lý task và kết quả kiểm thử được l�
 - [Sanitized Environment Template](backend/.env.example): Mẫu biến môi trường đầy đủ 15 nhóm.
 - [Task Master Index](project-management/TASK_INDEX.md): Bảng trạng thái task tổng thể.
 
+---
+
+## 13. Product Management & Multi-Variant Inventory (TASK-PRODUCT-VARIANTS)
+
+### 13.1. Overview & Business Objectives
+- **Chuẩn hóa nhãn giao diện ("Quản lý tác phẩm" -> "Quản lý sản phẩm")**: Đổi toàn bộ nhãn hiển thị tại thanh điều hướng Admin (`/admin`), thanh bên, trang tổng quan và toàn bộ các trang mua sắm khách hàng (`/cart`, `/order-lookup`, `/checkout`, `/reviews`, footer).
+- **Hệ thống Quản lý Đa Biến Thể (Multi-Variant)**: Hỗ trợ cấu hình Màu sắc (`color`), Kích cỡ (`size`), Tồn kho (`stock`), Ảnh biến thể (`image_url`), SKU tự động. Ngăn chặn triệt để tổ hợp Màu + Size trùng lặp.
+- **Tính toán Tồn kho Tự động**: Tự động tổng hợp `TotalStock = SUM(VariantStock)` realtime trên UI, khóa trường tổng tồn kho sang chế độ `read-only` khi có biến thể, lọc bỏ số âm, số thập phân, NaN, Infinity.
+- **100% Backend API Thật (Zero Mock API)**: Kết nối trực tiếp `/api/products`, `/api/products/detail/:id`, `/api/categories`, đồng bộ logic tính tồn kho với `createProduct.command.js` và `updateProduct.command.js`.
+- **Ghi nhận Gaps Backend**: Lập tài liệu `docs/backend/BACKEND_PRODUCT_VARIANT_GAPS.md` ghi nhận các khuyết thiếu schema `product_variants` (chưa có cột `price` và `sku` riêng).
+
+### 13.2. Key Deliverables & Evidence Links
+- [Task Completion Record](project-management/tasks/completed/TASK-PRODUCT-VARIANTS.md): Hồ sơ hoàn thành task TASK-PRODUCT-VARIANTS.
+- [UI & Playwright E2E Report](project-management/test-reports/frontend/PRODUCT_VARIANTS_UI_TEST.md): Báo cáo kiểm thử giao diện & 3 kịch bản Playwright E2E đạt 100% PASS.
+- [Backend Contract & Integration Report](project-management/test-reports/integration/PRODUCT_VARIANTS_API_TEST.md): Báo cáo kiểm thử hợp đồng Backend và MongoDB schema.
+- [Backend Variant Gaps Specification](docs/backend/BACKEND_PRODUCT_VARIANT_GAPS.md): Phân tích chi tiết các giới hạn schema Mongoose và khuyến nghị mở rộng.
+
 
 
 

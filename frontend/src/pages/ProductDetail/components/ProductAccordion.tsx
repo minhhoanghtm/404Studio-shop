@@ -70,7 +70,7 @@ export const ProductAccordion: React.FC<ProductAccordionProps> = ({ product }) =
             <span className="text-white font-medium">{careText}</span>
           </div>
           <p className="text-[11px] text-champagne pt-1">
-            * Mỗi tác phẩm được may thủ công bởi các nghệ nhân thâm niên trên 20 năm tại xưởng Paris & Milan.
+            * Mỗi sản phẩm được may thủ công bởi các nghệ nhân thâm niên trên 20 năm tại xưởng Paris & Milan.
           </p>
         </div>
       ),

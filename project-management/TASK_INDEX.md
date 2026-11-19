@@ -1,7 +1,7 @@
 # ATELIER VÉRITÉ — TASK & EXECUTION INDEX
 **Architecture**: Monorepo with separated `frontend/` & `backend/`
 **Compliance**: Vietnam Law 91/2025/QH15 & Decree 356/2025/NĐ-CP
-**Last Updated**: 19/11/2026
+**Last Updated**: 20/11/2026
 
 ---
 
@@ -16,6 +16,7 @@
 | **TASK-REAL-API-INTEGRATION** | Real API Integration, Client Contracts & Mock Cleanup | `IN_PROGRESS` | HIGH | Senior Fullstack / API Integration Specialist | [TASK-REAL-API-INTEGRATION.md](file:///d:/Project/404Studio/project-management/tasks/in-progress/TASK-REAL-API-INTEGRATION.md) |
 | **TASK-ADMIN-POLICY-MANAGEMENT** | Enterprise Policy Lifecycle Management System & Public Sync | `COMPLETED` | CRITICAL | Principal Fullstack / Senior React & Privacy Engineer | [TASK-ADMIN-POLICY-MANAGEMENT.md](file:///d:/Project/404Studio/project-management/tasks/completed/TASK-ADMIN-POLICY-MANAGEMENT.md) |
 | **TASK-ADMIN-TRACKING-ANALYTICS** | Enterprise User Tracking & Behavioral Analytics Dashboard | `COMPLETED` | CRITICAL | Senior Fullstack / Data Analytics & Security Specialist | [TASK-ADMIN-TRACKING-ANALYTICS.md](file:///d:/Project/404Studio/project-management/tasks/completed/TASK-ADMIN-TRACKING-ANALYTICS.md) |
+| **TASK-PRODUCT-VARIANTS** | Rename Artwork to Product Management & Multi-Variant Inventory | `COMPLETED` | CRITICAL | Senior Fullstack / E-commerce Architect & Inventory Specialist | [TASK-PRODUCT-VARIANTS.md](file:///d:/Project/404Studio/project-management/tasks/completed/TASK-PRODUCT-VARIANTS.md) |
 | **TASK-DOCS-ORGANIZATION** | Audit, Classify & Organize Root Documentation | `COMPLETED` | HIGH | Documentation Engineer / Repository Maintainer | [TASK-DOCS-ORGANIZATION.md](file:///d:/Project/404Studio/project-management/tasks/completed/TASK-DOCS-ORGANIZATION.md) |
 
 ---

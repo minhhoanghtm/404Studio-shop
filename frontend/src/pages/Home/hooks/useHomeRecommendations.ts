@@ -33,7 +33,7 @@ const CACHE_TTL_MS = 3 * 60 * 1000;
 // Transform backend product payload into full frontend Product type
 export function adaptBackendProduct(raw: any): Product {
   const id = String(raw.id || raw._id || `p_${Math.random().toString(36).substring(2, 9)}`);
-  const name = String(raw.name || 'Tác phẩm Haute Couture Atelier');
+  const name = String(raw.name || 'Sản phẩm Haute Couture Atelier');
   const slug = String(raw.slug || id);
   const price = Number(raw.price || raw.new_price || 15000000);
   const originalPrice = raw.old_price || raw.oldPrice ? Number(raw.old_price || raw.oldPrice) : undefined;
@@ -358,7 +358,7 @@ export function useHomeRecommendations(initialTab: RecommendationTab = 'for-you'
         setMode('popular');
         setAlgorithm('trending_curation');
       } else if (currentTab === 'new-arrivals') {
-        // Tab 3: "Tác phẩm mới ra mắt"
+        // Tab 3: "Sản phẩm mới ra mắt"
         try {
           const res = await productsApi.getProducts({ sort: 'newest', limit: 8 });
           if (controller.signal.aborted) return;
@@ -400,7 +400,7 @@ export function useHomeRecommendations(initialTab: RecommendationTab = 'for-you'
       }
     } catch (err: any) {
       if (controller.signal.aborted) return;
-      setError(err?.message || 'Không thể tải danh sách tác phẩm.');
+      setError(err?.message || 'Không thể tải danh sách sản phẩm.');
       setProducts(PRODUCTS.slice(0, 8));
       setMode('fallback');
     } finally {

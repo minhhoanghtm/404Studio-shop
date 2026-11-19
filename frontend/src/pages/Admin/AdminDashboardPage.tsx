@@ -107,7 +107,7 @@ export const AdminDashboardPage: React.FC = () => {
                 Đơn Hàng Thu Thập Gần Đây
               </h2>
               <p className="text-xs text-platinum-dark">
-                Theo dõi tiến độ hoàn thiện và vận chuyển tác phẩm may đo
+                Theo dõi tiến độ hoàn thiện và vận chuyển sản phẩm may đo
               </p>
             </div>
             <a
@@ -138,7 +138,7 @@ export const AdminDashboardPage: React.FC = () => {
                     </td>
                     <td className="py-3.5 px-3 text-white font-medium">{ord.customer}</td>
                     <td className="py-3.5 px-3 text-platinum-dark">{formatDate(ord.createdAt)}</td>
-                    <td className="py-3.5 px-3">{ord.itemCount} tác phẩm</td>
+                    <td className="py-3.5 px-3">{ord.itemCount} sản phẩm</td>
                     <td className="py-3.5 px-3 font-mono font-bold text-white">
                       {formatCurrency(ord.total)}
                     </td>

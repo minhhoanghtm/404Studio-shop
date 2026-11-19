@@ -20,7 +20,7 @@ export const CategoryBespokeSection: React.FC = () => {
     },
     {
       title: 'Haute Couture',
-      subtitle: 'Tác phẩm độc bản đặt may riêng theo số đo',
+      subtitle: 'Sản phẩm độc bản đặt may riêng theo số đo',
       image: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1000&q=85',
       link: '/collections/noir-absolu',
       span: 'md:col-span-4',

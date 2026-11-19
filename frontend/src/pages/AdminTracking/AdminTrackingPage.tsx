@@ -334,7 +334,7 @@ export const AdminTrackingPage: React.FC = () => {
                   const relativePercentage = Math.round((step.count / firstCount) * 100);
 
                   const stageLabels: Record<string, string> = {
-                    view_product: '1. Xem tác phẩm thời trang',
+                    view_product: '1. Xem sản phẩm',
                     add_to_cart: '2. Thêm vào túi đồ Maison',
                     checkout_started: '3. Khởi tạo thanh toán',
                     reservation_created: '4. Giữ hàng tồn kho an toàn',
@@ -380,7 +380,7 @@ export const AdminTrackingPage: React.FC = () => {
               <div className="flex items-center gap-2">
                 <Eye className="w-4 h-4 text-champagne" />
                 <h3 className="text-xs uppercase tracking-wider text-white font-semibold">
-                  Tác Phẩm Được Quan Tâm Nhất
+                  Sản Phẩm Được Quan Tâm Nhất
                 </h3>
               </div>
               <span className="text-[11px] font-mono text-platinum-dark">Top 10 theo lượt xem</span>
@@ -404,7 +404,7 @@ export const AdminTrackingPage: React.FC = () => {
                         </div>
                       )}
                       <div className="min-w-0">
-                        <h4 className="text-white font-medium truncate">{p.name || 'Tác phẩm Atelier'}</h4>
+                        <h4 className="text-white font-medium truncate">{p.name || 'Sản phẩm Atelier'}</h4>
                         <p className="text-[11px] font-mono text-champagne">{formatPrice(p.price)}</p>
                       </div>
                     </div>
@@ -419,7 +419,7 @@ export const AdminTrackingPage: React.FC = () => {
               </div>
             ) : (
               <p className="text-xs text-platinum-dark italic py-8 text-center">
-                Chưa ghi nhận sự kiện xem tác phẩm nào.
+                Chưa ghi nhận sự kiện xem sản phẩm nào.
               </p>
             )}
           </div>

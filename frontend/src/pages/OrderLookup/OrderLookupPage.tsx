@@ -163,7 +163,7 @@ export const OrderLookupPage: React.FC = () => {
             {/* Item list */}
             <div>
               <span className="text-xs uppercase tracking-wider text-secondary block mb-3 font-medium">
-                Tác phẩm trong kiện hàng
+                Sản phẩm trong kiện hàng
               </span>
               <div className="space-y-3">
                 {orderResult.items?.map((item: any, idx: number) => (

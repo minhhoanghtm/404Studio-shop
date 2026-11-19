@@ -117,7 +117,7 @@ export const ProductFilterBar: React.FC<ProductFilterBarProps> = ({
               value={sortBy}
               onChange={(e) => onSortChange(e.target.value as SortOption)}
               className="bg-noir-900 border border-white/15 text-white text-xs px-3 py-2 rounded focus:outline-none focus:border-champagne cursor-pointer font-sans"
-              aria-label="Sắp xếp tác phẩm"
+              aria-label="Sắp xếp sản phẩm"
             >
               <option value="curated">{vi.catalog.curatedRunway}</option>
               <option value="price-asc">{vi.catalog.priceAsc}</option>

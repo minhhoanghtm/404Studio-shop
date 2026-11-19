@@ -252,7 +252,7 @@ export const AdminOrdersPage: React.FC = () => {
 
               <div>
                 <span className="text-platinum-dark uppercase tracking-wider block mb-2">
-                  Tác Phẩm May Đo
+                  Sản Phẩm Đặt Mua
                 </span>
                 <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                   {selectedOrder.items?.map((item: any, idx: number) => (

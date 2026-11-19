@@ -53,10 +53,10 @@ describe('Consent Manager & Prior Consent Blocking (Phase 11 Compliance)', () =>
       marketing: false,
     });
 
-    TrackingRegistry.trackPageView('/products/verite-01', 'Tác Phẩm 01');
+    TrackingRegistry.trackPageView('/products/verite-01', 'Sản Phẩm 01');
     expect(gtagSpy).toHaveBeenCalledWith('event', 'page_view', {
       page_path: '/products/verite-01',
-      page_title: 'Tác Phẩm 01',
+      page_title: 'Sản Phẩm 01',
     });
   });
 

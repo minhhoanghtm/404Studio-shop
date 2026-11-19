@@ -12,7 +12,7 @@ export const ManifestoSection: React.FC = () => {
           &ldquo;{vi.brand.slogan}&rdquo;
         </h2>
         <p className="text-sm sm:text-base text-platinum-dark max-w-2xl mx-auto font-sans font-light leading-relaxed mb-10">
-          Atelier Vérité vận hành tại giao lộ giữa kỷ luật kiến trúc nghiêm cẩn và nét uyển chuyển tự nhiên của cơ thể người. Mỗi tác phẩm được dựng mẫu trực tiếp trên manocanh tại xưởng Paris, cắt theo canh xéo hoàn hảo và dệt may giới hạn bởi các khung cửi trăm năm châu Âu.
+          Atelier Vérité vận hành tại giao lộ giữa kỷ luật kiến trúc nghiêm cẩn và nét uyển chuyển tự nhiên của cơ thể người. Mỗi sản phẩm được dựng mẫu trực tiếp trên manocanh tại xưởng Paris, cắt theo canh xéo hoàn hảo và dệt may giới hạn bởi các khung cửi trăm năm châu Âu.
         </p>
         <div className="flex items-center justify-center gap-8 text-xs uppercase tracking-widest text-white/50">
           <span>Len lông cừu Virgin</span>

@@ -72,7 +72,7 @@ export const AccountOrderDetailPage: React.FC = () => {
 
         {/* Items List */}
         <div className="p-6 rounded-xl bg-noir-950 border border-white/5 space-y-4">
-          <h4 className="font-display text-lg text-white">Tác phẩm trong đơn hàng</h4>
+          <h4 className="font-display text-lg text-white">Sản phẩm trong đơn hàng</h4>
           <div className="divide-y divide-white/5">
             {order.items.map((item) => (
               <div key={item.id} className="py-4 first:pt-0 flex items-center justify-between gap-4 text-xs">
@@ -126,7 +126,7 @@ export const AccountOrderDetailPage: React.FC = () => {
             </h5>
             <div className="space-y-1.5 text-platinum-dark">
               <div className="flex justify-between">
-                <span>Tạm tính tác phẩm:</span>
+                <span>Tạm tính sản phẩm:</span>
                 <span className="font-mono text-white">{formatCurrency(order.subtotal)}</span>
               </div>
               {order.discount > 0 && (

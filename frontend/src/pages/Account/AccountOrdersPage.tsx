@@ -34,7 +34,7 @@ export const AccountOrdersPage: React.FC = () => {
             Lịch Sử Đơn Hàng & Biên Lai Lưu Trữ
           </h2>
           <p className="text-xs text-platinum-dark font-sans mt-1">
-            Toàn bộ các tác phẩm y phục đã được ủy thác và tiến trình chuyển phát găng tay trắng.
+            Toàn bộ các sản phẩm y phục đã được ủy thác và tiến trình chuyển phát găng tay trắng.
           </p>
         </div>
 
@@ -49,7 +49,7 @@ export const AccountOrdersPage: React.FC = () => {
               to="/products"
               className="inline-block px-6 py-3 bg-champagne text-noir-950 text-xs font-semibold uppercase tracking-widest rounded-lg"
             >
-              Khám phá tác phẩm
+              Khám phá sản phẩm
             </Link>
           </div>
         ) : (

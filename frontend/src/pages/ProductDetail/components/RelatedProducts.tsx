@@ -16,7 +16,7 @@ export const RelatedProducts: React.FC<RelatedProductsProps> = ({ products }) =>
           Cảm hứng đồng điệu
         </span>
         <h3 className="font-display text-2xl sm:text-3xl text-white">
-          Tác phẩm cùng phong cách thiết kế
+          Sản phẩm cùng phong cách thiết kế
         </h3>
       </div>
 

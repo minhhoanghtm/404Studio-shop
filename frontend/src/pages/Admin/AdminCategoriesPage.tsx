@@ -126,7 +126,7 @@ export const AdminCategoriesPage: React.FC = () => {
                 <th className="py-3 px-4">Tên Danh Mục</th>
                 <th className="py-3 px-4">Đường Dẫn Slug</th>
                 <th className="py-3 px-4">Mô Tả Định Hướng</th>
-                <th className="py-3 px-4">Số Tác Phẩm</th>
+                <th className="py-3 px-4">Số Sản Phẩm</th>
                 <th className="py-3 px-4 text-right">Thao Tác</th>
               </tr>
             </thead>

@@ -110,7 +110,7 @@ export const CartItemList: React.FC<CartItemListProps> = ({
             <button
               onClick={() => onRemoveItem(item.productId, item.selectedColor, item.selectedSize)}
               className="text-white/40 hover:text-red-400 p-2 transition-colors rounded-lg hover:bg-white/5"
-              aria-label="Xóa tác phẩm khỏi túi"
+              aria-label="Xóa sản phẩm khỏi túi"
             >
               <Trash2 className="w-4 h-4" />
             </button>

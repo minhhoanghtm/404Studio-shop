@@ -52,7 +52,7 @@ export const FeaturedCollections: React.FC = () => {
             </div>
             <div>
               <span className="text-white/40 uppercase tracking-widest block text-[10px]">Số lượng giới hạn</span>
-              <span className="text-white font-medium mt-0.5 block">{collection.itemCount} tác phẩm độc bản</span>
+              <span className="text-white font-medium mt-0.5 block">{collection.itemCount} sản phẩm độc bản</span>
             </div>
           </div>
 

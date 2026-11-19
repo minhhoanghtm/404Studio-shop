@@ -26,7 +26,7 @@ const FALLBACK_VOUCHERS: VoucherItem[] = [
     id: 'v-1',
     code: 'VANGUARD15',
     title: 'Đặc Quyền Thành Viên Mới',
-    description: 'Ưu đãi 15% cho tác phẩm may đo đầu tiên khi gia nhập gia tộc Atelier Vérité.',
+    description: 'Ưu đãi 15% cho sản phẩm may đo đầu tiên khi gia nhập gia tộc Atelier Vérité.',
     discountType: 'percentage',
     discountPercent: 15,
     minOrderValue: 0,
@@ -122,7 +122,7 @@ export const VouchersPage: React.FC = () => {
             Phiếu Ưu Đãi Atelier
           </h1>
           <p className="text-xs sm:text-sm text-secondary leading-relaxed">
-            Khám phá những đặc quyền dành riêng cho khách hàng thượng lưu. Áp dụng mã ưu đãi khi thanh toán để hưởng chiết khấu trực tiếp trên các tác phẩm may đo độc bản.
+            Khám phá những đặc quyền dành riêng cho khách hàng thượng lưu. Áp dụng mã ưu đãi khi thanh toán để hưởng chiết khấu trực tiếp trên các sản phẩm may đo độc bản.
           </p>
         </div>
 
@@ -159,7 +159,7 @@ export const VouchersPage: React.FC = () => {
                     {voucher.title || voucher.name || voucher.code}
                   </h3>
                   <p className="text-xs text-secondary leading-relaxed mb-6">
-                    {voucher.description || 'Áp dụng cho mọi tác phẩm may đo sẵn hoặc đặt hàng theo số đo riêng.'}
+                    {voucher.description || 'Áp dụng cho mọi sản phẩm may đo sẵn hoặc đặt hàng theo số đo riêng.'}
                   </p>
 
                   {voucher.minOrderValue && voucher.minOrderValue > 0 ? (
@@ -225,7 +225,7 @@ export const VouchersPage: React.FC = () => {
             href="/products"
             className="text-xs uppercase tracking-widest text-accent hover:underline flex items-center gap-1.5 shrink-0"
           >
-            <span>Duyệt tác phẩm áp dụng</span>
+            <span>Duyệt sản phẩm áp dụng</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </a>
         </div>

@@ -26,7 +26,7 @@ export const CreateReviewPage: React.FC = () => {
     if (!comment.trim()) {
       addToast({
         title: 'Thiếu nội dung',
-        message: 'Vui lòng chia sẻ cảm nhận về tác phẩm thời trang.',
+        message: 'Vui lòng chia sẻ cảm nhận về sản phẩm thời trang.',
         type: 'error',
       });
       return;
@@ -63,7 +63,7 @@ export const CreateReviewPage: React.FC = () => {
               Đánh Giá Đã Được Ghi Nhận
             </h2>
             <p className="text-xs sm:text-sm text-white/60 font-light leading-relaxed">
-              Cảm ơn quý khách đã dành thời gian chia sẻ cảm nhận thực tế về tác phẩm{' '}
+              Cảm ơn quý khách đã dành thời gian chia sẻ cảm nhận thực tế về sản phẩm{' '}
               <strong className="text-white font-medium">{productName}</strong>. Đánh giá sẽ được hiển thị công khai sau khi duyệt tính xác thực.
             </p>
             <div className="pt-4 flex justify-center gap-3">
@@ -83,7 +83,7 @@ export const CreateReviewPage: React.FC = () => {
                 ĐẶC QUYỀN ĐÁNH GIÁ PATRON
               </span>
               <h1 className="font-serif text-2xl sm:text-3xl text-white uppercase tracking-wider font-medium">
-                Cảm Nhận Tác Phẩm
+                Cảm Nhận Sản Phẩm
               </h1>
               <p className="text-xs text-white/60 font-light text-[#d4af37]">
                 {productName}
@@ -217,7 +217,7 @@ export const CreateReviewPage: React.FC = () => {
                   <RotateCw className="w-4 h-4 animate-spin" />
                 ) : (
                   <>
-                    <span>Gửi Đánh Giá Tác Phẩm</span>
+                    <span>Gửi Đánh Giá Sản Phẩm</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}

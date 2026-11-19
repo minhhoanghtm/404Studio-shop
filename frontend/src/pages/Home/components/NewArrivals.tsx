@@ -15,14 +15,14 @@ export const NewArrivals: React.FC = () => {
             Ấn bản tuyển chọn đợt đầu
           </span>
           <h2 className="font-display text-3xl sm:text-4xl text-white tracking-wide">
-            Tác phẩm mới ra mắt
+            Sản phẩm mới ra mắt
           </h2>
         </div>
         <Link
           to="/products"
           className="group inline-flex items-center gap-2 text-xs uppercase tracking-widest text-white hover:text-champagne transition-colors"
         >
-          <span>Xem tất cả tác phẩm mới</span>
+          <span>Xem tất cả sản phẩm mới</span>
           <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
         </Link>
       </div>

@@ -62,7 +62,9 @@ const MyCouponsPage = lazy(() => import('./pages/Account').then(m => ({ default:
 
 // Admin Portal Pages
 const AdminDashboardPage = lazy(() => import('./pages/Admin').then(m => ({ default: m.AdminDashboardPage })));
-const AdminProductsPage = lazy(() => import('./pages/Admin').then(m => ({ default: m.AdminProductsPage })));
+const AdminProductsPage = lazy(() => import('./pages/AdminProducts').then(m => ({ default: m.AdminProductsPage })));
+const AdminProductCreatePage = lazy(() => import('./pages/AdminProductCreate').then(m => ({ default: m.AdminProductCreatePage })));
+const AdminProductEditPage = lazy(() => import('./pages/AdminProductEdit').then(m => ({ default: m.AdminProductEditPage })));
 const AdminCategoriesPage = lazy(() => import('./pages/Admin').then(m => ({ default: m.AdminCategoriesPage })));
 const AdminOrdersPage = lazy(() => import('./pages/Admin').then(m => ({ default: m.AdminOrdersPage })));
 const AdminCustomersPage = lazy(() => import('./pages/Admin').then(m => ({ default: m.AdminCustomersPage })));
@@ -224,6 +226,22 @@ export function App() {
             element={
               <Suspense fallback={<PageLoadingFallback />}>
                 <AdminProductsPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="admin/products/new"
+            element={
+              <Suspense fallback={<PageLoadingFallback />}>
+                <AdminProductCreatePage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="admin/products/:id/edit"
+            element={
+              <Suspense fallback={<PageLoadingFallback />}>
+                <AdminProductEditPage />
               </Suspense>
             }
           />

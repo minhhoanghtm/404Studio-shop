@@ -75,7 +75,7 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
         </div>
         <div className="flex items-center gap-2">
           <Sparkles className="w-3.5 h-3.5 text-champagne" />
-          <span>Bảo hiểm vận chuyển ngoại giao 100% giá trị tác phẩm</span>
+          <span>Bảo hiểm vận chuyển ngoại giao 100% giá trị sản phẩm</span>
         </div>
       </div>
     </div>

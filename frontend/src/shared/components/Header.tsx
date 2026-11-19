@@ -147,7 +147,7 @@ export const Header: React.FC = () => {
             <button
               onClick={openSearch}
               className="hidden md:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/5 hover:bg-black/10 border border-black/10 text-noir-700 hover:text-noir-950 dark:bg-white/5 dark:hover:bg-white/10 dark:border-white/10 dark:text-white/70 dark:hover:text-white transition-all text-xs"
-              aria-label="Tìm kiếm tác phẩm"
+              aria-label="Tìm kiếm sản phẩm"
             >
               <Search className="w-3.5 h-3.5 text-champagne" />
               <span className="font-sans font-light text-noir-500 dark:text-white/50">{vi.nav.search}...</span>

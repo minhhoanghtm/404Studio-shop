@@ -81,7 +81,7 @@ export const MegaMenu: React.FC<MegaMenuProps> = ({ isOpen, onClose }) => {
                 onClick={onClose}
                 className="text-champagne hover:text-champagne-light transition-colors font-medium flex items-center gap-2 pt-2"
               >
-                <span>Xem toàn bộ 32 tác phẩm</span>
+                <span>Xem toàn bộ 32 sản phẩm</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </li>

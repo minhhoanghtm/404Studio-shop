@@ -58,7 +58,7 @@ export const CheckoutPage: React.FC = () => {
       <div className="w-full bg-noir-950 text-white min-h-[70vh] flex items-center justify-center p-8">
         <div className="text-center space-y-4">
           <h2 className="font-display text-3xl">Túi mua sắm trống</h2>
-          <p className="text-xs text-platinum-dark">Vui lòng chọn tác phẩm trước khi tiến hành thanh toán.</p>
+          <p className="text-xs text-platinum-dark">Vui lòng chọn sản phẩm trước khi tiến hành thanh toán.</p>
           <Link
             to="/products"
             className="inline-block px-6 py-3 bg-champagne text-noir-950 font-semibold text-xs uppercase tracking-widest rounded-lg"

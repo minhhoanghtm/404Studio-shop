@@ -128,7 +128,7 @@ export const CartDrawer: React.FC = () => {
                         <button
                           onClick={() => removeItem(item.productId, item.selectedColor, item.selectedSize)}
                           className="text-white/40 hover:text-red-400 p-1 transition-colors"
-                          aria-label="Xóa tác phẩm khỏi túi"
+                          aria-label="Xóa sản phẩm khỏi túi"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>

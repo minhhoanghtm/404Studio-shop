@@ -17,7 +17,7 @@ export const TrackingNav: React.FC<TrackingNavProps> = () => {
     { label: 'Tổng Quan Analytics', to: '/admin/tracking', icon: Activity, end: true },
     { label: 'Hành Vi & Phiên Trực Tuyến', to: '/admin/tracking/users', icon: Users },
     { label: 'Sự Kiện Hệ Thống', to: '/admin/tracking/events', icon: Layers },
-    { label: 'Tác Phẩm & Phễu Chuyển Đổi', to: '/admin/tracking/products', icon: Shirt },
+    { label: 'Sản Phẩm & Phễu Chuyển Đổi', to: '/admin/tracking/products', icon: Shirt },
     { label: 'Tuân Thủ Quyền Riêng Tư', to: '/admin/tracking/consent', icon: ShieldCheck },
   ];
 

@@ -30,7 +30,7 @@ export const PaymentResultPage: React.FC = () => {
               Giao Dịch Đã Được Xác Nhận
             </h1>
             <p className="text-xs sm:text-sm text-secondary max-w-md mx-auto leading-relaxed mb-8">
-              Kính gửi quý khách, khoản thanh toán cho đơn hàng đã được đối soát thành công qua cổng thanh toán bảo mật. Nghệ nhân Atelier đang chuẩn bị đóng gói tác phẩm.
+              Kính gửi quý khách, khoản thanh toán cho đơn hàng đã được đối soát thành công qua cổng thanh toán bảo mật. Nghệ nhân Atelier đang chuẩn bị đóng gói sản phẩm.
             </p>
           </div>
         )}

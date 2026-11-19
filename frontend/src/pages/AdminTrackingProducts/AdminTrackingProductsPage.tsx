@@ -56,7 +56,7 @@ export const AdminTrackingProductsPage: React.FC = () => {
 
   return (
     <AdminLayout
-      title="Phân Tích Tương Tác Tác Phẩm & Gợi Ý AI"
+      title="Phân Tích Tương Tác Sản Phẩm & Gợi Ý AI"
       subtitle="Đánh giá hiệu quả kinh doanh của các thiết kế thời trang, công cụ gợi ý và Stylist AI"
     >
       <div className="space-y-6">
@@ -172,7 +172,7 @@ export const AdminTrackingProductsPage: React.FC = () => {
             </div>
             <div className="space-y-1 text-xs text-platinum-dark border-t border-white/5 pt-2 font-mono">
               <div className="flex justify-between">
-                <span>Xem tác phẩm:</span>
+                <span>Xem sản phẩm:</span>
                 <span className="text-white font-semibold">{funnel?.rawStages?.['view_product'] ?? 0}</span>
               </div>
               <div className="flex justify-between">
@@ -193,21 +193,21 @@ export const AdminTrackingProductsPage: React.FC = () => {
             <div className="flex items-center gap-2">
               <Award className="w-4 h-4 text-champagne" />
               <h3 className="text-xs uppercase tracking-wider text-white font-semibold">
-                Bảng Xếp Hạng Tác Phẩm Có Sức Hút Cao Nhất (Top Viewed Silhouettes)
+                Bảng Xếp Hạng Sản Phẩm Có Sức Hút Cao Nhất (Top Viewed Silhouettes)
               </h3>
             </div>
             <span className="text-[11px] font-mono text-platinum-dark">Dữ liệu thực từ MongoDB</span>
           </div>
 
           {loading ? (
-            <div className="p-8 text-center text-xs text-platinum-dark">Đang nạp dữ liệu tác phẩm...</div>
+            <div className="p-8 text-center text-xs text-platinum-dark">Đang nạp dữ liệu sản phẩm...</div>
           ) : overview?.topViewedProducts && overview.topViewedProducts.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead className="bg-noir-950 text-platinum-dark text-[11px] uppercase font-mono border-b border-white/10">
                   <tr>
                     <th className="px-5 py-3">Hạng</th>
-                    <th className="px-5 py-3">Tác Phẩm Thời Trang</th>
+                    <th className="px-5 py-3">Sản Phẩm</th>
                     <th className="px-5 py-3 font-mono">Giá Niêm Yết</th>
                     <th className="px-5 py-3 text-right">Lượt Xem Thực</th>
                   </tr>

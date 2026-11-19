@@ -89,7 +89,7 @@ export const CollectionDetailPage: React.FC = () => {
                 Y phục Sàn diễn
               </span>
               <h3 className="font-display text-2xl sm:text-3xl text-white">
-                Các tác phẩm thuộc Bộ sưu tập ({collectionProducts.length})
+                Các sản phẩm thuộc Bộ sưu tập ({collectionProducts.length})
               </h3>
             </div>
           </div>

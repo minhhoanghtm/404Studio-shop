@@ -67,7 +67,7 @@ export const CartPage: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:items-end justify-between border-b border-white/10 pb-6 gap-4">
           <div>
             <span className="text-[10px] font-sans font-semibold tracking-widest text-champagne uppercase block mb-1">
-              Danh mục tác phẩm tuyển chọn
+              Danh mục sản phẩm tuyển chọn
             </span>
             <h1 className="font-display text-3xl sm:text-5xl text-white tracking-wide">
               {vi.cart.title}
@@ -75,7 +75,7 @@ export const CartPage: React.FC = () => {
           </div>
           <div className="flex items-center gap-4 text-xs">
             <span className="font-mono text-platinum-dark">
-              {count} tác phẩm
+              {count} sản phẩm
             </span>
             <button
               onClick={clearCart}

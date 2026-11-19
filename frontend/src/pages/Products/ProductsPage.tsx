@@ -43,12 +43,12 @@ export const ProductsPage: React.FC = () => {
       case 'couture':
         return {
           title: 'Haute Couture & Độc bản May đo',
-          subtitle: 'Tác phẩm may đo riêng theo số đo nhân trắc học, chế tác tại xưởng Paris.',
+          subtitle: 'Sản phẩm may đo riêng theo số đo nhân trắc học, chế tác tại xưởng Paris.',
         };
       case 'all':
       default:
         return {
-          title: 'Kho Lưu trữ Tác phẩm Toàn diện',
+          title: 'Kho Lưu Trữ Sản Phẩm Toàn Diện',
           subtitle: 'Khám phá các thiết kế trình diễn sàn runway Thu/Đông 2026 và các ấn phẩm giới hạn.',
         };
     }
