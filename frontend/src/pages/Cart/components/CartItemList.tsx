@@ -16,7 +16,7 @@ export const CartItemList: React.FC<CartItemListProps> = ({
   onRemoveItem,
 }) => {
   return (
-    <div className="divide-y divide-white/10">
+    <div className="divide-y divide-[var(--border)]">
       {items.map((item) => (
         <div
           key={`${item.productId}-${item.selectedColor}-${item.selectedSize}`}
@@ -26,7 +26,7 @@ export const CartItemList: React.FC<CartItemListProps> = ({
           <div className="flex gap-4 items-center min-w-0">
             <Link
               to={`/products/${item.productSlug}`}
-              className="w-24 h-32 rounded-xl overflow-hidden bg-noir-900 border border-white/10 flex-shrink-0"
+              className="w-24 h-32 rounded-xl overflow-hidden bg-[var(--bg-alt)] border border-[var(--border)] flex-shrink-0"
             >
               <img
                 src={item.image}
@@ -38,14 +38,14 @@ export const CartItemList: React.FC<CartItemListProps> = ({
             <div className="space-y-1">
               <Link
                 to={`/products/${item.productSlug}`}
-                className="font-display text-lg sm:text-xl text-white hover:text-champagne transition-colors"
+                className="font-display text-lg sm:text-xl text-[var(--text)] hover:text-[var(--accent)] transition-colors"
               >
                 {item.name}
               </Link>
-              <div className="flex items-center gap-3 text-xs text-white/50 font-sans">
+              <div className="flex items-center gap-3 text-xs text-[var(--text-muted)] font-sans">
                 <span className="flex items-center gap-1.5">
                   <span
-                    className="w-2.5 h-2.5 rounded-full border border-white/20 inline-block"
+                    className="w-2.5 h-2.5 rounded-full border border-[var(--border)] inline-block"
                     style={{ backgroundColor: item.selectedColorHex }}
                   />
                   {item.selectedColor}
@@ -53,7 +53,7 @@ export const CartItemList: React.FC<CartItemListProps> = ({
                 <span>•</span>
                 <span>Cỡ: {item.selectedSize}</span>
               </div>
-              <span className="font-mono text-sm text-champagne block sm:hidden pt-1">
+              <span className="font-mono text-sm text-[var(--accent)] font-semibold block sm:hidden pt-1">
                 {formatCurrency(item.price)}
               </span>
             </div>
@@ -62,7 +62,7 @@ export const CartItemList: React.FC<CartItemListProps> = ({
           {/* Controls: Quantity, Line Price & Remove */}
           <div className="flex items-center justify-between sm:justify-end gap-6 w-full sm:w-auto">
             {/* Quantity Stepper */}
-            <div className="flex items-center border border-white/15 rounded-lg bg-noir-900">
+            <div className="flex items-center border border-[var(--border)] rounded-lg bg-[var(--bg-alt)]">
               <button
                 onClick={() =>
                   onUpdateQuantity(
@@ -72,12 +72,12 @@ export const CartItemList: React.FC<CartItemListProps> = ({
                     item.quantity - 1
                   )
                 }
-                className="p-2 text-white/60 hover:text-white transition-colors"
+                className="p-2 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
                 aria-label="Giảm số lượng"
               >
                 <Minus className="w-3.5 h-3.5" />
               </button>
-              <span className="px-3 text-xs font-mono">{item.quantity}</span>
+              <span className="px-3 text-xs font-mono text-[var(--text)]">{item.quantity}</span>
               <button
                 onClick={() =>
                   onUpdateQuantity(
@@ -87,7 +87,7 @@ export const CartItemList: React.FC<CartItemListProps> = ({
                     item.quantity + 1
                   )
                 }
-                className="p-2 text-white/60 hover:text-white transition-colors"
+                className="p-2 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
                 aria-label="Tăng số lượng"
               >
                 <Plus className="w-3.5 h-3.5" />
@@ -96,11 +96,11 @@ export const CartItemList: React.FC<CartItemListProps> = ({
 
             {/* Line Price in VND */}
             <div className="text-right min-w-[120px] hidden sm:block">
-              <span className="font-mono text-base text-white font-medium">
+              <span className="font-mono text-base text-[var(--accent)] font-semibold">
                 {formatCurrency(item.price * item.quantity)}
               </span>
               {item.quantity > 1 && (
-                <span className="block text-[11px] text-white/40 font-mono">
+                <span className="block text-[11px] text-[var(--text-muted)] font-mono">
                   {formatCurrency(item.price)} / chiếc
                 </span>
               )}
@@ -109,7 +109,7 @@ export const CartItemList: React.FC<CartItemListProps> = ({
             {/* Remove Action */}
             <button
               onClick={() => onRemoveItem(item.productId, item.selectedColor, item.selectedSize)}
-              className="text-white/40 hover:text-red-400 p-2 transition-colors rounded-lg hover:bg-white/5"
+              className="text-[var(--text-muted)] hover:text-red-500 p-2 transition-colors rounded-lg hover:bg-[var(--bg-alt)]"
               aria-label="Xóa sản phẩm khỏi túi"
             >
               <Trash2 className="w-4 h-4" />

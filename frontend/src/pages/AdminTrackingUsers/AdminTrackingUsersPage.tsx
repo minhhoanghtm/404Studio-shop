@@ -44,6 +44,7 @@ export const AdminTrackingUsersPage: React.FC = () => {
         setActivity(activityRes.data);
       }
     } catch (err: any) {
+      if (err?.status === 401 || err?.status === 403 || err?.message?.toLowerCase().includes('refresh')) return;
       setError(err?.message || 'Không thể nạp dữ liệu phiên người dùng từ Backend');
     } finally {
       setLoading(false);

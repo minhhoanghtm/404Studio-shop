@@ -117,7 +117,7 @@ videos/
 
 
 # ==========================================
-# IDE / OS
+# IDE / OS / AGENT RUNTIMES
 # ==========================================
 .vscode/*
 !.vscode/extensions.json
@@ -129,3 +129,13 @@ Thumbs.db
 *.njsproj
 *.sln
 *.sw?
+.agent/
+.agents/
+.manus/
+.work/
+site-artifacts/
+sites/
+motion.patch
+plan.md
+manus-webdev.json
+

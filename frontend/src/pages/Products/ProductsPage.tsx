@@ -57,17 +57,17 @@ export const ProductsPage: React.FC = () => {
   const header = getCategoryHeader();
 
   return (
-    <div className="w-full bg-noir-950 text-white min-h-screen py-16 px-4 sm:px-6 lg:px-8">
+    <div className="w-full min-h-screen bg-[var(--bg)] text-[var(--text)] py-16 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto space-y-12">
         {/* Page Editorial Header */}
         <div className="text-center max-w-3xl mx-auto space-y-3">
-          <span className="text-[10px] font-sans font-semibold tracking-widest text-champagne uppercase inline-flex items-center gap-1.5">
+          <span className="text-[10px] font-sans font-semibold tracking-widest text-[var(--accent)] uppercase inline-flex items-center gap-1.5">
             <Sparkles className="w-3 h-3" /> Danh mục lưu trữ Atelier Vérité
           </span>
-          <h1 className="font-display text-3xl sm:text-5xl text-white tracking-wide">
+          <h1 className="font-display text-4xl sm:text-6xl text-[var(--text)] tracking-tight leading-[0.95]">
             {header.title}
           </h1>
-          <p className="text-xs sm:text-sm text-platinum-dark font-sans max-w-xl mx-auto font-light leading-relaxed">
+          <p className="text-sm sm:text-base text-[var(--text-muted)] font-sans max-w-xl mx-auto font-light leading-relaxed">
             {header.subtitle}
           </p>
         </div>

@@ -1,8 +1,10 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Search, X, ArrowRight, Sparkles } from 'lucide-react';
 import { useSearchStore } from '../stores/useSearchStore';
-import { PRODUCTS } from '../data/products';
+import { productsApi } from '../api';
+import { adaptBackendProduct } from '../utils/productAdapter';
+import { Product } from '../types';
 import { formatCurrency } from '../utils/formatters';
 import { vi } from '../locales/vi/common';
 import { useBehaviorTracking } from '../tracking/useBehaviorTracking';
@@ -17,6 +19,33 @@ export const QuickSearchModal: React.FC = () => {
     addRecentSearch,
     clearRecentSearches,
   } = useSearchStore();
+
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+    async function load() {
+      try {
+        const res = await productsApi.getProducts({ limit: 50 });
+        if (cancelled) return;
+        const rawList = Array.isArray(res.data)
+          ? res.data
+          : Array.isArray((res.data as any)?.products)
+          ? (res.data as any).products
+          : Array.isArray(res)
+          ? res
+          : [];
+        if (rawList.length > 0) {
+          setAllProducts(rawList.map(adaptBackendProduct));
+        }
+      } catch {}
+    }
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen]);
 
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -47,7 +76,7 @@ export const QuickSearchModal: React.FC = () => {
   if (!isOpen) return null;
 
   const filteredProducts = query.trim()
-    ? PRODUCTS.filter((p) => {
+    ? allProducts.filter((p) => {
         const q = query.toLowerCase();
         return (
           p.name.toLowerCase().includes(q) ||
@@ -79,27 +108,27 @@ export const QuickSearchModal: React.FC = () => {
       {/* Backdrop */}
       <div
         onClick={closeSearch}
-        className="fixed inset-0 bg-black/80 backdrop-blur-md transition-opacity"
+        className="fixed inset-0 bg-[rgba(26,26,23,0.45)] backdrop-blur-sm transition-opacity"
       />
 
       {/* Modal Dialog */}
-      <div className="relative w-full max-w-2xl bg-noir-950 text-white rounded-2xl border border-white/10 shadow-2xl overflow-hidden z-10">
+      <div className="relative w-full max-w-2xl bg-[var(--surface)] text-[var(--text)] rounded-2xl border border-[var(--border)] shadow-2xl overflow-hidden z-10">
         {/* Search Input Bar */}
-        <form onSubmit={handleSearchSubmit} className="relative flex items-center px-6 py-4 border-b border-white/10">
-          <Search className="w-5 h-5 text-champagne mr-3 flex-shrink-0" />
+        <form onSubmit={handleSearchSubmit} className="relative flex items-center px-6 py-4 border-b border-[var(--border)]">
+          <Search className="w-5 h-5 text-[var(--accent)] mr-3 flex-shrink-0" />
           <input
             ref={inputRef}
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={vi.search.placeholder}
-            className="w-full bg-transparent text-sm sm:text-base text-white placeholder-white/40 outline-none font-sans"
+            className="w-full bg-transparent text-sm sm:text-base text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none font-sans"
           />
           {query && (
             <button
               type="button"
               onClick={() => setQuery('')}
-              className="p-1 text-white/40 hover:text-white mr-2"
+              className="p-1 text-[var(--text-muted)] hover:text-[var(--text)] mr-2"
               aria-label="Xóa nội dung tìm kiếm"
             >
               <X className="w-4 h-4" />
@@ -108,7 +137,7 @@ export const QuickSearchModal: React.FC = () => {
           <button
             type="button"
             onClick={closeSearch}
-            className="px-2.5 py-1 text-xs font-mono bg-white/10 text-white/60 hover:text-white rounded transition-colors"
+            className="px-2.5 py-1 text-xs font-mono bg-[var(--bg-alt)] text-[var(--text-muted)] hover:text-[var(--text)] border border-[var(--border)] rounded transition-colors"
           >
             ESC
           </button>
@@ -120,13 +149,13 @@ export const QuickSearchModal: React.FC = () => {
           {query.trim() ? (
             <div>
               <div className="flex items-center justify-between mb-4">
-                <span className="text-xs uppercase font-sans tracking-widest text-champagne">
+                <span className="text-xs uppercase font-sans tracking-widest text-[var(--accent)] font-semibold">
                   {vi.search.curatedMatches} ({filteredProducts.length})
                 </span>
                 {filteredProducts.length > 0 && (
                   <button
                     onClick={handleSearchSubmit}
-                    className="text-xs text-white/60 hover:text-white flex items-center gap-1 font-sans"
+                    className="text-xs text-[var(--text-muted)] hover:text-[var(--text)] flex items-center gap-1 font-sans"
                   >
                     <span>Xem tất cả kết quả</span>
                     <ArrowRight className="w-3.5 h-3.5" />
@@ -136,8 +165,8 @@ export const QuickSearchModal: React.FC = () => {
 
               {filteredProducts.length === 0 ? (
                 <div className="py-12 text-center space-y-2">
-                  <p className="font-display text-lg text-white">{vi.search.noResultsTitle}</p>
-                  <p className="text-xs text-platinum-dark max-w-md mx-auto">
+                  <p className="font-display text-lg text-[var(--text)]">{vi.search.noResultsTitle}</p>
+                  <p className="text-xs text-[var(--text-muted)] max-w-md mx-auto">
                     {vi.search.noResultsSubtitle}
                   </p>
                 </div>
@@ -148,21 +177,21 @@ export const QuickSearchModal: React.FC = () => {
                       key={product.id}
                       to={`/products/${product.slug}`}
                       onClick={closeSearch}
-                      className="flex items-center gap-3 p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-transparent hover:border-white/10 transition-all group"
+                      className="flex items-center gap-3 p-2.5 rounded-xl bg-[var(--bg-alt)]/60 hover:bg-[var(--bg-alt)] border border-transparent hover:border-[var(--accent)] transition-all group"
                     >
                       <img
                         src={product.featuredImage}
                         alt={product.name}
-                        className="w-14 h-16 object-cover rounded bg-noir-900 flex-shrink-0"
+                        className="w-14 h-16 object-cover rounded bg-[var(--bg-alt)] border border-[var(--border)] flex-shrink-0"
                       />
                       <div className="min-w-0 flex-1">
-                        <span className="text-[10px] uppercase tracking-wider text-champagne block">
+                        <span className="text-[10px] uppercase tracking-wider text-[var(--accent)] block font-medium">
                           {product.category}
                         </span>
-                        <h5 className="font-display text-sm text-white group-hover:text-champagne transition-colors truncate">
+                        <h5 className="font-display text-sm text-[var(--text)] group-hover:text-[var(--accent)] transition-colors truncate">
                           {product.name}
                         </h5>
-                        <span className="text-xs font-mono text-white/70 block mt-0.5">
+                        <span className="text-xs font-mono text-[var(--text-muted)] block mt-0.5">
                           {formatCurrency(product.price)}
                         </span>
                       </div>
@@ -177,12 +206,12 @@ export const QuickSearchModal: React.FC = () => {
               {recentSearches.length > 0 && (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs uppercase tracking-widest text-white/40 font-sans">
+                    <span className="text-xs uppercase tracking-widest text-[var(--text-muted)] font-sans">
                       {vi.search.recent}
                     </span>
                     <button
                       onClick={clearRecentSearches}
-                      className="text-[11px] text-white/40 hover:text-white underline transition-colors"
+                      className="text-[11px] text-[var(--text-muted)] hover:text-[var(--text)] underline transition-colors"
                     >
                       {vi.search.clearHistory}
                     </button>
@@ -192,7 +221,7 @@ export const QuickSearchModal: React.FC = () => {
                       <button
                         key={term}
                         onClick={() => handleRecentClick(term)}
-                        className="px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 text-xs text-white/80 hover:text-white transition-colors border border-white/5"
+                        className="px-3 py-1.5 rounded-full bg-[var(--bg-alt)] hover:bg-[var(--surface)] text-xs text-[var(--text)] transition-colors border border-[var(--border)]"
                       >
                         {term}
                       </button>
@@ -203,7 +232,7 @@ export const QuickSearchModal: React.FC = () => {
 
               {/* Spotlight Categories */}
               <div className="space-y-3">
-                <span className="text-xs uppercase tracking-widest text-champagne font-sans flex items-center gap-1.5">
+                <span className="text-xs uppercase tracking-widest text-[var(--accent)] font-sans flex items-center gap-1.5 font-medium">
                   <Sparkles className="w-3.5 h-3.5" />
                   {vi.search.spotlights}
                 </span>
@@ -211,42 +240,42 @@ export const QuickSearchModal: React.FC = () => {
                   <Link
                     to="/products?category=women"
                     onClick={closeSearch}
-                    className="p-3 rounded-lg bg-white/5 hover:bg-champagne/10 border border-white/5 hover:border-champagne/30 text-white/80 hover:text-champagne transition-all"
+                    className="p-3 rounded-lg bg-[var(--bg-alt)] hover:bg-[var(--surface)] border border-[var(--border)] hover:border-[var(--accent)] text-[var(--text)] hover:text-[var(--accent)] transition-all"
                   >
                     Thời trang Nữ
                   </Link>
                   <Link
                     to="/products?category=men"
                     onClick={closeSearch}
-                    className="p-3 rounded-lg bg-white/5 hover:bg-champagne/10 border border-white/5 hover:border-champagne/30 text-white/80 hover:text-champagne transition-all"
+                    className="p-3 rounded-lg bg-[var(--bg-alt)] hover:bg-[var(--surface)] border border-[var(--border)] hover:border-[var(--accent)] text-[var(--text)] hover:text-[var(--accent)] transition-all"
                   >
                     Thời trang Nam
                   </Link>
                   <Link
                     to="/products?category=outerwear"
                     onClick={closeSearch}
-                    className="p-3 rounded-lg bg-white/5 hover:bg-champagne/10 border border-white/5 hover:border-champagne/30 text-white/80 hover:text-champagne transition-all"
+                    className="p-3 rounded-lg bg-[var(--bg-alt)] hover:bg-[var(--surface)] border border-[var(--border)] hover:border-[var(--accent)] text-[var(--text)] hover:text-[var(--accent)] transition-all"
                   >
                     Áo khoác dạ Tailored
                   </Link>
                   <Link
                     to="/products?category=silk"
                     onClick={closeSearch}
-                    className="p-3 rounded-lg bg-white/5 hover:bg-champagne/10 border border-white/5 hover:border-champagne/30 text-white/80 hover:text-champagne transition-all"
+                    className="p-3 rounded-lg bg-[var(--bg-alt)] hover:bg-[var(--surface)] border border-[var(--border)] hover:border-[var(--accent)] text-[var(--text)] hover:text-[var(--accent)] transition-all"
                   >
                     Lụa & Dạ hội Couture
                   </Link>
                   <Link
                     to="/products?category=accessories"
                     onClick={closeSearch}
-                    className="p-3 rounded-lg bg-white/5 hover:bg-champagne/10 border border-white/5 hover:border-champagne/30 text-white/80 hover:text-champagne transition-all"
+                    className="p-3 rounded-lg bg-[var(--bg-alt)] hover:bg-[var(--surface)] border border-[var(--border)] hover:border-[var(--accent)] text-[var(--text)] hover:text-[var(--accent)] transition-all"
                   >
                     Đồ da & Phụ kiện
                   </Link>
                   <Link
                     to="/collections/noir-absolu"
                     onClick={closeSearch}
-                    className="p-3 rounded-lg bg-white/5 hover:bg-champagne/10 border border-white/5 hover:border-champagne/30 text-white/80 hover:text-champagne transition-all"
+                    className="p-3 rounded-lg bg-[var(--bg-alt)] hover:bg-[var(--surface)] border border-[var(--border)] hover:border-[var(--accent)] text-[var(--text)] hover:text-[var(--accent)] transition-all"
                   >
                     Bộ sưu tập Runway FW26
                   </Link>

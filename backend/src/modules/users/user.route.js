@@ -11,6 +11,7 @@ import {
   verifyAndUpdatePhoneController,
 } from "./user.controller.js";
 import { protectedRoute, adminOnly } from "../../middlewares/auth.middleware.js";
+import { authenticate, authorize } from "../../middlewares/rbac.middleware.js";
 import { sendOtpLimiter } from "../../middlewares/rateLimiter.middleware.js";
 import {
   validateCreateUser,
@@ -31,10 +32,12 @@ router.put("/updateProfile", validateUpdateProfile, updateProfile);
 router.put("/phone/send-otp", sendOtpLimiter, validateSendPhoneOtp, sendUpdatePhoneOtpController);
 router.put("/phone/verify", validateVerifyPhoneOtp, verifyAndUpdatePhoneController);
 
-// Chỉ Admin mới được truy cập
-router.get("/admin/users", protectedRoute, adminOnly, getAllUsers);
-router.post("/admin/users", protectedRoute, adminOnly, validateCreateUser, createUser);
-router.put("/admin/users/:id", protectedRoute, adminOnly, validateUpdateUser, updateUser);
-router.delete("/admin/users/:id", protectedRoute, adminOnly, validateUserIdParam, deleteUser);
+// RBAC Protected Admin User endpoints
+router.get("/admin/users", authenticate, authorize("user:view"), getAllUsers);
+router.get("/admin/all", authenticate, authorize("user:view"), getAllUsers);
+router.post("/admin/users", authenticate, authorize("user:update"), validateCreateUser, createUser);
+router.put("/admin/users/:id", authenticate, authorize("user:update"), validateUpdateUser, updateUser);
+router.put("/admin/:id/status", authenticate, authorize("user:lock"), validateUpdateUser, updateUser);
+router.delete("/admin/users/:id", authenticate, authorize("user:lock"), validateUserIdParam, deleteUser);
 
 export default router;

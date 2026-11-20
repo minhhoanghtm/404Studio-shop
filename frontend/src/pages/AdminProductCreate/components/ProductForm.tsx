@@ -23,7 +23,6 @@ export const ProductForm: React.FC<ProductFormProps> = ({
 
   // Basic Information
   const [name, setName] = useState(initialValues?.name || '');
-  const [slug, setSlug] = useState(initialValues?.slug || '');
   const [categoryId, setCategoryId] = useState(initialValues?.category_id || '');
   const [description, setDescription] = useState(initialValues?.description || '');
   const [oldPrice, setOldPrice] = useState(initialValues?.old_price || 45000000);
@@ -72,26 +71,31 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // The edit page fetches asynchronously; keep local fields aligned if its source changes.
+  useEffect(() => {
+    if (!initialValues) return;
+    setName(initialValues.name || '');
+    setCategoryId(initialValues.category_id || '');
+    setDescription(initialValues.description || '');
+    setOldPrice(initialValues.old_price ?? 45000000);
+    setNewPrice(initialValues.new_price ?? 42000000);
+    setWeight(initialValues.weight ?? 0.5);
+    setIsActive(initialValues.is_active ?? true);
+    setIsFeatured(initialValues.is_featured ?? false);
+    if (initialValues.displayProduct?.length) setDisplayProduct(initialValues.displayProduct);
+    if (initialValues.variants) setVariants(initialValues.variants);
+  }, [initialValues]);
+
   // Compute Total Stock automatically: TotalStock = SUM(VariantStock)
   const totalStock = variants.length > 0
     ? variants.reduce((sum, v) => sum + (Number(v.stock) || 0), 0)
     : Number(initialValues?.stock) || 0;
 
-  // Auto-generate slug when name changes (if not in edit mode or slug was empty)
-  const handleNameChange = (val: string) => {
-    setName(val);
-    if (!isEdit || !slug) {
-      const generated = val
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[đĐ]/g, 'd')
-        .replace(/[^a-z0-9\s-]/g, '')
-        .trim()
-        .replace(/\s+/g, '-');
-      setSlug(generated);
-    }
-  };
+  const categoryName = categories.find((category) => (category._id || category.id) === categoryId)?.name?.toLowerCase() || '';
+  const categorySizes = categoryName.includes('giày') ? ['36', '37', '38', '39', '40', '41', '42', '43', '44', '45']
+    : categoryName.includes('jean') || categoryName.includes('kaki') ? ['28', '29', '30', '31', '32', '33', '34', '35', '36']
+    : categoryName.includes('phụ kiện') || categoryName.includes('accessor') ? ['Free Size']
+    : ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 
   // Load real categories from backend
   useEffect(() => {
@@ -148,11 +152,6 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       return;
     }
 
-    if (!slug.trim()) {
-      setErrorMessage('Đường dẫn tĩnh (slug) là bắt buộc.');
-      return;
-    }
-
     if (!categoryId) {
       setErrorMessage('Vui lòng chọn danh mục cho sản phẩm.');
       return;
@@ -160,6 +159,11 @@ export const ProductForm: React.FC<ProductFormProps> = ({
 
     if (newPrice < 0 || oldPrice < 0) {
       setErrorMessage('Giá bán sản phẩm không được là số âm.');
+      return;
+    }
+
+    if (newPrice > oldPrice) {
+      setErrorMessage('Giá bán khuyến mãi không được lớn hơn giá niêm yết.');
       return;
     }
 
@@ -200,7 +204,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       id: initialValues?.id || initialValues?._id,
       _id: initialValues?._id || initialValues?.id,
       name: name.trim(),
-      slug: slug.trim(),
+      // Kept only for local variant SKU previews; it is never submitted by this form.
+      slug: initialValues?.slug || '',
       category_id: categoryId,
       description: description.trim(),
       old_price: Number(oldPrice),
@@ -279,24 +284,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               type="text"
               required
               value={name}
-              onChange={(e) => handleNameChange(e.target.value)}
+              onChange={(e) => setName(e.target.value)}
               placeholder="VD: Áo Khoác Dạ Len Biella Cashmere Coat..."
               className="w-full px-3 py-2.5 text-xs bg-noir-950 border border-white/10 rounded-sm text-white focus:border-champagne focus:outline-none"
-            />
-          </div>
-
-          {/* Slug */}
-          <div className="space-y-1.5">
-            <label className="text-xs text-platinum-light font-medium block">
-              Đường Dẫn Tĩnh (Slug) <span className="text-red-400">*</span>
-            </label>
-            <input
-              type="text"
-              required
-              value={slug}
-              onChange={(e) => setSlug(e.target.value)}
-              placeholder="ao-khoac-da-len-biella-cashmere-coat"
-              className="w-full px-3 py-2.5 text-xs bg-noir-950 border border-white/10 rounded-sm text-champagne font-mono focus:border-champagne focus:outline-none"
             />
           </div>
 
@@ -313,7 +303,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             >
               {categories.map((cat) => (
                 <option key={cat._id || cat.id} value={cat._id || cat.id}>
-                  {cat.name} ({cat.slug})
+                  {cat.name}
                 </option>
               ))}
             </select>
@@ -364,11 +354,12 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               Trọng Lượng Đóng Gói (kg)
             </label>
             <input
-              type="number"
+              type="text"
+              inputMode="decimal"
               min="0.1"
               step="0.1"
               value={weight}
-              onChange={(e) => setWeight(Math.max(0.1, parseFloat(e.target.value || '0.5')))}
+              onChange={(e) => setWeight(Math.max(0.1, Number.parseFloat(e.target.value.replace(',', '.')) || 0.5))}
               className="w-full px-3 py-2.5 text-xs bg-noir-950 border border-white/10 rounded-sm text-white font-mono focus:border-champagne focus:outline-none"
             />
           </div>
@@ -380,7 +371,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 type="checkbox"
                 checked={isActive}
                 onChange={(e) => setIsActive(e.target.checked)}
-                className="w-4 h-4 rounded bg-noir-950 border-white/20 text-champagne focus:ring-0"
+                className="w-4 h-4 rounded bg-noir-950 border-white/20 accent-champagne focus:ring-champagne focus:ring-1"
               />
               <span>Đang Mở Bán (Active)</span>
             </label>
@@ -390,7 +381,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 type="checkbox"
                 checked={isFeatured}
                 onChange={(e) => setIsFeatured(e.target.checked)}
-                className="w-4 h-4 rounded bg-noir-950 border-white/20 text-champagne focus:ring-0"
+                className="w-4 h-4 rounded bg-noir-950 border-white/20 accent-champagne focus:ring-champagne focus:ring-1"
               />
               <span>Sản Phẩm Tiêu Biểu (Featured Runway)</span>
             </label>
@@ -474,7 +465,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         variants={variants}
         onChange={setVariants}
         basePrice={newPrice}
-        productSlug={slug}
+        productSlug={initialValues?.slug || name}
+        allowedSizes={categorySizes}
         defaultImageUrl={displayProduct[0]}
       />
 

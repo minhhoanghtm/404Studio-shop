@@ -14,7 +14,7 @@ export const MegaMenu: React.FC<MegaMenuProps> = ({ isOpen, onClose }) => {
   return (
     <div
       onMouseLeave={onClose}
-      className="absolute top-full left-0 w-full bg-noir-950/95 dark:bg-noir-950/95 backdrop-blur-2xl border-b border-white/10 shadow-2xl py-10 px-8 transition-all duration-300 z-40 animate-fade-in"
+      className="editorial-page absolute top-full left-0 w-full bg-ivory-50/98 text-noir-900 dark:bg-noir-950/95 dark:text-white backdrop-blur-2xl border-b border-black/10 dark:border-white/10 shadow-2xl py-10 px-8 transition-all duration-300 z-40 animate-fade-in"
     >
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8">
         {/* Column 1: Tiêu điểm Runway */}
@@ -25,7 +25,7 @@ export const MegaMenu: React.FC<MegaMenuProps> = ({ isOpen, onClose }) => {
           <Link
             to="/collections/noir-absolu"
             onClick={onClose}
-            className="group block relative aspect-[4/5] overflow-hidden rounded-lg bg-noir-900"
+            className="group block relative aspect-[4/5] overflow-hidden rounded-sm bg-noir-900"
           >
             <img
               src="https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=800&q=85"

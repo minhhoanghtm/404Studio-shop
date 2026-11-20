@@ -1,5 +1,6 @@
 import express from "express";
 import { adminOnly, protectedRoute, optionalProtectedRoute, noAdmin } from "../../middlewares/auth.middleware.js";
+import { authenticate, authorize } from "../../middlewares/rbac.middleware.js";
 import { aiChatDailyQuota, aiChatLimiter } from "../../middlewares/rateLimiter.middleware.js";
 import {
   assignConversation,
@@ -18,9 +19,12 @@ import {
   sendAdminSupportMessage,
   sendCustomerSupportMessage,
 } from "./supportChat/supportChat.controller.js";
+import guestSupportRouter from "./guestSupport/guestSupport.route.js";
+import { getStaffStatus } from "./guestSupport/guestSupport.controller.js";
 
 export const adminCommunicationRouter = express.Router();
-adminCommunicationRouter.use(protectedRoute, adminOnly);
+// Admin & Staff CSKH (RBAC chat:reply)
+adminCommunicationRouter.use(authenticate, authorize("chat:reply"));
 adminCommunicationRouter.get("/conversations", getAdminConversations);
 adminCommunicationRouter.get("/conversations/unassigned", getUnassignedConversations);
 adminCommunicationRouter.get("/conversations/my", getMyAssignedConversations);
@@ -33,6 +37,8 @@ adminCommunicationRouter.post("/support/send", sendAdminSupportMessage);
 
 export const customerCommunicationRouter = express.Router();
 customerCommunicationRouter.post("/ai/send", optionalProtectedRoute, noAdmin, aiChatLimiter, aiChatDailyQuota, sendAiMessage);
+customerCommunicationRouter.use("/guest", guestSupportRouter);
+customerCommunicationRouter.get("/staff-status", getStaffStatus);
 customerCommunicationRouter.use(protectedRoute, noAdmin);
 // Confirmation is intentionally a separate authenticated endpoint. Text such as
 // "ok" in the chat is never an authorization to mutate account/cart state.

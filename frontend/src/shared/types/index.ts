@@ -6,6 +6,7 @@ export interface ProductSize {
   size: string;
   inStock: boolean;
   stockCount?: number;
+  variantId?: string;
 }
 
 export interface ProductVariant {
@@ -73,6 +74,7 @@ export interface Collection {
 
 export interface CartItem {
   productId: string;
+  variantId?: string;
   productSlug: string;
   name: string;
   price: number; // in VND
@@ -139,6 +141,7 @@ export interface User {
   name: string;
   email: string;
   phone?: string;
+  role?: 'admin' | 'user' | string;
   vipTier: 'Thành viên' | 'Atelier Privé' | 'Haute Circle' | string;
   addresses: ShippingAddress[];
   savedCardLast4?: string;

@@ -13,6 +13,7 @@ import {
   getDashboardStats,
 } from "./voucher.controller.js";
 import { protectedRoute, adminOnly, noAdmin } from "../../middlewares/auth.middleware.js";
+import { authenticate, authorize } from "../../middlewares/rbac.middleware.js";
 import { claimRateLimiter } from "../../middlewares/rateLimit.middleware.js";
 
 const voucherRouter = express.Router();
@@ -23,13 +24,12 @@ voucherRouter.post("/claim", requireFeature("enableVoucher", "Tính năng mã gi
 voucherRouter.get("/wallet", requireFeature("enableVoucher", "Tính năng mã giảm giá hiện đang tạm tắt"), protectedRoute, getUserWallet);
 voucherRouter.post("/validate", requireFeature("enableVoucher", "Tính năng mã giảm giá hiện đang tạm tắt"), protectedRoute, validateVoucher);
 
-// Admin Voucher APIs (wrapped in protectedRoute + adminOnly)
-voucherRouter.get("/admin/stats", protectedRoute, adminOnly, getDashboardStats);
-voucherRouter.get("/admin", protectedRoute, adminOnly, getAdminVouchers);
-voucherRouter.post("/admin", protectedRoute, adminOnly, createVoucher);
-voucherRouter.put("/admin/:id", protectedRoute, adminOnly, updateVoucher);
-voucherRouter.delete("/admin/:id", protectedRoute, adminOnly, deleteVoucher);
-voucherRouter.patch("/admin/:id/status", protectedRoute, adminOnly, toggleVoucherStatus);
+// Admin Voucher APIs (protected by RBAC coupon:manage)
+voucherRouter.get("/admin/stats", authenticate, authorize("coupon:manage"), getDashboardStats);
+voucherRouter.get("/admin", authenticate, authorize("coupon:manage"), getAdminVouchers);
+voucherRouter.post("/admin", authenticate, authorize("coupon:manage"), createVoucher);
+voucherRouter.put("/admin/:id", authenticate, authorize("coupon:manage"), updateVoucher);
+voucherRouter.delete("/admin/:id", authenticate, authorize("coupon:manage"), deleteVoucher);
+voucherRouter.patch("/admin/:id/status", authenticate, authorize("coupon:manage"), toggleVoucherStatus);
 
 export default voucherRouter;
-

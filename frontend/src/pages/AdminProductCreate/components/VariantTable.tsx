@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, Layers, AlertCircle, Sparkles, Image as ImageIcon, Info } from 'lucide-react';
+import { Plus, Trash2, Layers, AlertCircle, Sparkles, Image as ImageIcon, Info, Copy } from 'lucide-react';
 import { ProductVariantItem, DEFAULT_SIZES, DEFAULT_COLORS } from '../../AdminProducts/types';
 import { formatCurrency } from '@/shared/utils/formatters';
 
@@ -8,6 +8,7 @@ interface VariantTableProps {
   onChange: (variants: ProductVariantItem[]) => void;
   basePrice: number;
   productSlug: string;
+  allowedSizes?: string[];
   defaultImageUrl?: string;
 }
 
@@ -16,25 +17,30 @@ export const VariantTable: React.FC<VariantTableProps> = ({
   onChange,
   basePrice,
   productSlug,
+  allowedSizes = DEFAULT_SIZES,
   defaultImageUrl = 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=600&q=80',
 }) => {
   const [newColor, setNewColor] = useState('');
-  const [selectedSizes, setSelectedSizes] = useState<string[]>(['S', 'M', 'L']);
+  const [selectedSizes, setSelectedSizes] = useState<string[]>(allowedSizes.slice(0, 3));
   const [defaultStock, setDefaultStock] = useState<number>(10);
   const [validationError, setValidationError] = useState<string | null>(null);
 
-  // Generate standardized virtual SKU: [SLUG]-[COLOR]-[SIZE]
+  const normalizeColor = (value: string) => value
+    .replace(/\([^)]*\)/g, ' ')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[đĐ]/g, 'd')
+    .toLowerCase().replace(/[^a-z0-9]+/g, '').trim();
+
+  const colorCode = (value: string) => {
+    const words = value.replace(/\([^)]*\)/g, ' ').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[đĐ]/g, 'd').toUpperCase().match(/[A-Z0-9]+/g) || [];
+    const first = words.at(0) || 'MAU';
+    return words.length <= 1 ? first.slice(0, 6) : `${first.charAt(0)}${words.slice(1).join('')}`.slice(0, 6);
+  };
+
+  // Generate standardized SKU: product-word initials / normalized color / size.
   const generateSku = (slug: string, color: string, size: string) => {
-    const cleanSlug = (slug || 'sp')
-      .toLowerCase()
-      .replace(/[^a-z0-9]/g, '-')
-      .substring(0, 12);
-    const cleanColor = color
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-zA-Z0-9]/g, '')
-      .toUpperCase()
-      .substring(0, 4);
+    const cleanSlug = (slug || 'san-pham').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[đĐ]/g, 'd')
+      .toLowerCase().split(/[^a-z0-9]+/).filter(Boolean).slice(0, 6).map((word) => word.charAt(0)).join('').toUpperCase() || 'SP';
+    const cleanColor = colorCode(color);
     const cleanSize = (size || 'FS').toUpperCase();
     return `${cleanSlug}-${cleanColor || 'VAR'}-${cleanSize}`;
   };
@@ -46,12 +52,12 @@ export const VariantTable: React.FC<VariantTableProps> = ({
     let size = selectedSizes[0] || 'L';
 
     const isDuplicate = variants.some(
-      (v) => v.color.toLowerCase() === color.toLowerCase() && v.size.toLowerCase() === size.toLowerCase()
+      (v) => normalizeColor(v.color) === normalizeColor(color) && v.size.toLowerCase() === size.toLowerCase()
     );
 
     if (isDuplicate) {
-      const freeSize = DEFAULT_SIZES.find(
-        (sz) => !variants.some((v) => v.color.toLowerCase() === color.toLowerCase() && v.size.toLowerCase() === sz.toLowerCase())
+      const freeSize = allowedSizes.find(
+        (sz) => !variants.some((v) => normalizeColor(v.color) === normalizeColor(color) && v.size.toLowerCase() === sz.toLowerCase())
       );
       if (freeSize) {
         size = freeSize;
@@ -93,13 +99,14 @@ export const VariantTable: React.FC<VariantTableProps> = ({
 
     selectedSizes.forEach((sz) => {
       const exists = variants.some(
-        (v) => v.color.toLowerCase() === color.toLowerCase() && v.size.toLowerCase() === sz.toLowerCase()
+        (v) => normalizeColor(v.color) === normalizeColor(color) && v.size.toLowerCase() === sz.toLowerCase()
       );
       if (exists) {
         duplicates.push(`${color} / ${sz}`);
       } else {
         newItems.push({
           color,
+          color_key: normalizeColor(color),
           size: sz,
           stock: Math.max(0, Math.floor(defaultStock || 0)),
           image_url: defaultImageUrl,
@@ -144,7 +151,7 @@ export const VariantTable: React.FC<VariantTableProps> = ({
       const isDuplicate = updated.some(
         (v, idx) =>
           idx !== index &&
-          v.color.toLowerCase() === newColorVal.toLowerCase() &&
+          normalizeColor(v.color) === normalizeColor(newColorVal) &&
           v.size.toLowerCase() === newSizeVal.toLowerCase()
       );
 
@@ -154,6 +161,7 @@ export const VariantTable: React.FC<VariantTableProps> = ({
       }
 
       (target as any)[field] = value;
+      target.color_key = normalizeColor(newColorVal);
       target.sku = generateSku(productSlug, newColorVal, newSizeVal);
     } else {
       (target as any)[field] = value;
@@ -269,7 +277,7 @@ export const VariantTable: React.FC<VariantTableProps> = ({
           <div className="md:col-span-4 space-y-1">
             <label className="text-[11px] text-platinum-dark block">Kích cỡ áp dụng (Sizes)</label>
             <div className="flex flex-wrap gap-1.5">
-              {DEFAULT_SIZES.map((sz) => {
+              {allowedSizes.map((sz) => {
                 const isSelected = selectedSizes.includes(sz);
                 return (
                   <button
@@ -344,6 +352,7 @@ export const VariantTable: React.FC<VariantTableProps> = ({
                   <th className="py-3 px-3">Đơn Giá Dự Kiến</th>
                   <th className="py-3 px-3">Tồn Kho (Số Nguyên)</th>
                   <th className="py-3 px-3">Ảnh Biến Thể URL</th>
+                  <th className="py-3 px-3">Trạng Thái</th>
                   <th className="py-3 px-3 text-right">Thao Tác</th>
                 </tr>
               </thead>
@@ -352,12 +361,12 @@ export const VariantTable: React.FC<VariantTableProps> = ({
                   <tr key={`${variant.color}_${variant.size}_${idx}`} className="hover:bg-white/[0.02] transition-colors">
                     {/* Color */}
                     <td className="py-3 px-3">
-                      <input
+                      <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full border border-white/30" style={{ backgroundColor: variant.color_code || '#1E1E24' }} /><input
                         type="text"
                         value={variant.color}
                         onChange={(e) => handleUpdateVariant(idx, 'color', e.target.value)}
                         className="w-28 px-2 py-1.5 bg-noir-950 border border-white/10 rounded-sm text-xs text-white focus:border-champagne focus:outline-none"
-                      />
+                      /></div>
                     </td>
 
                     {/* Size */}
@@ -367,7 +376,7 @@ export const VariantTable: React.FC<VariantTableProps> = ({
                         onChange={(e) => handleUpdateVariant(idx, 'size', e.target.value)}
                         className="px-2 py-1.5 bg-noir-950 border border-white/10 rounded-sm text-xs text-white font-mono focus:border-champagne focus:outline-none"
                       >
-                        {DEFAULT_SIZES.map((sz) => (
+                        {allowedSizes.map((sz) => (
                           <option key={sz} value={sz}>{sz}</option>
                         ))}
                       </select>
@@ -375,7 +384,10 @@ export const VariantTable: React.FC<VariantTableProps> = ({
 
                     {/* SKU */}
                     <td className="py-3 px-3 font-mono text-[11px] text-champagne font-medium">
-                      {variant.sku || generateSku(productSlug, variant.color, variant.size)}
+                      <div className="flex items-center gap-1">
+                        <input readOnly value={variant.sku || generateSku(productSlug, variant.color, variant.size)} className="w-28 bg-transparent outline-none" aria-label={`SKU ${idx + 1}`} />
+                        <button type="button" title="Sao chép SKU" onClick={() => navigator.clipboard?.writeText(variant.sku || generateSku(productSlug, variant.color, variant.size))} className="text-platinum-dark hover:text-champagne"><Copy className="w-3 h-3" /></button>
+                      </div>
                     </td>
 
                     {/* Price */}
@@ -420,6 +432,10 @@ export const VariantTable: React.FC<VariantTableProps> = ({
                           className="w-48 px-2 py-1.5 bg-noir-950 border border-white/10 rounded-sm text-[11px] text-platinum-dark focus:border-champagne focus:outline-none truncate"
                         />
                       </div>
+                    </td>
+
+                    <td className="py-3 px-3">
+                      <label className="inline-flex items-center gap-1.5 text-[11px] text-platinum-light"><input type="checkbox" checked={variant.is_active !== false} onChange={(e) => handleUpdateVariant(idx, 'is_active', e.target.checked)} className="accent-champagne focus:ring-champagne" /> {variant.is_active !== false ? 'Bật' : 'Tắt'}</label>
                     </td>
 
                     {/* Actions */}

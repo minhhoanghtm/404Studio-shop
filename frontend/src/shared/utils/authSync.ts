@@ -1,5 +1,5 @@
 /**
- * ATELIER VÉRITÉ — Multi-tab Auth Synchronization & JWT Utilities
+ * ATELIER VÉRITÉ — Multi-tab Auth & Permission Synchronization & JWT Utilities
  */
 
 const AUTH_CHANNEL_NAME = 'atelier_auth_channel';
@@ -66,19 +66,42 @@ export const broadcastAuthLogout = () => {
   }
 };
 
+export const broadcastPermissionsChanged = () => {
+  try {
+    const channel = getBroadcastChannel();
+    if (channel) {
+      channel.postMessage({ type: 'permissions_changed', timestamp: Date.now() });
+    }
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(
+        AUTH_EVENT_KEY,
+        JSON.stringify({ type: 'permissions_changed', timestamp: Date.now() })
+      );
+    }
+  } catch {
+    // Ignore cross-origin / private browsing restrictions
+  }
+};
+
 if (typeof window !== 'undefined') {
   (window as any).__ATELIER_AUTH_SYNC__ = {
     broadcastAuthLogout,
+    broadcastPermissionsChanged,
   };
 }
 
-export const setupMultiTabAuthSync = (onLogout: () => void): (() => void) => {
+export const setupMultiTabAuthSync = (
+  onLogout: () => void,
+  onPermissionsChanged?: () => void
+): (() => void) => {
   if (typeof window === 'undefined') return () => {};
 
   const channel = getBroadcastChannel();
   const handleMessage = (event: MessageEvent) => {
     if (event.data?.type === 'logout') {
       onLogout();
+    } else if (event.data?.type === 'permissions_changed') {
+      onPermissionsChanged?.();
     }
   };
 
@@ -92,6 +115,8 @@ export const setupMultiTabAuthSync = (onLogout: () => void): (() => void) => {
         const data = JSON.parse(event.newValue);
         if (data?.type === 'logout') {
           onLogout();
+        } else if (data?.type === 'permissions_changed') {
+          onPermissionsChanged?.();
         }
       } catch {
         // Ignore JSON error

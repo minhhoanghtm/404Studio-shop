@@ -24,7 +24,7 @@ export const AdminProductEditPage: React.FC = () => {
       setFetchError(null);
       try {
         const res = await productsApi.getProductDetail(id);
-        const data = res?.data || (res as any);
+        const data = res?.data?.data || res?.data || (res as any);
 
         if (data) {
           // Map backend variants to frontend format
@@ -80,7 +80,6 @@ export const AdminProductEditPage: React.FC = () => {
     try {
       const payload = {
         name: values.name,
-        slug: values.slug,
         category_id: values.category_id,
         description: values.description,
         old_price: values.old_price,
@@ -97,7 +96,7 @@ export const AdminProductEditPage: React.FC = () => {
         })),
       };
 
-      await adminApi.updateProduct(id, payload);
+      await adminApi.updateAdminFormProduct(id, payload);
       addToast(`Cập nhật sản phẩm "${values.name}" thành công!`, 'success');
       navigate('/admin/products');
     } catch (err: any) {

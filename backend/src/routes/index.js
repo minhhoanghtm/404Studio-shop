@@ -19,7 +19,9 @@ import {
   adminCommunicationRouter,
   customerCommunicationRouter,
 } from "../modules/communication/communication.route.js";
+import roleRouter from "../modules/roles/role.route.js";
 import { protectedRoute, optionalProtectedRoute, adminOnly, noAdmin } from "../middlewares/auth.middleware.js";
+import { authenticate, authorize } from "../middlewares/rbac.middleware.js";
 import { authGlobalLimiter } from "../middlewares/rateLimiter.middleware.js";
 import shippingRouter from "../modules/shipping/shipping.routes.js";
 import trackingRouter from "../modules/tracking/tracking.route.js";
@@ -30,6 +32,8 @@ import experimentRouter from "../modules/recommendations/experiments/experiment.
 import aiRouter from "../modules/ai/ai.route.js";
 import internalAiRouter from "../modules/ai/internalAi.route.js";
 import inventoryRouter, { checkoutReservationRouter } from "../modules/inventory/inventory.route.js";
+import loyaltyRouter from "../modules/loyalty/loyalty.route.js";
+import supportTicketRouter from "../modules/support/supportTicket.route.js";
 import mongoose from "mongoose";
 import { getRedisConnection } from "../configs/redis.js";
 
@@ -108,9 +112,10 @@ rootRouter.use("/campaigns", campaignRouter);
 rootRouter.use("/pages", pageRouter);
 rootRouter.use("/lookbooks", lookbookRouter);
 rootRouter.use("/page-sections", pageSectionRouter);
-rootRouter.use("/admin/pages", protectedRoute, adminOnly, adminPageRouter);
-rootRouter.use("/admin/page-sections", protectedRoute, adminOnly, adminPageSectionRouter);
-rootRouter.use("/admin/campaigns", protectedRoute, adminOnly, adminCampaignRouter);
+rootRouter.use("/admin", roleRouter);
+rootRouter.use("/admin/pages", authenticate, authorize("content:manage"), adminPageRouter);
+rootRouter.use("/admin/page-sections", authenticate, authorize("content:manage"), adminPageSectionRouter);
+rootRouter.use("/admin/campaigns", authenticate, authorize("coupon:manage"), adminCampaignRouter);
 
 // Tracking, Recommendations & Vector AI routes
 rootRouter.use("/events", trackingRouter);
@@ -141,5 +146,7 @@ rootRouter.use("/chat", customerCommunicationRouter);
 
 // Shipping domain routes
 rootRouter.use("/shipping", shippingRouter);
+rootRouter.use("/loyalty", loyaltyRouter);
+rootRouter.use("/support", supportTicketRouter);
 
 export default rootRouter;

@@ -10,14 +10,21 @@ import {
   ShieldCheck,
   RefreshCw,
   MessageSquare,
+  CheckCircle2,
+  UserCheck,
+  Headphones,
 } from 'lucide-react';
 import { useToastStore } from '@/shared/stores/useToastStore';
+import { useAuthStore } from '@/shared/stores/useAuthStore';
+import { communicationApi } from '@/shared/api/communicationApi';
+import { socketService } from '@/shared/services/socketService';
 
 interface MessageItem {
   id: string;
   sender: 'customer' | 'admin';
   text: string;
   timestamp: string;
+  isHandoffContext?: boolean;
 }
 
 interface Conversation {
@@ -29,6 +36,10 @@ interface Conversation {
   updatedAt: string;
   unreadCount?: number;
   isOnline?: boolean;
+  status?: string;
+  assignedAdminId?: string | null;
+  assignedAdminName?: string | null;
+  metadata?: any;
   messages: MessageItem[];
 }
 
@@ -73,48 +84,6 @@ const INITIAL_CONVERSATIONS: Conversation[] = [
         text: 'Tôi có thể yêu cầu may đo chỉnh độ dài tay áo ngắn lại 1.5cm được không?',
         timestamp: '14:25',
       },
-      {
-        id: 'm-6',
-        sender: 'admin',
-        text: 'Dạ hoàn toàn được ạ. Dịch vụ Custom Alteration của Atelier dành riêng cho thành viên Haute Circle sẵn sàng tinh chỉnh số đo chiều dài tay theo đúng thông số Bà yêu cầu trước khi đóng kiện.',
-        timestamp: '14:26',
-      },
-      {
-        id: 'm-7',
-        sender: 'customer',
-        text: 'Tuyệt vời. Phần cúc áo của mẫu này là cúc sừng tự nhiên hay cúc bọc vải cùng tone màu ạ?',
-        timestamp: '14:28',
-      },
-      {
-        id: 'm-8',
-        sender: 'admin',
-        text: 'Mẫu áo dạ Biella Haute Couture sử dụng cúc sừng trâu tự nhiên nhập khẩu từ vùng Tuscany, được các nghệ nhân mài bóng thủ công và khắc chìm biểu tượng hoa văn di sản của Atelier ở mặt sau.',
-        timestamp: '14:30',
-      },
-      {
-        id: 'm-9',
-        sender: 'customer',
-        text: 'Tôi rất thích chi tiết này. Hãy ghi chú thêm giúp tôi lót áo lụa tơ tằm dệt họa tiết Jacquard tone màu Champagne nhé.',
-        timestamp: '14:32',
-      },
-      {
-        id: 'm-10',
-        sender: 'admin',
-        text: 'Atelier đã ghi nhận chi tiết lót lụa Jacquard Champagne vào phiếu kỹ thuật may đo của Bà. Bản phác thảo điều chỉnh đã được chuyển đến Master Tailor phụ trách.',
-        timestamp: '14:35',
-      },
-      {
-        id: 'm-11',
-        sender: 'customer',
-        text: 'Thời gian hoàn tất và vận chuyển đến tư gia của tôi dự kiến là khi nào?',
-        timestamp: '14:38',
-      },
-      {
-        id: 'm-12',
-        sender: 'admin',
-        text: 'Thời gian hoàn thiện thủ công là 5 ngày làm việc. Kiện hàng sẽ được niêm phong trong hộp gỗ tuyết tùng và chuyển phát hỏa tốc có bảo hiểm toàn phần tới tư gia Bà Charlotte vào ngày 26/11.',
-        timestamp: '14:40',
-      },
     ],
   },
   {
@@ -138,18 +107,6 @@ const INITIAL_CONVERSATIONS: Conversation[] = [
         sender: 'admin',
         text: 'Kính chào Ông Jean-Luc, đơn hàng ORD-8923 hiện đã hoàn tất công đoạn cắt mẫu rập và nghệ nhân đang thực hiện khâu đính cúc sừng thủ công. Dự kiến kiện hàng sẽ hoàn thiện xuất xưởng vào chiều mai.',
         timestamp: '12:35',
-      },
-      {
-        id: 'm-203',
-        sender: 'customer',
-        text: 'Kiện hàng vẫn sẽ được đóng gói trong hộp gỗ tuyết tùng có khắc chữ lồng monogram chứ?',
-        timestamp: '12:38',
-      },
-      {
-        id: 'm-204',
-        sender: 'admin',
-        text: 'Chính xác thưa Ông. Bộ trang phục sẽ được bảo quản bằng áo trùm vải lanh hữu cơ, đặt trong hộp gỗ tuyết tùng nguyên khối khắc monogram "JLM" mạ vàng tinh xảo.',
-        timestamp: '12:40',
       },
     ],
   },
@@ -199,12 +156,6 @@ const INITIAL_CONVERSATIONS: Conversation[] = [
         text: 'Xin chào, bộ Tuxedo Ve Nhọn Peak Lapel có thể đổi chất liệu ve áo sang lụa Satin hữu cơ Como không?',
         timestamp: '16:00',
       },
-      {
-        id: 'm-402',
-        sender: 'admin',
-        text: 'Kính chào Ông Alexander, tiêu chuẩn ve áo Tuxedo của Atelier mặc định sử dụng Silk Satin 100% nhập khẩu từ vùng hồ Como (Ý) với độ bóng mờ sang trọng bậc nhất.',
-        timestamp: '16:05',
-      },
     ],
   },
   {
@@ -223,12 +174,6 @@ const INITIAL_CONVERSATIONS: Conversation[] = [
         text: 'Tôi có kế hoạch đến Việt Nam vào tuần tới và muốn đặt lịch hẹn thử trang phục tại Private Salon của Atelier.',
         timestamp: '09:00',
       },
-      {
-        id: 'm-502',
-        sender: 'admin',
-        text: 'Kính chào Bà Eleanor, Atelier rất hân hạnh được đón tiếp Bà. Chuyên gia tư vấn thời trang cao cấp của chúng tôi sẽ chuẩn bị trà bánh và không gian thử đồ riêng tư dành cho Bà.',
-        timestamp: '09:15',
-      },
     ],
   },
 ];
@@ -241,6 +186,9 @@ const QUICK_RESPONSES = [
 ];
 
 export const AdminChatPage: React.FC = () => {
+  const { user } = useAuthStore();
+  const { addToast } = useToastStore();
+
   const [conversations, setConversations] = useState<Conversation[]>(INITIAL_CONVERSATIONS);
   const [selectedConvId, setSelectedConvId] = useState<string>(INITIAL_CONVERSATIONS[0].id);
   const [searchQuery, setSearchQuery] = useState('');
@@ -249,13 +197,155 @@ export const AdminChatPage: React.FC = () => {
   const [mobileView, setMobileView] = useState<'list' | 'messages'>('list');
   const [isNearBottom, setIsNearBottom] = useState(true);
   const [showScrollBottomBtn, setShowScrollBottomBtn] = useState(false);
+  const [isCustomerTyping, setIsCustomerTyping] = useState(false);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
 
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement | HTMLInputElement>(null);
   const prevMessagesLengthRef = useRef(0);
 
-  const { addToast } = useToastStore();
+  // Fetch real conversations from Backend
+  const loadConversations = useCallback(async () => {
+    try {
+      const res: any = await communicationApi.getAdminConversations({ page: 1, limit: 50 });
+      const list = res?.data?.conversations || res?.conversations || res?.data?.items || res?.data || [];
+      if (Array.isArray(list) && list.length > 0) {
+        const mapped: Conversation[] = list.map((c: any) => ({
+          id: String(c._id || c.id),
+          customerName: c.guestInfo?.name || c.customerId?.fullName || c.customerName || 'Khách Hàng',
+          customerEmail: c.guestInfo?.email || c.customerId?.email || c.customerEmail || 'Chưa cung cấp email',
+          category: (c.category || (c.type === 'support' ? 'tailoring' : 'general')) as any,
+          lastMessage: c.lastMessage || 'Bắt đầu cuộc trò chuyện',
+          updatedAt: new Date(c.lastMessageAt || c.updatedAt || Date.now()).toLocaleTimeString('vi-VN', {
+            hour: '2-digit',
+            minute: '2-digit',
+          }),
+          unreadCount: c.unreadCount || (c.status === 'waiting_admin' ? 1 : 0),
+          isOnline: true,
+          status: c.status || 'open',
+          assignedAdminId: c.assignedAdminId?._id || c.assignedAdminId || null,
+          assignedAdminName: c.assignedAdminId?.fullName || null,
+          metadata: c.metadata,
+          messages: [],
+        }));
+        setConversations(mapped);
+        if (!selectedConvId || !mapped.some((m) => m.id === selectedConvId)) {
+          setSelectedConvId(mapped[0].id);
+        }
+      }
+    } catch {
+      // Keep initial conversations if backend fetch fails
+    }
+  }, [selectedConvId]);
+
+  // Load real messages for a conversation
+  const loadMessages = useCallback(async (convId: string) => {
+    if (!convId || convId.startsWith('conv-')) return;
+    setIsLoadingMessages(true);
+    try {
+      const res: any = await communicationApi.getAdminMessages(convId);
+      const rawList = res?.data?.messages || res?.messages || res?.data?.items || res?.data || [];
+      if (Array.isArray(rawList)) {
+        const mappedMsgs: MessageItem[] = rawList.map((m: any) => ({
+          id: String(m._id || m.id || m.clientMessageId),
+          sender: (m.senderType === 'admin' ? 'admin' : 'customer') as any,
+          text: m.content || '',
+          timestamp: new Date(m.createdAt || Date.now()).toLocaleTimeString('vi-VN', {
+            hour: '2-digit',
+            minute: '2-digit',
+          }),
+          isHandoffContext: Boolean(m.metadata?.isHandoffContext),
+        }));
+
+        setConversations((prev) =>
+          prev.map((c) => (c.id === convId ? { ...c, messages: mappedMsgs } : c))
+        );
+      }
+    } catch {
+      // Ignore
+    } finally {
+      setIsLoadingMessages(false);
+    }
+  }, []);
+
+  // On mount: fetch conversations & connect socket
+  useEffect(() => {
+    loadConversations();
+    socketService.connect();
+
+    // Listen to real-time incoming messages
+    const unsubMsg = socketService.onMessageNew((payload) => {
+      const { message } = payload;
+      const convId = message.conversationId;
+
+      const newMsg: MessageItem = {
+        id: message._id || message.id || `m_${Date.now()}`,
+        sender: message.senderType === 'admin' ? 'admin' : 'customer',
+        text: message.content,
+        timestamp: new Date(message.createdAt || Date.now()).toLocaleTimeString('vi-VN', {
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+      };
+
+      setConversations((prev) =>
+        prev.map((c) => {
+          if (c.id === convId) {
+            const exists = c.messages.some((m) => m.id === newMsg.id);
+            return {
+              ...c,
+              lastMessage: newMsg.text,
+              updatedAt: newMsg.timestamp,
+              unreadCount: c.id === selectedConvId ? 0 : (c.unreadCount || 0) + 1,
+              messages: exists ? c.messages : [...c.messages, newMsg],
+            };
+          }
+          return c;
+        })
+      );
+
+      if (convId === selectedConvId) {
+        setIsCustomerTyping(false);
+      }
+    });
+
+    // Listen to typing indicators
+    const unsubTypingStart = socketService.onTypingStart((data) => {
+      if (data.conversationId === selectedConvId && data.role !== 'admin') {
+        setIsCustomerTyping(true);
+      }
+    });
+
+    const unsubTypingStop = socketService.onTypingStop((data) => {
+      if (data.conversationId === selectedConvId) {
+        setIsCustomerTyping(false);
+      }
+    });
+
+    // Listen to conversation updates
+    const unsubConvUpdated = socketService.onConversationUpdated(() => {
+      loadConversations();
+    });
+
+    return () => {
+      unsubMsg();
+      unsubTypingStart();
+      unsubTypingStop();
+      unconvUpdated();
+    };
+    function unconvUpdated() {
+      unsubConvUpdated();
+    }
+  }, [loadConversations, selectedConvId]);
+
+  // When selected conversation changes, fetch its messages and join its room
+  useEffect(() => {
+    if (selectedConvId && !selectedConvId.startsWith('conv-')) {
+      loadMessages(selectedConvId);
+      socketService.joinConversation(selectedConvId);
+    }
+  }, [selectedConvId, loadMessages]);
 
   const selectedConv = conversations.find((c) => c.id === selectedConvId) || conversations[0];
   const messages = selectedConv?.messages || [];
@@ -309,7 +399,7 @@ export const AdminChatPage: React.FC = () => {
     setSelectedConvId(conv.id);
     setMobileView('messages');
 
-    // Mark as read
+    // Mark as read locally
     if (conv.unreadCount && conv.unreadCount > 0) {
       setConversations((prev) =>
         prev.map((c) => (c.id === conv.id ? { ...c, unreadCount: 0 } : c))
@@ -318,15 +408,19 @@ export const AdminChatPage: React.FC = () => {
   };
 
   // Handle sending reply
-  const handleSendReply = (e?: React.FormEvent) => {
+  const handleSendReply = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!replyText.trim()) return;
 
+    const content = replyText.trim();
+    const time = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+    const localId = 'm-' + Date.now();
+
     const newMsg: MessageItem = {
-      id: 'm-' + Date.now(),
+      id: localId,
       sender: 'admin',
-      text: replyText.trim(),
-      timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+      text: content,
+      timestamp: time,
     };
 
     setConversations((prev) =>
@@ -345,9 +439,22 @@ export const AdminChatPage: React.FC = () => {
 
     setReplyText('');
     setIsNearBottom(true);
+
+    // Call real Backend API if real conversation ID
+    if (selectedConvId && !selectedConvId.startsWith('conv-')) {
+      try {
+        await communicationApi.sendAdminSupportMessage({
+          conversationId: selectedConvId,
+          content,
+          clientMessageId: localId,
+        });
+      } catch (err: any) {
+        addToast(err?.message || 'Lỗi khi gửi phản hồi', 'error');
+      }
+    }
+
     addToast('Đã gửi phản hồi thành công tới khách quý!', 'success');
 
-    // Auto-focus back on composer input
     setTimeout(() => {
       inputRef.current?.focus();
     }, 50);
@@ -358,6 +465,47 @@ export const AdminChatPage: React.FC = () => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendReply();
+    }
+  };
+
+  // Assign conversation to current staff
+  const handleAssignToMe = async () => {
+    const adminId = (user as any)?._id || (user as any)?.id;
+    if (!adminId) {
+      addToast('Không tìm thấy thông tin quản trị viên.', 'error');
+      return;
+    }
+    try {
+      if (!selectedConvId.startsWith('conv-')) {
+        await communicationApi.assignConversation(selectedConvId, adminId);
+      }
+      setConversations((prev) =>
+        prev.map((c) =>
+          c.id === selectedConvId
+            ? { ...c, assignedAdminId: adminId, assignedAdminName: user?.name || (user as any)?.fullName || 'Tôi' }
+            : c
+        )
+      );
+      addToast('Đã gán cuộc trò chuyện cho bạn phụ trách!', 'success');
+    } catch (err: any) {
+      addToast(err?.message || 'Không thể gán nhân viên phụ trách', 'error');
+    }
+  };
+
+  // Close conversation
+  const handleCloseConversation = async () => {
+    try {
+      if (!selectedConvId.startsWith('conv-')) {
+        await communicationApi.closeConversation(selectedConvId);
+      }
+      setConversations((prev) =>
+        prev.map((c) =>
+          c.id === selectedConvId ? { ...c, status: 'closed' } : c
+        )
+      );
+      addToast('Đã đóng cuộc trò chuyện CSKH thành công!', 'info');
+    } catch (err: any) {
+      addToast(err?.message || 'Không thể đóng cuộc trò chuyện', 'error');
     }
   };
 
@@ -424,8 +572,8 @@ export const AdminChatPage: React.FC = () => {
             <button
               type="button"
               onClick={() => {
-                setConversations([...INITIAL_CONVERSATIONS]);
-                addToast('Đã làm mới dữ liệu hội thoại CSKH!', 'info');
+                loadConversations();
+                addToast('Đã làm mới danh sách hội thoại!', 'info');
               }}
               className="p-1.5 text-platinum-dark hover:text-champagne border border-white/10 hover:border-champagne/40 rounded-sm transition-colors"
               title="Làm mới danh sách phiên trò chuyện"
@@ -535,6 +683,12 @@ export const AdminChatPage: React.FC = () => {
                               : 'Chung'}
                           </span>
 
+                          {conv.status === 'closed' && (
+                            <span className="text-[9px] font-mono text-neutral-400 border border-white/10 px-1 rounded">
+                              Đã đóng
+                            </span>
+                          )}
+
                           {conv.unreadCount && conv.unreadCount > 0 ? (
                             <span className="w-2 h-2 rounded-full bg-champagne ml-auto shrink-0" />
                           ) : null}
@@ -579,22 +733,55 @@ export const AdminChatPage: React.FC = () => {
                       {selectedConv.customerName}
                     </span>
                     <span className="px-2 py-0.5 rounded-full bg-champagne/15 text-champagne border border-champagne/30 text-[9px] font-mono uppercase tracking-wider hidden sm:inline-block">
-                      Haute Circle Patron
+                      {selectedConv.assignedAdminName
+                        ? `Phụ trách: ${selectedConv.assignedAdminName}`
+                        : 'Chưa gán nhân viên'}
                     </span>
                   </div>
                   <span className="text-[10px] text-emerald-400 font-mono flex items-center gap-1.5 mt-0.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    Đang trực tuyến • Phản hồi ngay
+                    {isCustomerTyping ? (
+                      <span className="text-champagne italic animate-pulse">Khách hàng đang nhập...</span>
+                    ) : (
+                      'Đang trực tuyến • Sẵn sàng phản hồi'
+                    )}
                   </span>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 text-platinum-dark text-xs">
-                <span className="text-[11px] font-mono text-platinum-dark hidden lg:inline">
-                  {selectedConv.customerEmail}
-                </span>
+              {/* Action Buttons: Assign & Close */}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleAssignToMe}
+                  className="px-2.5 py-1 text-[11px] font-mono bg-white/5 hover:bg-champagne/20 border border-white/10 hover:border-champagne text-platinum-light hover:text-champagne rounded transition-colors flex items-center gap-1"
+                  title="Gán cuộc trò chuyện cho bạn phụ trách"
+                >
+                  <UserCheck className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Nhận xử lý</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleCloseConversation}
+                  className="px-2.5 py-1 text-[11px] font-mono bg-white/5 hover:bg-red-950/40 border border-white/10 hover:border-red-500 text-platinum-light hover:text-red-400 rounded transition-colors flex items-center gap-1"
+                  title="Đóng hội thoại"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Đóng</span>
+                </button>
               </div>
             </div>
+
+            {/* AI Handoff Context Banner if present */}
+            {selectedConv.metadata?.handoffContext && (
+              <div className="shrink-0 px-4 py-2 bg-champagne/10 border-b border-champagne/20 flex items-center gap-2 text-xs text-champagne">
+                <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">
+                  Hội thoại được chuyển ngữ cảnh từ Trợ lý AI (kèm lịch sử các câu hỏi gần nhất).
+                </span>
+              </div>
+            )}
 
             {/* Messages Scroll Area (Independent Scroll) */}
             <div
@@ -606,7 +793,7 @@ export const AdminChatPage: React.FC = () => {
               {/* Consultation Security Badge */}
               <div className="p-2.5 mx-auto max-w-md bg-white/5 border border-white/10 rounded-sm text-center text-[11px] text-platinum-dark flex items-center justify-center gap-2">
                 <ShieldCheck className="w-3.5 h-3.5 text-champagne shrink-0" />
-                <span>Kênh tư vấn mã hóa đầu cuối dành riêng cho Thượng Khách Atelier Vérité</span>
+                <span>Kênh tư vấn bảo mật dành riêng cho Thượng Khách Atelier Vérité</span>
               </div>
 
               {/* Message Bubbles */}
@@ -630,6 +817,12 @@ export const AdminChatPage: React.FC = () => {
                           : 'bg-noir-900 border border-white/10 text-white'
                       }`}
                     >
+                      {m.isHandoffContext && (
+                        <div className="mb-1 text-[9.5px] font-mono text-champagne flex items-center gap-1">
+                          <Sparkles className="w-2.5 h-2.5" />
+                          <span>Ngữ cảnh AI:</span>
+                        </div>
+                      )}
                       <p className="whitespace-pre-wrap">{m.text}</p>
                       <span
                         className={`block text-[9px] mt-1.5 text-right font-mono ${

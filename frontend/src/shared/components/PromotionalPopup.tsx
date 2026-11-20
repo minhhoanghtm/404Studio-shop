@@ -253,7 +253,7 @@ export const PromotionalPopup: React.FC = () => {
       aria-labelledby="campaign-popup-title"
       aria-describedby="campaign-popup-desc"
       data-testid="promotional-popup"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md animate-fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-[rgba(26,26,23,0.45)] backdrop-blur-sm animate-fade-in"
       onClick={(e) => {
         if (e.target === e.currentTarget) handleClose();
       }}
@@ -267,31 +267,31 @@ export const PromotionalPopup: React.FC = () => {
             handleClose();
           }
         }}
-        className="relative w-full max-w-2xl bg-noir-900 border border-champagne/30 text-white rounded-none shadow-2xl overflow-hidden flex flex-col md:flex-row transition-all duration-300 focus:outline-none"
+        className="relative w-full max-w-2xl bg-[var(--surface)] border border-[var(--border)] text-[var(--text)] rounded-sm shadow-2xl overflow-hidden flex flex-col md:flex-row transition-all duration-300 focus:outline-none"
       >
         {/* Close Button */}
         <button
           onClick={handleClose}
           data-testid="popup-close"
           aria-label="Đóng popup ưu đãi"
-          className="absolute top-3 right-3 z-20 p-2 text-white/70 hover:text-white bg-black/50 hover:bg-black/80 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-champagne"
+          className="absolute top-3 right-3 z-20 p-2 text-[var(--text-muted)] hover:text-[var(--text)] bg-[var(--surface)]/80 hover:bg-[var(--surface)] border border-[var(--border)] rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
         >
           <X className="w-5 h-5" />
         </button>
 
         {/* Visual Banner Media */}
-        <div className="relative w-full md:w-1/2 min-h-[220px] md:min-h-[380px] bg-noir-950 overflow-hidden shrink-0">
+        <div className="relative w-full md:w-1/2 min-h-[220px] md:min-h-[380px] bg-[var(--bg-alt)] overflow-hidden shrink-0">
           <picture>
             <source media="(max-width: 767px)" srcSet={mobileImage} />
             <img
               src={desktopImage}
               alt={title}
-              className="w-full h-full object-cover object-center filter brightness-90 hover:scale-105 transition-transform duration-700"
+              className="w-full h-full object-cover object-center filter brightness-95 hover:scale-105 transition-transform duration-700"
               loading="eager"
             />
           </picture>
-          <div className="absolute inset-0 bg-gradient-to-t from-noir-900 via-transparent to-transparent md:hidden" />
-          <div className="absolute top-3 left-3 bg-champagne text-noir-950 text-[10px] uppercase font-mono font-bold tracking-widest px-2.5 py-1 flex items-center gap-1 shadow-md">
+          <div className="absolute inset-0 bg-gradient-to-t from-[var(--surface)] via-transparent to-transparent md:hidden" />
+          <div className="absolute top-3 left-3 bg-[var(--accent)] text-[var(--accent-contrast)] text-[10px] uppercase font-mono font-bold tracking-widest px-2.5 py-1 flex items-center gap-1 shadow-md">
             <Sparkles className="w-3 h-3" />
             <span>Đặc Quyền Maison</span>
           </div>
@@ -300,47 +300,47 @@ export const PromotionalPopup: React.FC = () => {
         {/* Campaign Content & Actions */}
         <div className="w-full md:w-1/2 p-6 md:p-8 flex flex-col justify-between">
           <div>
-            <div className="flex items-center gap-2 text-champagne text-xs font-mono tracking-widest uppercase mb-2">
+            <div className="flex items-center gap-2 text-[var(--accent)] text-xs font-mono tracking-widest uppercase mb-2 font-semibold">
               <Tag className="w-3.5 h-3.5" />
               <span>{activeCampaign.type === 'flash_sale' ? 'Flash Sale Giới Hạn' : 'Sự Kiện Thời Trang'}</span>
             </div>
 
             <h2
               id="campaign-popup-title"
-              className="text-xl sm:text-2xl font-serif font-light text-white tracking-wide uppercase mb-3 leading-tight"
+              className="text-xl sm:text-2xl font-serif font-light text-[var(--text)] tracking-wide uppercase mb-3 leading-tight"
             >
               {title}
             </h2>
 
-            <p id="campaign-popup-desc" className="text-sm text-ivory-200/80 leading-relaxed font-light mb-6">
+            <p id="campaign-popup-desc" className="text-sm text-[var(--text-muted)] leading-relaxed font-light mb-6">
               {subtitle}
             </p>
 
             {/* Countdown Timer */}
             {remainingTime > 0 && (
-              <div className="mb-6 p-3 bg-noir-950/80 border border-white/10 rounded-sm">
-                <div className="flex items-center gap-1.5 text-[11px] font-mono text-champagne uppercase tracking-wider mb-2">
+              <div className="mb-6 p-3 bg-[var(--bg-alt)] border border-[var(--border)] rounded-sm">
+                <div className="flex items-center gap-1.5 text-[11px] font-mono text-[var(--accent)] uppercase tracking-wider mb-2 font-semibold">
                   <Clock className="w-3.5 h-3.5 animate-pulse" />
                   <span>Ưu Đãi Kết Thúc Sau:</span>
                 </div>
                 <div className="grid grid-cols-3 gap-2 text-center font-mono">
-                  <div className="bg-noir-900/90 py-1.5 border border-white/5">
-                    <span className="block text-lg font-bold text-white">
+                  <div className="bg-[var(--surface)] py-1.5 border border-[var(--border)]">
+                    <span className="block text-lg font-bold text-[var(--text)]">
                       {String(hours).padStart(2, '0')}
                     </span>
-                    <span className="text-[9px] uppercase tracking-wider text-white/50">Giờ</span>
+                    <span className="text-[9px] uppercase tracking-wider text-[var(--text-muted)]">Giờ</span>
                   </div>
-                  <div className="bg-noir-900/90 py-1.5 border border-white/5">
-                    <span className="block text-lg font-bold text-white">
+                  <div className="bg-[var(--surface)] py-1.5 border border-[var(--border)]">
+                    <span className="block text-lg font-bold text-[var(--text)]">
                       {String(minutes).padStart(2, '0')}
                     </span>
-                    <span className="text-[9px] uppercase tracking-wider text-white/50">Phút</span>
+                    <span className="text-[9px] uppercase tracking-wider text-[var(--text-muted)]">Phút</span>
                   </div>
-                  <div className="bg-noir-900/90 py-1.5 border border-white/5">
-                    <span className="block text-lg font-bold text-champagne">
+                  <div className="bg-[var(--surface)] py-1.5 border border-[var(--border)]">
+                    <span className="block text-lg font-bold text-[var(--accent)]">
                       {String(seconds).padStart(2, '0')}
                     </span>
-                    <span className="text-[9px] uppercase tracking-wider text-white/50">Giây</span>
+                    <span className="text-[9px] uppercase tracking-wider text-[var(--text-muted)]">Giây</span>
                   </div>
                 </div>
               </div>
@@ -352,27 +352,27 @@ export const PromotionalPopup: React.FC = () => {
             <button
               onClick={handleCtaClick}
               data-testid="popup-cta"
-              className="w-full py-3.5 px-6 bg-champagne hover:bg-champagne-light text-noir-950 font-serif text-xs uppercase tracking-widest font-semibold transition-all duration-300 flex items-center justify-center gap-2 group shadow-lg shadow-champagne/20"
+              className="w-full py-3.5 px-6 bg-[var(--accent)] hover:bg-[#9E7B15] text-[var(--accent-contrast)] font-serif text-xs uppercase tracking-widest font-semibold transition-all duration-300 flex items-center justify-center gap-2 group shadow-lg"
             >
               <span>{ctaText}</span>
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </button>
 
             {/* Frequency Dismiss Option */}
-            <div className="mt-4 flex items-center justify-between text-xs text-white/50">
-              <label className="flex items-center gap-2 cursor-pointer hover:text-white/80 transition-colors select-none">
+            <div className="mt-4 flex items-center justify-between text-xs text-[var(--text-muted)]">
+              <label className="flex items-center gap-2 cursor-pointer hover:text-[var(--text)] transition-colors select-none">
                 <input
                   type="checkbox"
                   checked={doNotShowAgainToday}
                   onChange={(e) => setDoNotShowAgainToday(e.target.checked)}
-                  className="rounded border-white/20 bg-noir-950 text-champagne focus:ring-champagne w-3.5 h-3.5"
+                  className="rounded border-[var(--border)] bg-[var(--surface)] text-[var(--accent)] focus:ring-[var(--accent)] w-3.5 h-3.5"
                 />
                 <span className="text-[11px]">Không hiện lại trong hôm nay</span>
               </label>
 
               <button
                 onClick={handleClose}
-                className="text-[11px] underline hover:text-white transition-colors"
+                className="text-[11px] underline hover:text-[var(--text)] transition-colors"
               >
                 Bỏ qua
               </button>

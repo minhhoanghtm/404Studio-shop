@@ -3,7 +3,7 @@ import { vi } from '../../../shared/locales/vi/common';
 
 export const ManifestoSection: React.FC = () => {
   return (
-    <section className="relative py-24 sm:py-32 px-6 sm:px-8 border-b border-white/10 bg-noir-900/40">
+    <section className="relative py-24 sm:py-32 px-6 sm:px-8 border-y border-black/5 dark:border-white/10 bg-ivory-100/80 dark:bg-noir-900/40">
       <div className="max-w-5xl mx-auto text-center">
         <span className="text-xs uppercase tracking-widest text-champagne font-semibold block mb-4">
           Tuyên ngôn sáng tạo Maison

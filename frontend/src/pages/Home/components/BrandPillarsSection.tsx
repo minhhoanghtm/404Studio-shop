@@ -33,7 +33,7 @@ export const BrandPillarsSection: React.FC = () => {
           return (
             <div
               key={pillar.title}
-              className="p-6 rounded-2xl bg-noir-900/60 border border-white/5 space-y-4 hover:border-champagne/30 transition-colors"
+              className="p-6 rounded-sm bg-white/65 dark:bg-noir-900/60 border border-black/5 dark:border-white/5 space-y-4 hover:border-champagne/30 transition-colors"
             >
               <div className="w-12 h-12 rounded-xl bg-champagne/10 border border-champagne/20 flex items-center justify-center text-champagne">
                 <Icon className="w-6 h-6" />

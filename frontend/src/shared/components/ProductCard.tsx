@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
+import { motion, useReducedMotion } from 'motion/react';
 import { Link } from 'react-router-dom';
-import { Heart, Plus, Check } from 'lucide-react';
+import { Heart } from 'lucide-react';
 import { Product } from '../types';
 import { useWishlistStore } from '../stores/useWishlistStore';
 import { useCartStore } from '../stores/useCartStore';
@@ -20,6 +21,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const { isInWishlist, toggleWishlist } = useWishlistStore();
   const { addItem } = useCartStore();
   const { trackProductClick, trackAddToCart: trackAddCart, trackWishlist } = useBehaviorTracking();
+  const prefersReducedMotion = useReducedMotion();
   const isWishlisted = isInWishlist(product.id);
 
   const [isHovered, setIsHovered] = useState(false);
@@ -38,12 +40,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
     addItem({
       productId: product.id,
+      variantId: primaryVariant?.id,
       productSlug: product.slug,
       name: product.name,
       price: product.price,
       quantity: 1,
-      selectedColor: primaryVariant.colorName,
-      selectedColorHex: primaryVariant.colorHex,
+      selectedColor: primaryVariant?.colorName || 'Tiêu chuẩn',
+      selectedColorHex: primaryVariant?.colorHex || '#141416',
       selectedSize: size,
       image: product.featuredImage,
     });
@@ -67,13 +70,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         : 'aspect-[4/5]';
 
   return (
-    <div
+    <motion.div
       className="group relative flex flex-col"
+      initial={prefersReducedMotion === false ? { opacity: 0, y: 14 } : false}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.12 }}
+      whileHover={prefersReducedMotion === false ? { y: -3 } : undefined}
+      transition={prefersReducedMotion === false ? { duration: 0.48, ease: 'easeOut' } : { duration: 0 }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Product Image Stage */}
-      <div className={`relative w-full ${aspectClass} overflow-hidden rounded-xl bg-ivory-200 dark:bg-noir-900 mb-4 transition-all duration-500`}>
+      <div className={`relative w-full ${aspectClass} overflow-hidden rounded-sm border border-[var(--border)] bg-[var(--bg-alt)] mb-4 transition-all duration-500`}>
         <Link
           to={`/products/${product.slug}`}
           onClick={() => trackProductClick(product.id, product.category, 'product_card')}
@@ -103,7 +111,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         {/* Badge */}
         {product.badge && (
           <div className="absolute top-3 left-3 z-10">
-            <span className="px-2.5 py-1 rounded bg-noir-950/80 backdrop-blur-md border border-white/10 text-[10px] uppercase font-sans font-semibold tracking-widest text-champagne">
+            <span className="px-2.5 py-1 rounded bg-[var(--surface)]/90 backdrop-blur-md border border-[var(--border)] text-[10px] uppercase font-sans font-semibold tracking-widest text-[var(--accent)]">
               {product.badge}
             </span>
           </div>
@@ -114,8 +122,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           onClick={handleWishlistToggle}
           aria-label={isWishlisted ? `Bỏ ${product.name} khỏi danh sách yêu thích` : `Thêm ${product.name} vào danh sách yêu thích`}
           className={`absolute top-3 right-3 z-10 p-2.5 rounded-full transition-all duration-300 ${isWishlisted
-              ? 'bg-champagne text-noir-950 shadow-lg scale-105'
-              : 'bg-black/40 dark:bg-noir-950/70 backdrop-blur-md text-white/90 hover:text-white hover:bg-black/60 dark:hover:bg-noir-950'
+              ? 'bg-[var(--accent)] text-[var(--accent-contrast)] shadow-lg scale-105'
+              : 'bg-[var(--surface)]/80 backdrop-blur-md text-[var(--text)] hover:text-[var(--accent)] hover:bg-[var(--surface)] border border-[var(--border)]'
             }`}
         >
           <Heart className={`w-3.5 h-3.5 ${isWishlisted ? 'fill-current' : ''}`} />
@@ -126,8 +134,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           className={`absolute inset-x-3 bottom-3 z-10 transition-all duration-300 ${isHovered ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none'
             }`}
         >
-          <div className="p-2.5 rounded-xl bg-white/95 dark:bg-noir-950/90 backdrop-blur-xl border border-black/10 dark:border-white/15 shadow-2xl flex flex-col gap-1.5">
-            <span className="text-[9px] font-sans font-medium uppercase tracking-widest text-noir-500 dark:text-white/50 text-center">
+          <div className="p-2.5 rounded-xl bg-[var(--surface)]/95 backdrop-blur-xl border border-[var(--border)] shadow-xl flex flex-col gap-1.5">
+            <span className="text-[9px] font-sans font-medium uppercase tracking-widest text-[var(--text-muted)] text-center">
               {isQuickAdded ? 'Đã thêm vào giỏ hàng' : vi.catalog.quickSize}
             </span>
             <div className="flex items-center justify-center gap-1.5 flex-wrap">
@@ -136,8 +144,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                   key={size}
                   onClick={(e) => handleQuickAdd(size, e)}
                   className={`px-2 py-1 text-[10px] font-mono rounded border transition-all ${selectedQuickSize === size && isQuickAdded
-                      ? 'bg-champagne text-noir-950 border-champagne'
-                      : 'bg-black/5 hover:bg-black/10 text-noir-900 border-black/10 dark:bg-white/5 dark:hover:bg-white/15 dark:text-white/90 dark:border-white/10'
+                      ? 'bg-[var(--accent)] text-[var(--accent-contrast)] border-[var(--accent)]'
+                      : 'bg-[var(--bg-alt)] hover:bg-[var(--surface)] text-[var(--text)] border-[var(--border)] hover:border-[var(--accent)]'
                     }`}
                 >
                   {size}
@@ -151,32 +159,32 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       {/* Meta / Info */}
       <div className="flex flex-col space-y-1">
         <div className="flex items-baseline justify-between gap-2">
-          <span className="text-[10px] font-sans tracking-widest uppercase text-champagne-dark dark:text-champagne/80 font-medium">
+          <span className="text-[10px] font-sans tracking-widest uppercase text-[var(--accent)] font-medium">
             {product.category}
           </span>
-          <span className="text-[10px] font-sans text-noir-400 dark:text-white/40 tracking-wider">
+          <span className="text-[10px] font-sans text-[var(--text-muted)] tracking-wider">
             {product.origin}
           </span>
         </div>
 
         <Link
           to={`/products/${product.slug}`}
-          className="font-display text-base text-noir-950 dark:text-white group-hover:text-champagne transition-colors line-clamp-1"
+          className="font-display text-base text-[var(--text)] group-hover:text-[var(--accent)] transition-colors line-clamp-1"
         >
           {product.name}
         </Link>
 
-        <p className="text-xs text-noir-600 dark:text-platinum-dark font-sans line-clamp-1 font-light">
+        <p className="text-xs text-[var(--text-muted)] font-sans line-clamp-1 font-light">
           {product.subtitle}
         </p>
 
         <div className="flex items-center justify-between pt-1">
           <div className="flex items-baseline gap-2">
-            <span className="font-mono text-sm text-noir-950 dark:text-white font-medium">
+            <span className="font-mono text-sm text-[var(--text)] font-semibold">
               {formatCurrency(product.price)}
             </span>
             {product.originalPrice && product.originalPrice > product.price && (
-              <span className="font-mono text-xs text-noir-400 dark:text-white/40 line-through">
+              <span className="font-mono text-xs text-[var(--text-muted)] line-through">
                 {formatCurrency(product.originalPrice)}
               </span>
             )}
@@ -188,13 +196,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               <span
                 key={v.colorName}
                 title={v.colorName}
-                className="w-2.5 h-2.5 rounded-full border border-black/20 dark:border-white/20"
+                className="w-2.5 h-2.5 rounded-full border border-[var(--border)]"
                 style={{ backgroundColor: v.colorHex }}
               />
             ))}
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };

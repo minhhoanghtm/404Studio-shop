@@ -52,11 +52,112 @@ export const authApi = {
 
   getMe: () => api.get<ApiResponse<any>>('/user/me'),
 
+  getPermissions: () =>
+    api.get<
+      ApiResponse<{
+        role: string;
+        permissions: string[];
+        overrides: { allow: string[]; deny: string[] };
+      }>
+    >('/auth/me/permissions'),
+
   updateProfile: (data: { fullName?: string; phone?: string; avatar_url?: string }) =>
     api.put<ApiResponse<any>>('/user/updateProfile', data),
 
   addAddress: (addressData: any) =>
     api.post<ApiResponse<any>>('/user/addresses', addressData),
+};
+
+// ============================================================================
+// ROLES & RBAC MANAGEMENT APIs
+// ============================================================================
+export const rolesApi = {
+  getRoles: () => api.get<ApiResponse<any[]>>('/admin/roles'),
+
+  createRole: (data: {
+    name: string;
+    displayName: string;
+    description?: string;
+    permissions: string[];
+  }) => api.post<ApiResponse<any>>('/admin/roles', data),
+
+  updateRole: (
+    id: string,
+    data: {
+      displayName?: string;
+      description?: string;
+      permissions?: string[];
+    }
+  ) => api.put<ApiResponse<any>>(`/admin/roles/${id}`, data),
+
+  deleteRole: (id: string) => api.delete<ApiResponse<any>>(`/admin/roles/${id}`),
+
+  getStandardPermissions: () =>
+    api.get<
+      ApiResponse<{
+        groups: { group: string; items: { key: string; label: string; description?: string }[] }[];
+        allPermissions: string[];
+      }>
+    >('/admin/permissions'),
+
+  getRbacUsers: (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    role?: string;
+    status?: string;
+  }) => {
+    const query = new URLSearchParams();
+    if (params?.page) query.set('page', params.page.toString());
+    if (params?.limit) query.set('limit', params.limit.toString());
+    if (params?.search) query.set('search', params.search);
+    if (params?.role) query.set('role', params.role);
+    if (params?.status) query.set('status', params.status);
+    const qs = query.toString();
+    return api.get<
+      ApiResponse<{
+        users: any[];
+        total: number;
+        page: number;
+        totalPages: number;
+      }>
+    >(`/admin/rbac/users${qs ? `?${qs}` : ''}`);
+  },
+
+  getUsers: (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    role?: string;
+    status?: string;
+  }) => rolesApi.getRbacUsers(params),
+
+  updateUserRoleAndOverrides: (
+    userId: string,
+    data: {
+      role?: string;
+      allow?: string[];
+      deny?: string[];
+    }
+  ) => api.put<ApiResponse<any>>(`/admin/rbac/users/${userId}/role`, data),
+
+  updateUserStatus: (userId: string, status: 'active' | 'locked' | 'blocked') =>
+    api.put<ApiResponse<any>>(`/admin/rbac/users/${userId}/status`, { status }),
+
+  getAuditLogs: (params?: { page?: number; limit?: number }) => {
+    const query = new URLSearchParams();
+    if (params?.page) query.set('page', params.page.toString());
+    if (params?.limit) query.set('limit', params.limit.toString());
+    const qs = query.toString();
+    return api.get<
+      ApiResponse<{
+        logs: any[];
+        total: number;
+        page: number;
+        totalPages: number;
+      }>
+    >(`/admin/rbac/audit-logs${qs ? `?${qs}` : ''}`);
+  },
 };
 
 // ============================================================================
@@ -395,6 +496,64 @@ export const adminApi = {
   updateVoucher: (id: string, data: any) => api.put<ApiResponse<any>>(`/vouchers/${id}`, data),
   deleteVoucher: (id: string) => api.delete<ApiResponse<any>>(`/vouchers/${id}`),
   updateSettings: (data: any) => api.put<ApiResponse<any>>('/settings', data),
+
+  // Product Excel with Embedded Images
+  downloadProductTemplate: async () => {
+    const res = await fetch('/api/products/excel/template', {
+      method: 'GET',
+      credentials: 'include',
+    });
+    if (!res.ok) throw new Error('Không thể tải tệp mẫu Excel');
+    return await res.blob();
+  },
+
+  exportProductsExcel: async (options: {
+    scope?: 'all' | 'filtered' | 'selected';
+    ids?: string[];
+    category?: string;
+    search?: string;
+    includeImages?: boolean;
+  }) => {
+    const { getAccessToken } = await import('./client');
+    const token = getAccessToken();
+    const res = await fetch('/api/products/excel/export', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      credentials: 'include',
+      body: JSON.stringify(options),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      throw new Error(data?.message || 'Lỗi khi xuất tệp Excel');
+    }
+    return await res.blob();
+  },
+
+  previewProductsExcel: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post<ApiResponse<any>>('/products/excel/preview', formData);
+  },
+
+  confirmProductsExcel: (previewId: string) =>
+    api.post<ApiResponse<any>>('/products/excel/confirm', { previewId }),
+
+  downloadErrorReport: async (previewId: string) => {
+    const { getAccessToken } = await import('./client');
+    const token = getAccessToken();
+    const res = await fetch(`/api/products/excel/error-report/${encodeURIComponent(previewId)}`, {
+      method: 'GET',
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      credentials: 'include',
+    });
+    if (!res.ok) throw new Error('Không thể tải tệp báo cáo lỗi');
+    return await res.blob();
+  },
 };
 
 // ============================================================================

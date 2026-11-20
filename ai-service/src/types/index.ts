@@ -98,4 +98,7 @@ export interface ChatResponsePayload {
   executedTools?: string[];
   sources?: Array<{ id: string; title?: string; snippet?: string; score?: number }>;
   metadata?: Record<string, unknown>;
+  quickReplies?: Array<{ label: string; action?: string; url?: string; payload?: any }>;
+  suggestedVariants?: { colors?: string[]; sizes?: string[] };
+  handoffReady?: boolean;
 }

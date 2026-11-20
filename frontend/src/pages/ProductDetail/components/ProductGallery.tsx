@@ -23,10 +23,10 @@ export const ProductGallery: React.FC<ProductGalleryProps> = ({
           <button
             key={idx}
             onClick={() => setSelectedIndex(idx)}
-            className={`relative w-16 h-20 lg:w-20 lg:h-24 rounded-lg overflow-hidden border transition-all flex-shrink-0 bg-noir-900 ${
+            className={`relative w-16 h-20 lg:w-20 lg:h-24 rounded-lg overflow-hidden border transition-all flex-shrink-0 bg-[var(--bg-alt)] ${
               selectedIndex === idx
-                ? 'border-champagne ring-1 ring-champagne scale-105'
-                : 'border-white/10 hover:border-white/30 opacity-70 hover:opacity-100'
+                ? 'border-[var(--accent)] ring-1 ring-[var(--accent)] scale-105'
+                : 'border-[var(--border)] hover:border-[var(--accent)]/50 opacity-80 hover:opacity-100'
             }`}
             aria-label={`Xem ảnh góc nhìn số ${idx + 1}`}
           >
@@ -40,7 +40,7 @@ export const ProductGallery: React.FC<ProductGalleryProps> = ({
       </div>
 
       {/* Main Image View */}
-      <div className="relative flex-1 aspect-[4/5] rounded-2xl overflow-hidden bg-noir-900 border border-white/10 group">
+      <div className="relative flex-1 aspect-[4/5] rounded-2xl overflow-hidden bg-[var(--bg-alt)] border border-[var(--border)] group">
         <img
           src={currentImage}
           alt={productName}
@@ -49,7 +49,7 @@ export const ProductGallery: React.FC<ProductGalleryProps> = ({
 
         {badge && (
           <div className="absolute top-4 left-4 z-10">
-            <span className="px-3 py-1.5 rounded bg-noir-950/80 backdrop-blur-md border border-white/10 text-[10px] uppercase font-mono tracking-widest text-champagne">
+            <span className="px-3 py-1.5 rounded bg-[var(--surface)]/90 backdrop-blur-md border border-[var(--border)] text-[10px] uppercase font-mono tracking-widest text-[var(--accent)] font-semibold">
               {badge}
             </span>
           </div>

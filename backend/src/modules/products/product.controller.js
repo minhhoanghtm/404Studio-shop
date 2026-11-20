@@ -5,6 +5,23 @@ import { successResponse } from "../../common/responses/index.js";
 import logger from "../../common/logger.js";
 import { getRedisConnection } from "../../configs/redis.js";
 import { invalidatePopularRecommendationsCache } from "../recommendations/recommendation.service.js";
+import { createAdminFormProduct, updateAdminFormProduct as updateAdminFormProductService } from "./productAdminForm.service.js";
+
+export const addAdminFormProduct = async (req, res, next) => {
+  try {
+    const product = await createAdminFormProduct(req.body);
+    await clearProductCache();
+    return successResponse(res, product, "Tạo sản phẩm thành công", 201);
+  } catch (error) { next(error); }
+};
+
+export const updateAdminFormProduct = async (req, res, next) => {
+  try {
+    const product = await updateAdminFormProductService(req.params.id, req.body);
+    await clearProductCache();
+    return successResponse(res, product, "Cập nhật sản phẩm thành công");
+  } catch (error) { next(error); }
+};
 
 // Helper to invalidate product cache keys
 const clearProductCache = async () => {
@@ -199,6 +216,15 @@ export const getProducts = async (req, res, next) => {
     logger.error('getProducts error: %s', err);
     return res.status(500).json({ success: false, message: 'Internal server error' });
   }
+};
+
+// Additive catalog endpoint for the richer frontend filter contract. The legacy
+// GET /products remains untouched for clients that rely on its random listing.
+export const getCatalogProducts = async (req, res, next) => {
+  try {
+    const results = await productFacade.searchProducts({ ...req.query, search: req.query.search || req.query.q });
+    return successResponse(res, results);
+  } catch (error) { next(error); }
 };
 export const getRandomProducts = async (req, res, next) => {
   const { limit = 10, page = 1, seed } = req.query;

@@ -24,6 +24,7 @@ import {
   payGuestOrder,
 } from "./order.controller.js";
 import { protectedRoute, adminOnly, noAdmin } from "../../middlewares/auth.middleware.js";
+import { authenticate, authorize } from "../../middlewares/rbac.middleware.js";
 import { validateUpdateOrderStatus } from "./order.validator.js";
 
 const orderRouter = express.Router();
@@ -41,12 +42,13 @@ orderRouter.post("/payment", protectedRoute, noAdmin, paymentOrder);
 orderRouter.get("/payment/callback", noAdmin, paymentCallback);
 orderRouter.get("/:id/payment", protectedRoute, noAdmin, getOrderPayment);
 
-// Admin reports
-orderRouter.get("/admin/kpi", protectedRoute, adminOnly, kpi);
-orderRouter.get("/admin/revenue", protectedRoute, adminOnly, getRevenueOverview);
-orderRouter.get("/admin/stats", protectedRoute, adminOnly, getOrderStats);
-orderRouter.get("/admin/orders", protectedRoute, adminOnly, getAdminOrders);
-orderRouter.patch("/admin/orders/:id/status", protectedRoute, adminOnly, validateUpdateOrderStatus, updateOrderStatus);
+// Admin reports & operations (RBAC protected)
+orderRouter.get("/admin/kpi", authenticate, authorize("dashboard:view", "report:view"), kpi);
+orderRouter.get("/admin/revenue", authenticate, authorize("dashboard:view", "report:view"), getRevenueOverview);
+orderRouter.get("/admin/stats", authenticate, authorize("dashboard:view", "report:view"), getOrderStats);
+orderRouter.get("/admin/orders", authenticate, authorize("order:view"), getAdminOrders);
+orderRouter.patch("/admin/orders/:id/status", authenticate, authorize("order:update"), validateUpdateOrderStatus, updateOrderStatus);
+
 // User metrics
 orderRouter.get("/user/revenue", dashboardUser);
 orderRouter.get("/user/purchasing_performance", getPurchasePerformance);

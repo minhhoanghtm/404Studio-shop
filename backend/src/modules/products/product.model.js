@@ -11,6 +11,14 @@ const productVariantSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    color_code: {
+      type: String,
+      default: "#1E1E24",
+    },
+    color_key: {
+      type: String,
+      index: true,
+    },
     size: {
       type: String,
     },
@@ -22,6 +30,25 @@ const productVariantSchema = new mongoose.Schema(
     image_url: {
       type: String,
       required: true,
+    },
+    sku: {
+      type: String,
+      sparse: true,
+      unique: true,
+    },
+    price: {
+      type: Number,
+      default: null,
+      min: 0,
+    },
+    position: {
+      type: Number,
+      default: 0,
+    },
+    is_active: {
+      type: Boolean,
+      default: true,
+      index: true,
     },
   },
   {
@@ -38,6 +65,10 @@ productVariantSchema.index(
   {
     unique: true,
   }
+);
+productVariantSchema.index(
+  { product_id: 1, color_key: 1, size: 1 },
+  { unique: true, partialFilterExpression: { color_key: { $type: "string" } }, name: "product_color_key_size_unique" }
 );
 
 const ProductVariant = mongoose.model("product_variants", productVariantSchema);

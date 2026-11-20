@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { CartItem, Coupon } from '../types';
 import { useToastStore } from './useToastStore';
+import { productsApi } from '../api';
 
 export const VALID_COUPONS: Record<string, Coupon> = {
   VANGUARD15: {
@@ -21,6 +22,10 @@ export const VALID_COUPONS: Record<string, Coupon> = {
   },
 };
 
+export const OBJECT_ID_REGEX = /^[a-f\d]{24}$/i;
+export const CART_STORAGE_KEY = 'atelier_cart_items';
+export const CART_STORAGE_VERSION = 2;
+
 interface CartState {
   items: CartItem[];
   isDrawerOpen: boolean;
@@ -36,6 +41,10 @@ interface CartState {
   applyCoupon: (code: string) => boolean;
   removeCoupon: () => void;
 
+  // Real backend sync & cleanup
+  removeInvalidItems: () => void;
+  validateCartWithBackend: () => Promise<void>;
+
   // Computed values
   getItemsCount: () => number;
   getSubtotal: () => number;
@@ -48,8 +57,38 @@ interface CartState {
 const loadSavedCart = (): CartItem[] => {
   if (typeof window === 'undefined') return [];
   try {
-    const saved = localStorage.getItem('atelier_cart_items');
-    return saved ? JSON.parse(saved) : [];
+    const raw = localStorage.getItem(CART_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+
+    // Migration từ cấu trúc mảng cũ (Version 1 -> Version 2)
+    if (Array.isArray(parsed)) {
+      const validItems = parsed.filter(
+        (it) => it && typeof it.productId === 'string' && OBJECT_ID_REGEX.test(it.productId)
+      );
+      localStorage.setItem(
+        CART_STORAGE_KEY,
+        JSON.stringify({ version: CART_STORAGE_VERSION, items: validItems })
+      );
+      return validItems;
+    }
+
+    // Cấu trúc đối tượng phiên bản mới
+    if (parsed && typeof parsed === 'object') {
+      const rawItems = Array.isArray(parsed.items) ? parsed.items : [];
+      const validItems = rawItems.filter(
+        (it: any) => it && typeof it.productId === 'string' && OBJECT_ID_REGEX.test(it.productId)
+      );
+      if (validItems.length !== rawItems.length || parsed.version !== CART_STORAGE_VERSION) {
+        localStorage.setItem(
+          CART_STORAGE_KEY,
+          JSON.stringify({ version: CART_STORAGE_VERSION, items: validItems })
+        );
+      }
+      return validItems;
+    }
+
+    return [];
   } catch {
     return [];
   }
@@ -58,7 +97,10 @@ const loadSavedCart = (): CartItem[] => {
 const saveCart = (items: CartItem[]) => {
   if (typeof window !== 'undefined') {
     try {
-      localStorage.setItem('atelier_cart_items', JSON.stringify(items));
+      localStorage.setItem(
+        CART_STORAGE_KEY,
+        JSON.stringify({ version: CART_STORAGE_VERSION, items })
+      );
     } catch {
       // ignore
     }
@@ -71,11 +113,41 @@ export const useCartStore = create<CartState>((set, get) => ({
   appliedCoupon: null,
   couponError: null,
 
-  openDrawer: () => set({ isDrawerOpen: true }),
+  openDrawer: () => {
+    set({ isDrawerOpen: true });
+    // Tự động đối chiếu dữ liệu với Backend khi người dùng mở giỏ
+    void get().validateCartWithBackend();
+  },
   closeDrawer: () => set({ isDrawerOpen: false }),
-  toggleDrawer: () => set((state) => ({ isDrawerOpen: !state.isDrawerOpen })),
+  toggleDrawer: () => {
+    const nextState = !get().isDrawerOpen;
+    set({ isDrawerOpen: nextState });
+    if (nextState) {
+      void get().validateCartWithBackend();
+    }
+  },
 
   addItem: (newItem) => {
+    // 1. Kiểm tra nghiêm ngặt mã sản phẩm từ Backend
+    if (!newItem.productId || !OBJECT_ID_REGEX.test(newItem.productId)) {
+      useToastStore.getState().addToast({
+        type: 'error',
+        title: 'Không thể thêm vào giỏ',
+        message: `Sản phẩm "${newItem.name || 'chưa xác định'}" chưa có mã định danh hợp lệ (_id) từ hệ thống. Vui lòng chọn sản phẩm từ danh mục chính thức.`,
+      });
+      return;
+    }
+
+    // 2. Bắt buộc có kích cỡ và màu sắc
+    if (!newItem.selectedSize || !newItem.selectedColor) {
+      useToastStore.getState().addToast({
+        type: 'error',
+        title: 'Chưa chọn phân loại',
+        message: 'Quý khách vui lòng chọn màu sắc và kích cỡ trước khi thêm vào giỏ hàng.',
+      });
+      return;
+    }
+
     set((state) => {
       const existingIndex = state.items.findIndex(
         (item) =>
@@ -94,7 +166,7 @@ export const useCartStore = create<CartState>((set, get) => ({
 
       saveCart(updatedItems);
 
-      // Vietnamese Toast
+      // Thông báo Toast thành công
       useToastStore.getState().addToast({
         type: 'bag',
         title: 'Đã thêm vào túi mua sắm',
@@ -119,6 +191,70 @@ export const useCartStore = create<CartState>((set, get) => ({
       saveCart(updatedItems);
       return { items: updatedItems };
     });
+  },
+
+  removeInvalidItems: () => {
+    const current = get().items;
+    const valid = current.filter((it) => it.productId && OBJECT_ID_REGEX.test(it.productId));
+    const removedCount = current.length - valid.length;
+    if (removedCount > 0) {
+      saveCart(valid);
+      set({ items: valid });
+      useToastStore.getState().addToast({
+        type: 'info',
+        title: 'Đã dọn dẹp giỏ hàng',
+        message: `Đã loại bỏ ${removedCount} sản phẩm không hợp lệ hoặc dữ liệu mẫu.`,
+      });
+    }
+  },
+
+  validateCartWithBackend: async () => {
+    const current = get().items;
+    if (current.length === 0) return;
+
+    try {
+      const validItems: CartItem[] = [];
+      let hasChanges = false;
+
+      for (const item of current) {
+        if (!item.productId || !OBJECT_ID_REGEX.test(item.productId)) {
+          hasChanges = true;
+          continue;
+        }
+
+        try {
+          const res = await productsApi.getProductDetail(item.productId);
+          const productData = res?.data || (res as any);
+          if (res?.success !== false && productData && productData._id) {
+            const syncedPrice = Number(productData.price || productData.new_price || item.price);
+            validItems.push({
+              ...item,
+              price: syncedPrice,
+            });
+            if (syncedPrice !== item.price) {
+              hasChanges = true;
+            }
+          } else {
+            // Sản phẩm không tồn tại hoặc đã ngừng kinh doanh
+            hasChanges = true;
+          }
+        } catch {
+          hasChanges = true;
+        }
+      }
+
+      if (hasChanges || validItems.length !== current.length) {
+        saveCart(validItems);
+        set({ items: validItems });
+        useToastStore.getState().addToast({
+          type: 'info',
+          title: 'Cập nhật giỏ hàng',
+          message: 'Một số sản phẩm đã được cập nhật, vui lòng thêm lại.',
+        });
+      }
+    } catch (err) {
+      console.warn('Giỏ hàng: Không thể đồng bộ với máy chủ', err);
+    }
   },
 
   updateQuantity: (productId, selectedColor, selectedSize, quantity) => {
@@ -203,13 +339,12 @@ export const useCartStore = create<CartState>((set, get) => ({
   getShippingFee: () => {
     const subtotal = get().getSubtotal();
     if (subtotal === 0) return 0;
-    // Complimentary White-Glove Courier over 12.000.000 ₫
     return subtotal >= 12000000 ? 0 : 850000;
   },
 
   getTax: () => {
     const taxableAmount = Math.max(0, get().getSubtotal() - get().getDiscount());
-    return Math.round(taxableAmount * 0.08); // 8% luxury sales tax
+    return Math.round(taxableAmount * 0.08);
   },
 
   getTotal: () => {

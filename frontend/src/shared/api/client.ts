@@ -336,6 +336,13 @@ export async function request<T = any>(
 
     if (!response.ok) {
       const errorMessage = data?.message || data?.error || `Yêu cầu thất bại với mã lỗi ${response.status}`;
+      if (response.status === 403 && typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('auth:forbidden', {
+            detail: { message: errorMessage || 'Bạn không có đủ quyền thực hiện hành động này' },
+          })
+        );
+      }
       throw new ApiError(errorMessage, response.status, data);
     }
 

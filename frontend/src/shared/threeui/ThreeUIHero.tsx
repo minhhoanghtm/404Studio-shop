@@ -47,33 +47,33 @@ export const ThreeUIHero: React.FC<ThreeUIHeroProps> = ({
   return (
     <section className="relative w-full h-[88vh] min-h-[640px] max-h-[1080px] overflow-hidden flex items-center justify-center bg-noir-950">
       {/* 3D WebGL Background using ThreeUI LiquidFormBackground */}
-      <div className="absolute inset-0 z-0 pointer-events-auto opacity-75 dark:opacity-85 transition-opacity duration-1000">
+      <div className="absolute inset-0 z-0 pointer-events-auto opacity-70 dark:opacity-80 transition-opacity duration-1000">
         <WebGLErrorBoundary
           fallback={
-            <div className="absolute inset-0 bg-gradient-to-tr from-noir-950 via-noir-900 to-[#191928] animate-pulse-subtle" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_55%_35%,rgba(116,55,68,0.28),transparent_48%),linear-gradient(135deg,#171316,#281b21_58%,#121012)]" />
           }
         >
           {canRenderWebGL && !prefersReducedMotion ? (
             <LiquidFormBackground
               className="w-full h-full object-cover"
-              speed={0.65}
-              morph={1.2}
-              noiseScale={0.9}
-              mouseAmount={0.25}
+              speed={0.52}
+              morph={1.15}
+              noiseScale={0.82}
+              mouseAmount={0.18}
               metal={0.95}
               camera={5.2}
-              tintHue={38}
-              tintAmount={0.12}
+              tintHue={338}
+              tintAmount={0.2}
             />
           ) : (
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(212,175,55,0.12)_0%,rgba(11,11,14,0.95)_70%)]" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(116,55,68,0.24)_0%,rgba(21,17,20,0.96)_70%)]" />
           )}
         </WebGLErrorBoundary>
       </div>
 
       {/* Atmospheric Overlays */}
-      <div className="absolute inset-0 bg-gradient-to-b from-noir-950/70 via-transparent to-noir-950/95 pointer-events-none z-[1]" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_30%,rgba(6,6,8,0.6)_100%)] pointer-events-none z-[1]" />
+      <div className="absolute inset-0 bg-gradient-to-b from-noir-950/60 via-noir-950/10 to-noir-950/95 pointer-events-none z-[1]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_25%,rgba(10,8,10,0.56)_100%)] pointer-events-none z-[1]" />
 
       {/* Hero Foreground Content */}
       <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-8 text-center flex flex-col items-center justify-center">
@@ -86,7 +86,7 @@ export const ThreeUIHero: React.FC<ThreeUIHeroProps> = ({
         </div>
 
         {/* Brand Display Wordmark */}
-        <h1 className="font-display text-6xl sm:text-8xl md:text-9xl lg:text-[130px] font-normal tracking-tight text-white mb-4 leading-none select-none drop-shadow-2xl">
+        <h1 className="font-display text-6xl sm:text-8xl md:text-9xl lg:text-[130px] font-normal tracking-[-0.045em] text-white mb-4 leading-[0.9] select-none drop-shadow-2xl">
           {title}
         </h1>
 
@@ -99,7 +99,7 @@ export const ThreeUIHero: React.FC<ThreeUIHeroProps> = ({
         <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 w-full sm:w-auto">
           <Link
             to={primaryCtaLink}
-            className="group relative inline-flex items-center justify-center px-8 py-4 bg-white text-noir-950 dark:bg-white dark:text-noir-950 text-xs uppercase tracking-widest font-semibold hover:bg-champagne hover:text-noir-950 transition-all duration-300 shadow-xl w-full sm:w-auto"
+            className="group relative inline-flex items-center justify-center px-8 py-4 bg-white text-noir-950 dark:bg-white dark:text-noir-950 text-xs uppercase tracking-[0.16em] font-semibold hover:bg-champagne hover:text-white dark:hover:text-noir-950 transition-all duration-300 shadow-xl w-full sm:w-auto"
           >
             <span>{primaryCtaText}</span>
             <ArrowUpRight className="w-4 h-4 ml-2 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
@@ -107,7 +107,7 @@ export const ThreeUIHero: React.FC<ThreeUIHeroProps> = ({
 
           <Link
             to={secondaryCtaLink}
-            className="inline-flex items-center justify-center px-8 py-4 border border-white/20 hover:border-champagne text-white hover:text-champagne-light text-xs uppercase tracking-widest font-medium transition-all duration-300 backdrop-blur-sm bg-noir-900/40 w-full sm:w-auto"
+            className="inline-flex items-center justify-center px-8 py-4 border border-white/25 hover:border-champagne text-white hover:text-champagne-light text-xs uppercase tracking-[0.16em] font-medium transition-all duration-300 backdrop-blur-sm bg-noir-900/35 w-full sm:w-auto"
           >
             <span>{secondaryCtaText}</span>
           </Link>
@@ -115,7 +115,7 @@ export const ThreeUIHero: React.FC<ThreeUIHeroProps> = ({
 
         {/* Interactive WebGL Status Hint */}
         <div className="mt-12 hidden md:flex items-center gap-3 text-[10px] text-platinum-dark/70 tracking-widest uppercase">
-          <span className="w-2 h-2 rounded-full bg-champagne animate-ping inline-block" />
+          <span className="w-1.5 h-1.5 rounded-full bg-champagne inline-block" />
           <span>{vi.hero.interactiveHint}</span>
         </div>
       </div>

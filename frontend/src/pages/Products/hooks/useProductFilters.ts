@@ -1,13 +1,17 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Product, Category } from '../../../shared/types';
-import { PRODUCTS } from '../../../shared/data/products';
+import { productsApi } from '../../../shared/api';
+import { adaptBackendProduct } from '../../../shared/utils/productAdapter';
 
 export type SortOption = 'curated' | 'price-asc' | 'price-desc' | 'rating' | 'newest';
 
 export const useProductFilters = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const categoryParam = searchParams.get('category') as Category | null;
+
+  const [dbProducts, setDbProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const [selectedCategory, setSelectedCategory] = useState<Category | 'all'>(
     categoryParam || 'all'
@@ -17,6 +21,38 @@ export const useProductFilters = () => {
   const [onlyInStock, setOnlyInStock] = useState<boolean>(false);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const itemsPerPage = 8;
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadProducts() {
+      setIsLoading(true);
+      try {
+        const res = await productsApi.getProducts({ limit: 100 });
+        if (cancelled) return;
+        const rawList = Array.isArray(res.data)
+          ? res.data
+          : Array.isArray((res.data as any)?.products)
+          ? (res.data as any).products
+          : Array.isArray(res)
+          ? res
+          : [];
+        if (rawList.length > 0) {
+          const adapted = rawList.map(adaptBackendProduct);
+          setDbProducts(adapted);
+        } else {
+          setDbProducts([]);
+        }
+      } catch (err) {
+        if (!cancelled) setDbProducts([]);
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    }
+    void loadProducts();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (categoryParam) {
@@ -44,13 +80,13 @@ export const useProductFilters = () => {
   const availableSubCategories = useMemo(() => {
     const list =
       selectedCategory === 'all'
-        ? PRODUCTS
-        : PRODUCTS.filter((p) => p.category === selectedCategory);
-    return Array.from(new Set(list.map((p) => p.subCategory)));
-  }, [selectedCategory]);
+        ? dbProducts
+        : dbProducts.filter((p) => p.category === selectedCategory);
+    return Array.from(new Set(list.map((p) => p.subCategory).filter(Boolean)));
+  }, [selectedCategory, dbProducts]);
 
   const filteredProducts = useMemo(() => {
-    let result = [...PRODUCTS];
+    let result = [...dbProducts];
 
     if (selectedCategory !== 'all') {
       result = result.filter((p) => p.category === selectedCategory);
@@ -86,9 +122,9 @@ export const useProductFilters = () => {
     }
 
     return result;
-  }, [selectedCategory, selectedSubCategory, onlyInStock, sortBy]);
+  }, [dbProducts, selectedCategory, selectedSubCategory, onlyInStock, sortBy]);
 
-  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage) || 1;
   const paginatedProducts = filteredProducts.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
@@ -109,6 +145,7 @@ export const useProductFilters = () => {
     totalCount: filteredProducts.length,
     availableSubCategories,
     paginatedProducts,
+    isLoading,
     resetFilters: () => {
       setSelectedCategory('all');
       setSelectedSubCategory(null);

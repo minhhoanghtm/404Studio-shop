@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import User from "../../users/user.model.js";
+import Conversation from "../conversations/conversation.model.js";
 import supportChatService from "../supportChat/supportChat.service.js";
 import conversationService from "../conversations/conversation.service.js";
 
@@ -35,7 +36,51 @@ export const registerCommunicationSocket = async (io, socket) => {
 
   if (actorRole === "admin") {
     socket.join("admins");
+    // Broadcast to storefront that a staff member is online
+    io.emit("staff:status", { isStaffOnline: true });
   }
+
+  // Handle guest join conversation
+  socket.on("guest:join", async ({ conversationId, guestId }, callback) => {
+    try {
+      if (!conversationId || !guestId) throw new Error("conversationId and guestId are required");
+      const conv = await Conversation.findOne({ _id: conversationId, guestId });
+      if (!conv) throw new Error("Forbidden guest conversation");
+      socket.join(`conversation:${conversationId}`);
+      callback?.({ success: true });
+    } catch (error) {
+      callback?.({ success: false, message: error.message });
+    }
+  });
+
+  // Typing indicators
+  socket.on("typing:start", ({ conversationId, senderName, role }) => {
+    if (conversationId) {
+      socket.to(`conversation:${conversationId}`).emit("typing:start", {
+        conversationId,
+        senderName: senderName || (role === "admin" ? "Nhân viên tư vấn" : "Khách hàng"),
+        role: role || (actorRole === "admin" ? "admin" : "customer"),
+      });
+    }
+  });
+
+  socket.on("typing:stop", ({ conversationId, senderName, role }) => {
+    if (conversationId) {
+      socket.to(`conversation:${conversationId}`).emit("typing:stop", {
+        conversationId,
+        senderName,
+        role,
+      });
+    }
+  });
+
+  socket.on("disconnect", () => {
+    if (actorRole === "admin") {
+      const adminRoom = io.sockets.adapter.rooms.get("admins");
+      const isStillOnline = adminRoom && adminRoom.size > 0;
+      io.emit("staff:status", { isStaffOnline: Boolean(isStillOnline) });
+    }
+  });
 
   socket.on("conversation:join", async (conversationId, callback) => {
     try {

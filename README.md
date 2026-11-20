@@ -131,33 +131,69 @@ Selected components from Meng To's **ThreeUI Community** (`@designcodeio/threeui
 ## ✦ Installation & Local Development
 
 ### Prerequisites:
-- **Node.js** >= 18.0.0
+- **Node.js** >= 18.0.0 (Verified on Node 22 & Node 24)
 - **npm** >= 9.0.0
 
-### Setup:
+### Unified Quickstart (Recommended):
+Run the entire platform (Frontend + Backend) with a single command from the project root:
+
 ```bash
-# Clone or navigate to the repository
+# 1. Clone or navigate to the repository root
 cd 404Studio
 
-# Install frontend dependencies
-cd frontend
+# 2. Install workspace dependencies
 npm install
 
-# Start Vite development server
+# 3. Start Backend & Frontend concurrently
 npm run dev
 ```
-Open [http://localhost:5173](http://localhost:5173) in your browser.
+
+The system automatically launches:
+- **Backend (Express + MongoDB + Redis):** `http://localhost:5000` (Socket.IO, BullMQ, Cron workers)
+- **Frontend (React 19 + ThreeUI + Vite):** `http://localhost:5173` (Vite dev server with HMR & `/api` proxy)
+- **Unified Terminal Output:** Displays multiplexed, color-coded logs prefixed with `[BACKEND]` (blue) and `[FRONTEND]` (green).
+- **Graceful Termination:** Pressing `Ctrl + C` stops both services simultaneously with zero orphan background Node.js processes.
+
+### Available Root Commands:
+
+| Command | Action | Scope |
+|---|---|---|
+| `npm run dev` | Launch Backend and Frontend concurrently with color-coded multiplexed logs | Fullstack (`BACKEND` & `FRONTEND`) |
+| `npm run dev:frontend` | Launch only Vite development server (`http://localhost:5173`) | Storefront & Admin Portal |
+| `npm run dev:backend` | Launch only Express REST API & Workers (`http://localhost:5000`) | API & Microservices |
+| `npm run build` | Build production client bundle (`tsc -b && vite build`) | Production Distribution |
+| `npm run test` | Run complete test suites (Frontend Vitest + Backend Jest) | Fullstack Test Suites |
+| `npm run test:frontend` | Run frontend unit & component tests (151 tests) | Vitest Suite |
+| `npm run test:backend` | Run backend API & queue tests (215 tests) | Jest Suite |
+| `npm run test:e2e` | Run Playwright cross-device end-to-end suite | Playwright Browsers |
+| `npm run lint` | Run code quality analyzers (Frontend Oxlint + Backend ESLint) | Code Quality |
+
+Open [http://localhost:5173](http://localhost:5173) in your browser. All `/api` requests are automatically proxied to Backend port 5000 with complete cookie and JWT authentication support.
 
 ---
 
 ## ✦ Testing & Verification
 
-### Vitest Unit & Integration Tests:
+### Fullstack Unit & Integration Tests:
 ```bash
 npm run test
 ```
-- **13/13 Unit Tests Passing:**
+- **Frontend Tests (18 suites, 151/151 passed):**
   - Cart addition, duplicate merging, quantity steppers, item removal.
+  - White-glove complimentary shipping threshold calculations in VND.
+  - Coupon code validation (`VANGUARD15` 15% discount, threshold checks, invalid code handling).
+  - Wishlist toggle, check existence, and state persistence.
+  - Catalog product integrity (VND prices, categories, images, valid hex colors, variants).
+  - Reusable component mounting and Vietnamese rendering.
+  - Visual Page Builder AST manipulation, drag-and-drop hierarchy, and legal disclosure compliance.
+  - Customer Loyalty 12-tier calculation, points earning, and refund reversal ledger.
+  - Promotional Campaigns countdown, quota allocation, and priority ordering.
+  - Excel Export/Import formula injection defense (CWE-1236) and validation.
+- **Backend Tests (24 suites, 215/215 passed):**
+  - Database connectivity, model validations, and transactions.
+  - JWT Access/Refresh tokens and role-based access control.
+  - Order state machine and real-time Socket.IO broadcasts.
+  - AI styling assistant, vector search, and token budget policies.
   - White-glove complimentary shipping threshold calculations in VND.
   - Coupon code validation (`VANGUARD15` 15% discount, threshold checks, invalid code handling).
   - Wishlist toggle, check existence, and state persistence.

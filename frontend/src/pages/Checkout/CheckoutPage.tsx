@@ -11,7 +11,7 @@ import { PaymentMethodSelector } from './components/PaymentMethodSelector';
 import type { PaymentMethod } from './components/PaymentMethodSelector';
 import { CheckoutSummary } from './components/CheckoutSummary';
 import { vi } from '@/shared/locales/vi/common';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, AlertTriangle, Trash2 } from 'lucide-react';
 
 export const CheckoutPage: React.FC = () => {
   const navigate = useNavigate();
@@ -22,10 +22,14 @@ export const CheckoutPage: React.FC = () => {
     getShippingFee,
     getTax,
     clearCart,
+    removeInvalidItems,
   } = useCartStore();
 
   const { user } = useAuthStore();
   const { addToast } = useToastStore();
+
+  const objectId = /^[a-f\d]{24}$/i;
+  const invalidItems = items.filter((item) => !objectId.test(item.productId));
 
   const [formData, setFormData] = useState<ShippingAddress>({
     firstName: user?.name.split(' ')[0] || 'Geneviève',
@@ -55,13 +59,13 @@ export const CheckoutPage: React.FC = () => {
 
   if (items.length === 0) {
     return (
-      <div className="w-full bg-noir-950 text-white min-h-[70vh] flex items-center justify-center p-8">
+      <div className="w-full bg-[var(--bg)] text-[var(--text)] min-h-[70vh] flex items-center justify-center p-8">
         <div className="text-center space-y-4">
-          <h2 className="font-display text-3xl">Túi mua sắm trống</h2>
-          <p className="text-xs text-platinum-dark">Vui lòng chọn sản phẩm trước khi tiến hành thanh toán.</p>
+          <h2 className="font-display text-3xl text-[var(--text)]">Túi mua sắm trống</h2>
+          <p className="text-xs text-[var(--text-muted)]">Vui lòng chọn sản phẩm trước khi tiến hành thanh toán.</p>
           <Link
             to="/products"
-            className="inline-block px-6 py-3 bg-champagne text-noir-950 font-semibold text-xs uppercase tracking-widest rounded-lg"
+            className="inline-block px-6 py-3 bg-[var(--accent)] text-[var(--accent-contrast)] hover:bg-[#9E7B15] font-semibold text-xs uppercase tracking-widest rounded-lg shadow-md"
           >
             Quay lại cửa hàng
           </Link>
@@ -87,9 +91,13 @@ export const CheckoutPage: React.FC = () => {
       return;
     }
 
-    const objectId = /^[a-f\d]{24}$/i;
-    if (items.some((item) => !objectId.test(item.productId))) {
-      addToast({ type: 'error', title: 'Không thể tạo đơn hàng an toàn', message: 'Giỏ hàng hiện chứa dữ liệu mẫu chưa có mã sản phẩm từ Backend. Vui lòng tải lại sản phẩm từ cửa hàng trước khi thanh toán.' });
+    if (invalidItems.length > 0) {
+      const invalidNames = invalidItems.map((item) => `"${item.name}"`).join(', ');
+      addToast({
+        type: 'error',
+        title: 'Sản phẩm không hợp lệ trong giỏ',
+        message: `Phát hiện ${invalidItems.length} sản phẩm dữ liệu mẫu chưa có mã Backend: ${invalidNames}. Vui lòng bấm nút "Xóa sản phẩm lỗi" bên dưới để tiếp tục thanh toán.`,
+      });
       return;
     }
 
@@ -101,8 +109,12 @@ export const CheckoutPage: React.FC = () => {
         const response = await ordersApi.createOrder({
           items: items.map((item) => ({ product_id: item.productId, quantity: item.quantity, price: item.price })),
           shipping_address: {
-            full_name: `${formData.firstName} ${formData.lastName}`.trim(), phone: formData.phone,
-            city: formData.city, district: formData.state, ward: formData.postalCode, address_detail: formData.addressLine1,
+            full_name: `${formData.firstName} ${formData.lastName}`.trim(),
+            phone: formData.phone,
+            city: formData.city,
+            district: formData.state,
+            ward: formData.postalCode,
+            address_detail: formData.addressLine1,
           },
           payment_method: paymentMethod,
         });
@@ -119,19 +131,41 @@ export const CheckoutPage: React.FC = () => {
         return;
       }
 
-      const paymentResponse = paymentMethod === 'momo' ? await paymentsApi.createMomoPayment(orderId) : await paymentsApi.createVnpayPayment(orderId);
+      const paymentResponse =
+        paymentMethod === 'momo'
+          ? await paymentsApi.createMomoPayment(orderId)
+          : await paymentsApi.createVnpayPayment(orderId);
       const paymentUrl = paymentResponse.paymentUrl || paymentResponse.data?.paymentUrl;
-      if (!paymentUrl || !/^https?:\/\//i.test(paymentUrl)) throw new Error('Máy chủ chưa cung cấp đường dẫn thanh toán hợp lệ.');
+      if (!paymentUrl || !/^https?:\/\//i.test(paymentUrl)) {
+        throw new Error('Máy chủ chưa cung cấp đường dẫn thanh toán hợp lệ.');
+      }
       window.location.assign(paymentUrl);
     } catch (error: any) {
-      addToast({ type: 'error', title: 'Chưa thể hoàn tất', message: error?.message || 'Đơn hàng chưa được xác nhận. Vui lòng thử lại.' });
+      const isGuestError =
+        error?.code === 'GUEST_CHECKOUT_DISABLED' ||
+        error?.status === 403 ||
+        error?.message?.includes('không cần đăng nhập');
+      if (isGuestError && !user) {
+        addToast({
+          type: 'error',
+          title: 'Yêu cầu đăng nhập',
+          message: 'Chức năng đặt hàng hiện yêu cầu đăng nhập tài khoản. Đang chuyển hướng đến trang đăng nhập...',
+        });
+        setTimeout(() => navigate('/account/login?redirect=/checkout'), 1600);
+        return;
+      }
+      addToast({
+        type: 'error',
+        title: 'Chưa thể hoàn tất',
+        message: error?.message || 'Đơn hàng chưa được xác nhận. Vui lòng thử lại.',
+      });
     } finally {
       setIsProcessing(false);
     }
   };
 
   return (
-    <div className="w-full bg-noir-950 text-white min-h-screen py-16 px-4 sm:px-6 lg:px-8">
+    <div className="w-full bg-ivory-50 text-noir-900 dark:bg-noir-950 dark:text-white min-h-screen py-16 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto space-y-10">
         <div className="flex items-center justify-between border-b border-white/10 pb-6">
           <div>
@@ -150,6 +184,28 @@ export const CheckoutPage: React.FC = () => {
           </p>
         </div>
 
+        {/* Cảnh báo sản phẩm lỗi / dữ liệu mẫu kèm nút Xóa sản phẩm lỗi */}
+        {invalidItems.length > 0 && (
+          <div className="bg-red-950/40 border border-red-500/40 rounded-sm p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 backdrop-blur-sm">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-red-400 font-medium text-sm">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <span>Phát hiện {invalidItems.length} sản phẩm dữ liệu mẫu chưa có mã Backend</span>
+              </div>
+              <p className="text-xs text-white/70">
+                Sản phẩm lỗi: <strong className="text-white">{invalidItems.map((it) => it.name).join(', ')}</strong>. Vui lòng xóa các mục này để tiếp tục thanh toán an toàn.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => removeInvalidItems()}
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-red-600/30 hover:bg-red-600/50 text-red-200 border border-red-500/60 rounded text-xs font-mono font-medium transition-colors shrink-0 shadow-sm"
+            >
+              <Trash2 className="w-3.5 h-3.5" /> Xóa sản phẩm lỗi ({invalidItems.length})
+            </button>
+          </div>
+        )}
+
         <form onSubmit={handlePlaceOrder} className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
           <div className="lg:col-span-8 space-y-8">
             <ShippingAddressForm formData={formData} onChange={handleChange} />
@@ -162,7 +218,11 @@ export const CheckoutPage: React.FC = () => {
               method={paymentMethod}
               onSelectMethod={(method) => {
                 if (pendingOrderId && method !== paymentMethod) {
-                  addToast({ type: 'info', title: 'Đơn hàng đang chờ thanh toán', message: 'Để tránh tạo hoặc thanh toán trùng, hãy hoàn tất hoặc liên hệ hỗ trợ cho đơn hàng hiện tại.' });
+                  addToast({
+                    type: 'info',
+                    title: 'Đơn hàng đang chờ thanh toán',
+                    message: 'Để tránh tạo hoặc thanh toán trùng, hãy hoàn tất hoặc liên hệ hỗ trợ cho đơn hàng hiện tại.',
+                  });
                   return;
                 }
                 setPaymentMethod(method);

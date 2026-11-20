@@ -1,8 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useCartStore, VALID_COUPONS } from '@/shared/stores/useCartStore';
+import { useCartStore, VALID_COUPONS, CART_STORAGE_KEY, CART_STORAGE_VERSION } from '@/shared/stores/useCartStore';
+
+const VALID_ID_1 = '6a3f46317302ffeba0d3949c';
+const VALID_ID_2 = '6a3f46317302ffeba0d3949a';
+const VALID_ID_3 = '6ae4c91201eb2114300554db';
 
 describe('useCartStore', () => {
   beforeEach(() => {
+    localStorage.clear();
     useCartStore.getState().clearCart();
     useCartStore.getState().removeCoupon();
   });
@@ -14,12 +19,12 @@ describe('useCartStore', () => {
     expect(getSubtotal()).toBe(0);
   });
 
-  it('should add an item to the cart', () => {
+  it('should add an item to the cart when productId is a valid backend ObjectId', () => {
     const { addItem } = useCartStore.getState();
     addItem({
-      productId: 'test-coat',
-      productSlug: 'test-coat',
-      name: 'Áo Khoác Dạ Kiến Trúc',
+      productId: VALID_ID_1,
+      productSlug: 'chan-vay-chu-a-midi-nu',
+      name: 'Chân Váy Chữ A Midi Nữ',
       price: 58500000,
       quantity: 1,
       selectedColor: 'Đen',
@@ -34,12 +39,30 @@ describe('useCartStore', () => {
     expect(state.getSubtotal()).toBe(58500000);
   });
 
+  it('should reject adding an item if productId is not a valid 24-hex ObjectId', () => {
+    const { addItem } = useCartStore.getState();
+    addItem({
+      productId: 'mock-sample-id-123',
+      productSlug: 'mock-sample',
+      name: 'Áo Khoác Dữ Liệu Mẫu',
+      price: 15000000,
+      quantity: 1,
+      selectedColor: 'Đen',
+      selectedColorHex: '#000000',
+      selectedSize: 'M',
+      image: '/test.jpg',
+    });
+
+    const state = useCartStore.getState();
+    expect(state.items.length).toBe(0);
+  });
+
   it('should increment quantity when adding duplicate variant', () => {
     const { addItem } = useCartStore.getState();
     const item = {
-      productId: 'test-coat',
-      productSlug: 'test-coat',
-      name: 'Áo Khoác Dạ Kiến Trúc',
+      productId: VALID_ID_1,
+      productSlug: 'chan-vay-chu-a-midi-nu',
+      name: 'Chân Váy Chữ A Midi Nữ',
       price: 58500000,
       quantity: 1,
       selectedColor: 'Đen',
@@ -60,9 +83,9 @@ describe('useCartStore', () => {
   it('should update quantity and remove item if quantity is zero', () => {
     const { addItem, updateQuantity } = useCartStore.getState();
     addItem({
-      productId: 'test-coat',
-      productSlug: 'test-coat',
-      name: 'Áo Khoác Dạ Kiến Trúc',
+      productId: VALID_ID_1,
+      productSlug: 'chan-vay-chu-a-midi-nu',
+      name: 'Chân Váy Chữ A Midi Nữ',
       price: 15000000,
       quantity: 2,
       selectedColor: 'Đen',
@@ -71,19 +94,19 @@ describe('useCartStore', () => {
       image: '/test.jpg',
     });
 
-    updateQuantity('test-coat', 'Đen', '38 FR', 3);
+    updateQuantity(VALID_ID_1, 'Đen', '38 FR', 3);
     expect(useCartStore.getState().items[0].quantity).toBe(3);
 
-    updateQuantity('test-coat', 'Đen', '38 FR', 0);
+    updateQuantity(VALID_ID_1, 'Đen', '38 FR', 0);
     expect(useCartStore.getState().items.length).toBe(0);
   });
 
   it('should apply valid coupon code and calculate discount', () => {
     const { addItem, applyCoupon } = useCartStore.getState();
     addItem({
-      productId: 'test-dress',
-      productSlug: 'test-dress',
-      name: 'Đầm Lụa Dòng Nước',
+      productId: VALID_ID_2,
+      productSlug: 'ao-len-nu-co-lo',
+      name: 'Áo Len Nữ Cổ Lọ',
       price: 10000000,
       quantity: 1,
       selectedColor: 'Vàng Kim',
@@ -97,10 +120,10 @@ describe('useCartStore', () => {
 
     const state = useCartStore.getState();
     expect(state.appliedCoupon?.code).toBe('VANGUARD15');
-    expect(state.getDiscount()).toBe(1500000); // 15% of 10.000.000
+    expect(state.getDiscount()).toBe(1500000);
     const taxable = 10000000 - 1500000;
     const tax = Math.round(taxable * 0.08);
-    const shipping = 850000; // < 12.000.000
+    const shipping = 850000;
     expect(state.getTotal()).toBe(taxable + shipping + tax);
   });
 
@@ -114,9 +137,9 @@ describe('useCartStore', () => {
   it('should calculate complimentary shipping for orders over 12.000.000 ₫', () => {
     const { addItem } = useCartStore.getState();
     addItem({
-      productId: 'test-tote',
-      productSlug: 'test-tote',
-      name: 'Túi Da Thảo Mộc',
+      productId: VALID_ID_3,
+      productSlug: 'quan-short-thun-sport-flex',
+      name: 'Quần short thun Sport Flex',
       price: 25000000,
       quantity: 1,
       selectedColor: 'Đen',
@@ -126,5 +149,41 @@ describe('useCartStore', () => {
     });
 
     expect(useCartStore.getState().getShippingFee()).toBe(0);
+  });
+
+  it('removeInvalidItems should purge any items lacking a valid ObjectId', () => {
+    // Manually inject invalid mock item into state
+    useCartStore.setState({
+      items: [
+        {
+          productId: VALID_ID_1,
+          productSlug: 'chan-vay-chu-a-midi-nu',
+          name: 'Sản phẩm thật',
+          price: 299000,
+          quantity: 1,
+          selectedColor: 'Đen',
+          selectedColorHex: '#000',
+          selectedSize: 'M',
+          image: '/test.jpg',
+        },
+        {
+          productId: 'prod-mock-orphan',
+          productSlug: 'mock-item',
+          name: 'Sản phẩm mẫu cũ',
+          price: 100000,
+          quantity: 1,
+          selectedColor: 'Đỏ',
+          selectedColorHex: '#f00',
+          selectedSize: 'L',
+          image: '/mock.jpg',
+        },
+      ],
+    });
+
+    expect(useCartStore.getState().items.length).toBe(2);
+    useCartStore.getState().removeInvalidItems();
+    const updated = useCartStore.getState().items;
+    expect(updated.length).toBe(1);
+    expect(updated[0].productId).toBe(VALID_ID_1);
   });
 });

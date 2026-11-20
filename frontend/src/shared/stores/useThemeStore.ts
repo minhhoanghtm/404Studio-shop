@@ -14,15 +14,17 @@ export const applyThemeToDOM = (theme: Theme) => {
   if (theme === 'light') {
     root.classList.remove('dark');
     root.classList.add('light');
+    root.setAttribute('data-theme', 'light');
   } else {
     root.classList.remove('light');
     root.classList.add('dark');
+    root.setAttribute('data-theme', 'dark');
   }
   root.style.colorScheme = theme;
 };
 
 export const getInitialTheme = (): Theme => {
-  if (typeof window === 'undefined') return 'dark';
+  if (typeof window === 'undefined') return 'light';
   try {
     const saved = localStorage.getItem('atelier_theme');
     if (saved === 'light' || saved === 'dark') {
@@ -31,7 +33,7 @@ export const getInitialTheme = (): Theme => {
   } catch {
     // localStorage may be inaccessible in sandboxes
   }
-  return window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  return 'light';
 };
 
 export const useThemeStore = create<ThemeState>((set, get) => {
@@ -50,22 +52,6 @@ export const useThemeStore = create<ThemeState>((set, get) => {
       }
     });
 
-    // Listen for OS system preference changes if no manual preference has been stored
-    const mediaQuery = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
-    if (mediaQuery?.addEventListener) {
-      mediaQuery.addEventListener('change', (e) => {
-        try {
-          const saved = localStorage.getItem('atelier_theme');
-          if (!saved) {
-            const sysTheme: Theme = e.matches ? 'dark' : 'light';
-            applyThemeToDOM(sysTheme);
-            set({ theme: sysTheme });
-          }
-        } catch {
-          // ignore
-        }
-      });
-    }
   }
 
   return {

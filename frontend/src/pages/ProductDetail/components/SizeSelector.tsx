@@ -18,10 +18,10 @@ export const SizeSelector: React.FC<SizeSelectorProps> = ({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between text-xs font-sans">
-        <span className="text-white/60">Kích cỡ may đo:</span>
+        <span className="text-[var(--text-muted)] font-medium">Kích cỡ may đo:</span>
         <Link
           to="/support#size-guide"
-          className="text-champagne hover:text-champagne-hover flex items-center gap-1 transition-colors"
+          className="text-[var(--accent)] hover:underline flex items-center gap-1 transition-colors font-medium"
         >
           <Ruler className="w-3.5 h-3.5" />
           <span>{vi.catalog.sizeGuide}</span>
@@ -36,10 +36,10 @@ export const SizeSelector: React.FC<SizeSelectorProps> = ({
             disabled={!s.inStock}
             className={`py-3 px-2 rounded-lg text-xs font-mono transition-all border text-center ${
               selectedSize === s.size
-                ? 'bg-champagne text-noir-950 font-bold border-champagne shadow-md'
+                ? 'bg-[var(--accent)] text-[var(--accent-contrast)] font-bold border-[var(--accent)] shadow-md'
                 : s.inStock
-                ? 'bg-white/5 hover:bg-white/10 text-white border-white/10'
-                : 'bg-noir-950/40 text-white/20 border-white/5 cursor-not-allowed line-through'
+                ? 'bg-[var(--bg-alt)] hover:bg-[var(--surface)] text-[var(--text)] border-[var(--border)] hover:border-[var(--accent)]'
+                : 'bg-[var(--bg-alt)]/40 text-[var(--text-muted)]/40 border-[var(--border)]/50 cursor-not-allowed line-through'
             }`}
             aria-label={`Kích cỡ ${s.size} ${s.inStock ? '' : '(Hết hàng)'}`}
           >

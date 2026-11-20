@@ -60,6 +60,10 @@ export const generateProductExcelTemplate = async (
   ];
 
   instructionSheet.addRow({
+    item: 'Hình Ảnh Nhúng Trực Tiếp',
+    desc: 'Chèn ảnh trực tiếp vào ô tại cột "Ảnh Đại Diện" (và "Ảnh Biến Thể") bằng tính năng Insert (Chèn) → Pictures (Hình ảnh) của Excel. Tuyệt đối không dán link/URL.',
+  });
+  instructionSheet.addRow({
     item: 'Cấu Trúc Đa Biến Thể',
     desc: 'Mỗi dòng trong bảng tính đại diện cho MỘT BIẾN THỂ (Variant). Các dòng có cùng "Mã Sản Phẩm (SKU Nhóm)" sẽ được tự động gộp thành một sản phẩm duy nhất.',
   });
@@ -100,12 +104,12 @@ export const generateProductExcelTemplate = async (
     { header: 'Giá Bán Thực Tế (VNĐ) *', key: 'newPrice', width: 24 },
     { header: 'Thương Hiệu', key: 'brand', width: 20 },
     { header: 'Mô Tả Sản Phẩm', key: 'desc', width: 40 },
-    { header: 'Ảnh Chính Sản Phẩm (URL) *', key: 'productImage', width: 50 },
+    { header: 'Ảnh Đại Diện (Chèn ảnh vào ô) *', key: 'productImage', width: 18 },
     { header: 'Mã SKU Biến Thể', key: 'variantSku', width: 25 },
     { header: 'Màu Sắc *', key: 'color', width: 18 },
     { header: 'Kích Cỡ *', key: 'size', width: 15 },
     { header: 'Tồn Kho Biến Thể *', key: 'stock', width: 20 },
-    { header: 'Ảnh Riêng Biến Thể (URL)', key: 'variantImage', width: 50 },
+    { header: 'Ảnh Biến Thể (Chèn ảnh vào ô)', key: 'variantImage', width: 18 },
   ];
 
   const headerRow = dataSheet.getRow(1);
@@ -218,8 +222,40 @@ export const generateProductExcelTemplate = async (
  */
 export const exportProductsToExcel = async (
   products: any[],
-  categoriesList: any[]
+  categoriesList: any[],
+  options?: {
+    scope?: 'all' | 'filtered' | 'selected';
+    ids?: string[];
+    category?: string;
+    search?: string;
+    includeImages?: boolean;
+  }
 ): Promise<void> => {
+  // 1. Try Backend Server-Side Export with Embedded Images & Sharp normalization
+  try {
+    const { adminApi } = await import('@/shared/api');
+    const blob = await adminApi.exportProductsExcel({
+      scope: options?.scope || 'all',
+      ids: options?.ids,
+      category: options?.category,
+      search: options?.search,
+      includeImages: options?.includeImages !== false,
+    });
+    const dateStr = new Date().toISOString().split('T')[0];
+    const url = window.URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `danh-sach-san-pham-${dateStr}.xlsx`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    window.URL.revokeObjectURL(url);
+    return;
+  } catch (backendErr) {
+    console.warn('Backend excel export failed or unavailable, falling back to client-side generator:', backendErr);
+  }
+
+  // 2. Client-side fallback generator
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'Atelier Vérité Admin System';
   workbook.created = new Date();
@@ -246,7 +282,7 @@ export const exportProductsToExcel = async (
     { header: 'Màu Sắc', key: 'color', width: 18 },
     { header: 'Kích Cỡ', key: 'size', width: 12 },
     { header: 'Tồn Kho Biến Thể', key: 'stock', width: 18 },
-    { header: 'Ảnh Đại Diện', key: 'image', width: 45 },
+    { header: 'Ảnh Đại Diện', key: 'image', width: 18 },
     { header: 'Trạng Thái', key: 'status', width: 15 },
   ];
 
@@ -263,10 +299,9 @@ export const exportProductsToExcel = async (
   products.forEach((p) => {
     const variants = Array.isArray(p.variants) && p.variants.length > 0 ? p.variants : [null];
     const categoryName = catMap.get(String(p.category_id)) || p.category_id || 'Chưa phân loại';
-    const primaryImg = (Array.isArray(p.displayProduct) && p.displayProduct[0]) || (Array.isArray(p.images) && p.images[0]) || '';
 
     variants.forEach((v: any) => {
-      sheet.addRow({
+      const row = sheet.addRow({
         productSku: sanitizeCellForExport(p.slug ? `ATV-${p.slug.toUpperCase()}` : p._id || ''),
         productName: sanitizeCellForExport(p.name || ''),
         slug: sanitizeCellForExport(p.slug || ''),
@@ -278,9 +313,11 @@ export const exportProductsToExcel = async (
         color: sanitizeCellForExport(v?.color || 'Tiêu chuẩn'),
         size: sanitizeCellForExport(v?.size || 'FreeSize'),
         stock: v ? Number(v.stock || 0) : Number(p.stock || 0),
-        image: sanitizeCellForExport(v?.image_url || primaryImg),
+        image: '', // Leave empty text for image cell
         status: p.is_active !== false ? 'Đang mở bán' : 'Ngừng bán',
       });
+      row.height = 60;
+      row.alignment = { vertical: 'middle' };
     });
   });
 
@@ -322,8 +359,35 @@ export const parseAndValidateProductExcel = async (
     if (cat.name) catByName.set(String(cat.name).toLowerCase(), cat);
   });
 
-  // Identify column indices
-  const headerRow = sheet.getRow(1);
+  // Extract all embedded images from the sheet
+  const rawImages = (sheet as any).getImages?.() || [];
+  const embeddedImagesByCell = new Map<string, string>();
+
+  for (const img of rawImages) {
+    const range = img.range;
+    if (!range || !range.tl) continue;
+    const r = (range.tl.nativeRow != null ? range.tl.nativeRow : Math.floor(range.tl.row)) + 1;
+    const c = (range.tl.nativeCol != null ? range.tl.nativeCol : Math.floor(range.tl.col)) + 1;
+    try {
+      const media = workbook.getImage(Number(img.imageId));
+      if (media && media.buffer) {
+        const u8 = new Uint8Array(media.buffer);
+        let binary = '';
+        for (let i = 0; i < u8.length; i++) {
+          binary += String.fromCharCode(u8[i]);
+        }
+        const base64 = btoa(binary);
+        const ext = media.extension || 'png';
+        const dataUrl = `data:image/${ext};base64,${base64}`;
+        embeddedImagesByCell.set(`${r}:${c}`, dataUrl);
+        if (!embeddedImagesByCell.has(`${r}:primary`)) {
+          embeddedImagesByCell.set(`${r}:primary`, dataUrl);
+        }
+      }
+    } catch {
+      // Ignore corrupted individual media items
+    }
+  }
   const colMap = {
     productSku: 1,
     productName: 2,

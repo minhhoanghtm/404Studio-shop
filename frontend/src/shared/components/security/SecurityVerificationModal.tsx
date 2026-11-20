@@ -154,7 +154,6 @@ export const SecurityVerificationModal: React.FC<SecurityVerificationModalProps>
     const identifier = getTargetIdentifier();
     try {
       if (actionType === 'PASSWORD_CHANGE') {
-        // Uses forgot password OTP endpoint or modern OTP endpoint
         await authApi.forgotPassword({
           email: selectedChannel === 'email' ? identifier : undefined,
           phone: selectedChannel === 'phone' ? identifier : undefined,
@@ -179,7 +178,6 @@ export const SecurityVerificationModal: React.FC<SecurityVerificationModalProps>
         type: 'info',
       });
     } catch (err: any) {
-      // In test/demo or local staging, proceed smoothly
       setPhase('OTP_ENTRY');
       setCooldown(OTP_COOLDOWN_SECONDS);
       setTtlSeconds(OTP_TTL_SECONDS);
@@ -208,7 +206,6 @@ export const SecurityVerificationModal: React.FC<SecurityVerificationModalProps>
     const identifier = getTargetIdentifier();
 
     try {
-      // Simulated backend verification or direct verify call
       const res = await authApi.verifyOtp({
         email: selectedChannel === 'email' ? identifier : undefined,
         phone: selectedChannel === 'phone' ? identifier : undefined,
@@ -268,23 +265,23 @@ export const SecurityVerificationModal: React.FC<SecurityVerificationModalProps>
       role="dialog"
       aria-modal="true"
       aria-labelledby="security-modal-title"
-      className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md transition-opacity"
+      className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-[rgba(26,26,23,0.45)] backdrop-blur-md transition-opacity"
     >
-      <div className="w-full max-w-lg bg-[#0f0f13] border border-white/10 rounded-2xl shadow-2xl text-[#f2f2f4] overflow-hidden flex flex-col max-h-[92vh] transition-all">
+      <div className="w-full max-w-lg bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-2xl text-[var(--text)] overflow-hidden flex flex-col max-h-[92vh] transition-all">
         {/* Modal Header */}
-        <div className="p-5 sm:p-6 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
+        <div className="p-5 sm:p-6 border-b border-[var(--border)] flex items-center justify-between bg-[var(--bg-alt)]/50">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#d4af37]/15 border border-[#d4af37]/30 flex items-center justify-center text-[#d4af37]">
+            <div className="w-10 h-10 rounded-full bg-[var(--accent)]/15 border border-[var(--accent)]/30 flex items-center justify-center text-[var(--accent)]">
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
               <h2
                 id="security-modal-title"
-                className="font-serif text-sm sm:text-base font-semibold uppercase tracking-wider text-white"
+                className="font-serif text-sm sm:text-base font-semibold uppercase tracking-wider text-[var(--text)]"
               >
                 {getActionTitle()}
               </h2>
-              <span className="text-[11px] text-[#d4af37] font-medium tracking-wide">
+              <span className="text-[11px] text-[var(--accent)] font-medium tracking-wide">
                 Trung Tâm Kiểm Soát & Bảo Mật Danh Tính Patron
               </span>
             </div>
@@ -292,7 +289,7 @@ export const SecurityVerificationModal: React.FC<SecurityVerificationModalProps>
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 text-white/50 hover:text-white rounded-lg transition-colors"
+            className="p-1.5 text-[var(--text-muted)] hover:text-[var(--text)] rounded-lg transition-colors"
             aria-label="Đóng cửa sổ xác minh"
           >
             <X className="w-5 h-5" />
@@ -311,7 +308,7 @@ export const SecurityVerificationModal: React.FC<SecurityVerificationModalProps>
               />
 
               <div className="space-y-3 pt-2">
-                <label className="block text-xs uppercase tracking-wider font-serif font-medium text-white/80">
+                <label className="block text-xs uppercase tracking-wider font-serif font-medium text-[var(--text)]">
                   Chọn Kênh Nhận Mã Xác Minh OTP:
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -320,12 +317,12 @@ export const SecurityVerificationModal: React.FC<SecurityVerificationModalProps>
                     onClick={() => setSelectedChannel('phone')}
                     className={`p-3.5 rounded-xl border text-left transition-all ${
                       selectedChannel === 'phone'
-                        ? 'border-[#d4af37] bg-[#d4af37]/10 text-white ring-1 ring-[#d4af37]/50'
-                        : 'border-white/10 bg-white/[0.02] text-white/70 hover:border-white/20'
+                        ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--text)] ring-1 ring-[var(--accent)]/50'
+                        : 'border-[var(--border)] bg-[var(--bg-alt)] text-[var(--text-muted)] hover:border-[var(--accent)]/40 hover:text-[var(--text)]'
                     }`}
                   >
-                    <div className="font-semibold text-xs text-white">Tin nhắn SMS</div>
-                    <div className="text-[11px] text-white/60 font-mono mt-1">
+                    <div className="font-semibold text-xs text-[var(--text)]">Tin nhắn SMS</div>
+                    <div className="text-[11px] text-[var(--text-muted)] font-mono mt-1">
                       {maskIdentifier(contactPhone)}
                     </div>
                   </button>
@@ -335,23 +332,23 @@ export const SecurityVerificationModal: React.FC<SecurityVerificationModalProps>
                     onClick={() => setSelectedChannel('email')}
                     className={`p-3.5 rounded-xl border text-left transition-all ${
                       selectedChannel === 'email'
-                        ? 'border-[#d4af37] bg-[#d4af37]/10 text-white ring-1 ring-[#d4af37]/50'
-                        : 'border-white/10 bg-white/[0.02] text-white/70 hover:border-white/20'
+                        ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--text)] ring-1 ring-[var(--accent)]/50'
+                        : 'border-[var(--border)] bg-[var(--bg-alt)] text-[var(--text-muted)] hover:border-[var(--accent)]/40 hover:text-[var(--text)]'
                     }`}
                   >
-                    <div className="font-semibold text-xs text-white">Hộp thư Email</div>
-                    <div className="text-[11px] text-white/60 font-mono mt-1 truncate">
+                    <div className="font-semibold text-xs text-[var(--text)]">Hộp thư Email</div>
+                    <div className="text-[11px] text-[var(--text-muted)] font-mono mt-1 truncate">
                       {maskIdentifier(contactEmail)}
                     </div>
                   </button>
                 </div>
               </div>
 
-              <div className="pt-3 flex justify-end gap-3">
+              <div className="pt-3 flex justify-end gap-3 border-t border-[var(--border)]">
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-5 py-3 rounded-xl border border-white/15 text-white/70 hover:text-white text-xs font-semibold uppercase tracking-wider transition-all"
+                  className="px-5 py-3 rounded-xl border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)] text-xs font-semibold uppercase tracking-wider transition-all"
                 >
                   Hủy Bỏ
                 </button>
@@ -360,7 +357,7 @@ export const SecurityVerificationModal: React.FC<SecurityVerificationModalProps>
                   data-testid="send-otp-btn"
                   disabled={isLoading || cooldown > 0 || isLocked}
                   onClick={handleSendOtp}
-                  className="px-6 py-3 rounded-xl bg-[#d4af37] hover:bg-[#e5c158] text-black font-semibold text-xs tracking-wider uppercase transition-all shadow-lg shadow-[#d4af37]/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-6 py-3 rounded-xl bg-[var(--accent)] hover:bg-[#9E7B15] text-[var(--accent-contrast)] font-semibold text-xs tracking-wider uppercase transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isLoading ? 'Đang gửi mã...' : 'Gửi Mã Xác Minh OTP'}
                 </button>
@@ -379,13 +376,13 @@ export const SecurityVerificationModal: React.FC<SecurityVerificationModalProps>
                 />
               ) : (
                 <div className="space-y-1.5">
-                  <p className="text-white/80 text-xs font-light">
+                  <p className="text-[var(--text-muted)] text-xs font-light">
                     Mã xác minh bảo mật gồm 6 chữ số đã được gửi tới{' '}
-                    <strong className="text-white font-mono">{maskIdentifier(getTargetIdentifier())}</strong>.
+                    <strong className="text-[var(--text)] font-mono">{maskIdentifier(getTargetIdentifier())}</strong>.
                   </p>
-                  <p className="text-[11px] text-white/50">
+                  <p className="text-[11px] text-[var(--text-muted)]">
                     Thời gian hiệu lực còn lại:{' '}
-                    <span className="font-mono font-medium text-[#d4af37]">
+                    <span className="font-mono font-medium text-[var(--accent)]">
                       {Math.floor(ttlSeconds / 60)}:{(ttlSeconds % 60).toString().padStart(2, '0')}
                     </span>
                   </p>
@@ -393,7 +390,7 @@ export const SecurityVerificationModal: React.FC<SecurityVerificationModalProps>
               )}
 
               {errorMessage && !isLocked && (
-                <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-200 text-xs">
+                <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-200 text-xs">
                   {errorMessage}
                 </div>
               )}
@@ -408,16 +405,16 @@ export const SecurityVerificationModal: React.FC<SecurityVerificationModalProps>
               </div>
 
               {!isLocked && (
-                <div className="flex items-center justify-between text-xs text-white/60 px-2">
+                <div className="flex items-center justify-between text-xs text-[var(--text-muted)] px-2">
                   <span>
                     Số lần thử còn lại:{' '}
-                    <strong className="text-white font-mono">{remainingAttempts}</strong>/5
+                    <strong className="text-[var(--text)] font-mono">{remainingAttempts}</strong>/5
                   </span>
                   <button
                     type="button"
                     disabled={cooldown > 0 || isLoading}
                     onClick={handleSendOtp}
-                    className="text-[#d4af37] hover:underline disabled:opacity-40 disabled:no-underline font-medium inline-flex items-center gap-1"
+                    className="text-[var(--accent)] hover:underline disabled:opacity-40 disabled:no-underline font-medium inline-flex items-center gap-1"
                   >
                     <RotateCcw className="w-3 h-3" />
                     {cooldown > 0 ? `Gửi lại sau ${cooldown}s` : 'Gửi lại mã OTP'}
@@ -425,12 +422,12 @@ export const SecurityVerificationModal: React.FC<SecurityVerificationModalProps>
                 </div>
               )}
 
-              <div className="pt-4 flex items-center justify-between border-t border-white/10">
+              <div className="pt-4 flex items-center justify-between border-t border-[var(--border)]">
                 <button
                   type="button"
                   onClick={() => setPhase('CHALLENGE_INIT')}
                   disabled={isLoading}
-                  className="inline-flex items-center gap-1.5 text-xs text-white/60 hover:text-white"
+                  className="inline-flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text)]"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" /> Chọn kênh khác
                 </button>
@@ -440,7 +437,7 @@ export const SecurityVerificationModal: React.FC<SecurityVerificationModalProps>
                     type="button"
                     onClick={onClose}
                     disabled={isLoading}
-                    className="px-5 py-2.5 rounded-xl border border-white/15 text-white/70 hover:text-white text-xs font-semibold uppercase tracking-wider transition-all"
+                    className="px-5 py-2.5 rounded-xl border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)] text-xs font-semibold uppercase tracking-wider transition-all"
                   >
                     Hủy
                   </button>
@@ -448,7 +445,7 @@ export const SecurityVerificationModal: React.FC<SecurityVerificationModalProps>
                     type="submit"
                     data-testid="verify-otp-btn"
                     disabled={isLoading || isLocked || otpValue.length !== 6}
-                    className="px-6 py-2.5 rounded-xl bg-[#d4af37] hover:bg-[#e5c158] text-black font-semibold text-xs tracking-wider uppercase transition-all shadow-md shadow-[#d4af37]/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-6 py-2.5 rounded-xl bg-[var(--accent)] hover:bg-[#9E7B15] text-[var(--accent-contrast)] font-semibold text-xs tracking-wider uppercase transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isLoading ? 'Đang xác minh...' : 'Xác Minh OTP'}
                   </button>
@@ -493,18 +490,18 @@ export const SecurityVerificationModal: React.FC<SecurityVerificationModalProps>
                     title="Cảnh Báo Xóa Tài Khoản Vĩnh Viễn"
                     message="Theo Luật Bảo vệ Dữ liệu Cá nhân và quy định kế toán, yêu cầu xóa tài khoản sẽ được chuyển đến Ban Pháp chế xử lý. Mọi quyền lợi thành viên Patron sẽ bị vô hiệu hóa."
                   />
-                  <div className="pt-2 flex justify-end gap-3">
+                  <div className="pt-2 flex justify-end gap-3 border-t border-[var(--border)]">
                     <button
                       type="button"
                       onClick={onClose}
-                      className="px-5 py-3 rounded-xl border border-white/15 text-white/70 hover:text-white text-xs font-semibold uppercase tracking-wider transition-all"
+                      className="px-5 py-3 rounded-xl border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)] text-xs font-semibold uppercase tracking-wider transition-all"
                     >
                       Hủy Bỏ
                     </button>
                     <button
                       type="button"
                       onClick={() => handleActionSuccess('Yêu cầu xóa tài khoản đã được tiếp nhận và xử lý.')}
-                      className="px-6 py-3 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs tracking-wider uppercase transition-all"
+                      className="px-6 py-3 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs tracking-wider uppercase transition-all shadow-md"
                     >
                       Xác Nhận Gửi Yêu Cầu Xóa
                     </button>
@@ -534,8 +531,8 @@ export const SecurityVerificationModal: React.FC<SecurityVerificationModalProps>
                 message={successMessage || 'Thao tác thay đổi thông tin nhạy cảm đã được thực hiện thành công và ghi nhận vào nhật ký kiểm toán an ninh.'}
               />
 
-              <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/10 text-white/60 text-xs text-left leading-relaxed">
-                <span className="font-semibold text-white block mb-1">Biện pháp bảo vệ bổ sung:</span>
+              <div className="p-3.5 rounded-xl bg-[var(--bg-alt)] border border-[var(--border)] text-[var(--text-muted)] text-xs text-left leading-relaxed">
+                <span className="font-semibold text-[var(--text)] block mb-1">Biện pháp bảo vệ bổ sung:</span>
                 Tất cả phiên đăng nhập cũ trên các thiết bị khác đã được vô hiệu hóa. Vui lòng đăng nhập lại nếu phiên hiện tại yêu cầu xác thực mới.
               </div>
 
@@ -543,7 +540,7 @@ export const SecurityVerificationModal: React.FC<SecurityVerificationModalProps>
                 <button
                   type="button"
                   onClick={onClose}
-                  className="w-full py-3 rounded-xl bg-[#d4af37] hover:bg-[#e5c158] text-black font-semibold text-xs tracking-wider uppercase transition-all shadow-md shadow-[#d4af37]/20"
+                  className="w-full py-3 rounded-xl bg-[var(--accent)] hover:bg-[#9E7B15] text-[var(--accent-contrast)] font-semibold text-xs tracking-wider uppercase transition-all shadow-md"
                 >
                   Hoàn Tất & Đóng
                 </button>

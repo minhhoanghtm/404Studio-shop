@@ -10,12 +10,12 @@ export const RelatedProducts: React.FC<RelatedProductsProps> = ({ products }) =>
   if (products.length === 0) return null;
 
   return (
-    <div className="pt-24 border-t border-white/10 space-y-10">
+    <div className="pt-24 border-t border-[var(--border)] space-y-10">
       <div className="text-center max-w-xl mx-auto space-y-2">
-        <span className="text-[10px] font-sans font-semibold tracking-widest text-champagne uppercase block">
+        <span className="text-[10px] font-sans font-semibold tracking-widest text-[var(--accent)] uppercase block">
           Cảm hứng đồng điệu
         </span>
-        <h3 className="font-display text-2xl sm:text-3xl text-white">
+        <h3 className="font-display text-2xl sm:text-3xl text-[var(--text)]">
           Sản phẩm cùng phong cách thiết kế
         </h3>
       </div>

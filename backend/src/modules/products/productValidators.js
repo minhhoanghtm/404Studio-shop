@@ -7,6 +7,11 @@ const productVariantInputSchema = z.object({
   size: z.string().optional(),
   stock: z.number().int().nonnegative().optional(),
   image_url: z.string().optional(),
+  color_code: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+  sku: z.string().min(3).max(80).optional(),
+  price: z.number().nonnegative().nullable().optional(),
+  position: z.number().int().nonnegative().optional(),
+  is_active: z.boolean().optional(),
 });
 
 // Product schemas
@@ -51,6 +56,37 @@ export const updateProductSchema = z.object({
     weight: z.number().nonnegative().optional(),
     variants: z.array(productVariantInputSchema).optional(),
   }),
+});
+
+const adminFormBody = z.object({
+  name: z.string().min(1),
+  displayProduct: z.array(z.any()).optional(),
+  category_id: zodObjectId,
+  description: z.string().optional(),
+  old_price: z.number().nonnegative(),
+  new_price: z.number().nonnegative(),
+  stock: z.number().int().nonnegative().optional(),
+  sold: z.number().int().nonnegative().optional(),
+  rating: z.number().min(0).max(5).optional(),
+  is_active: z.boolean().optional(),
+  is_featured: z.boolean().optional(),
+  weight: z.number().nonnegative().optional(),
+  variants: z.array(productVariantInputSchema).optional(),
+}).superRefine((data, context) => {
+  if (data.new_price > data.old_price) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ["new_price"], message: "Giá khuyến mãi không được lớn hơn giá niêm yết" });
+  }
+  for (const [index, variant] of (data.variants || []).entries()) {
+    if (variant.image_url && !/^https:\/\//i.test(variant.image_url)) {
+      context.addIssue({ code: z.ZodIssueCode.custom, path: ["variants", index, "image_url"], message: "Ảnh biến thể phải là URL HTTPS" });
+    }
+  }
+});
+
+export const createAdminFormProductSchema = z.object({ body: adminFormBody });
+export const updateAdminFormProductSchema = z.object({
+  params: z.object({ id: zodObjectId }),
+  body: adminFormBody,
 });
 
 export const searchProductSchema = z.object({

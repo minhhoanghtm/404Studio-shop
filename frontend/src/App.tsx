@@ -14,6 +14,7 @@ import { AiAssistantModal } from './shared/components/AiAssistantModal';
 import { ConsentProvider } from './shared/consent';
 import { useCartStore } from './shared/stores/useCartStore';
 import { useAuthStore } from './shared/stores/useAuthStore';
+import { useToastStore } from './shared/stores/useToastStore';
 import { ProtectedRoute } from './shared/components/ProtectedRoute';
 import { setupMultiTabAuthSync } from './shared/utils/authSync';
 import { Sparkles } from 'lucide-react';
@@ -106,6 +107,10 @@ const AdminCampaignDetailPage = lazy(() => import('./pages/AdminCampaigns').then
 const AdminPageBuilderListPage = lazy(() => import('./pages/AdminPageBuilder').then(m => ({ default: m.AdminPageBuilderListPage })));
 const AdminPageBuilderEditorPage = lazy(() => import('./pages/AdminPageBuilder').then(m => ({ default: m.AdminPageBuilderEditorPage })));
 const AdminPageBuilderPreviewPage = lazy(() => import('./pages/AdminPageBuilder').then(m => ({ default: m.AdminPageBuilderPreviewPage })));
+
+// Admin Roles & RBAC Management (Phase 15)
+const AdminRolesPage = lazy(() => import('./pages/AdminRoles/AdminRolesPage').then(m => ({ default: m.AdminRolesPage })));
+const ForbiddenPage = lazy(() => import('./pages/Forbidden/ForbiddenPage').then(m => ({ default: m.ForbiddenPage })));
 
 // High-Fashion Loading Fallback
 const PageLoadingFallback: React.FC = () => (
@@ -217,17 +222,37 @@ const AppInitializer: React.FC<{ children: React.ReactNode }> = ({ children }) =
   useEffect(() => {
     void hydrateSession();
 
-    const cleanup = setupMultiTabAuthSync(() => {
-      useAuthStore.getState().logout();
-      if (typeof window !== 'undefined' && window.location) {
-        const path = window.location.pathname;
-        if (path.startsWith('/admin') || path.startsWith('/account') || path.startsWith('/orders')) {
-          window.location.href = `/login?redirect=${encodeURIComponent(path + window.location.search)}`;
-        }
-      }
-    });
+    // Global 403 Forbidden Toast Listener
+    const handleForbidden = (e: any) => {
+      useToastStore
+        .getState()
+        .addToast(
+          e.detail?.message || 'Bạn không có đủ quyền thực hiện hành động này',
+          'error'
+        );
+    };
+    window.addEventListener('auth:forbidden', handleForbidden);
 
-    return cleanup;
+    const cleanup = setupMultiTabAuthSync(
+      () => {
+        useAuthStore.getState().logout();
+        if (typeof window !== 'undefined' && window.location) {
+          const path = window.location.pathname;
+          if (path.startsWith('/admin') || path.startsWith('/account') || path.startsWith('/orders')) {
+            window.location.href = `/login?redirect=${encodeURIComponent(path + window.location.search)}`;
+          }
+        }
+      },
+      () => {
+        // Multi-tab real-time permission update
+        void useAuthStore.getState().fetchPermissions();
+      }
+    );
+
+    return () => {
+      window.removeEventListener('auth:forbidden', handleForbidden);
+      cleanup();
+    };
   }, [hydrateSession]);
 
   return <>{children}</>;
@@ -311,6 +336,9 @@ export function App() {
               <Route path="account/loyalty" element={<ProtectedRoute><AccountLoyaltyPage /></ProtectedRoute>} />
               <Route path="loyalty" element={<ProtectedRoute><AccountLoyaltyPage /></ProtectedRoute>} />
 
+              {/* 403 Forbidden Access */}
+              <Route path="403" element={<ForbiddenPage />} />
+
               {/* 404 Catch-All */}
               <Route path="404" element={<NotFoundPage />} />
               <Route path="*" element={<NotFoundPage />} />
@@ -325,6 +353,14 @@ export function App() {
                 </ProtectedRoute>
               }
             >
+              <Route
+                path="roles"
+                element={
+                  <Suspense fallback={<PageLoadingFallback />}>
+                    <AdminRolesPage />
+                  </Suspense>
+                }
+              />
               <Route
                 index
                 element={

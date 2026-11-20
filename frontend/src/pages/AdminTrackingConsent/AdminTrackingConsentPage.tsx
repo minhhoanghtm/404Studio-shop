@@ -50,6 +50,7 @@ export const AdminTrackingConsentPage: React.FC = () => {
         setDataRequests(Array.isArray(requestsRes.data) ? requestsRes.data : []);
       }
     } catch (err: any) {
+      if (err?.status === 401 || err?.status === 403 || err?.message?.toLowerCase().includes('refresh')) return;
       setError(err?.message || 'Không thể tải thông tin tuân thủ quyền riêng tư');
     } finally {
       setLoading(false);
