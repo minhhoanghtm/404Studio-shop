@@ -8,6 +8,9 @@ import Category from "../../categories/category.model.js";
 import { Order, OrderItem } from "../../orders/order.model.js";
 import Voucher from "../../vouchers/voucher.model.js";
 import Review from "../../reviews/review.model.js";
+import favoriteService from "../../favorites/favorite.service.js";
+import voucherService from "../../vouchers/voucher.service.js";
+import User from "../../users/user.model.js";
 import pricingService from "../../campaigns/pricing.service.js";
 import inventoryReservationService from "../../inventory/inventoryReservation.service.js";
 import { toNoAccent } from "../../../common/utils/removeAccents.js";
@@ -401,6 +404,7 @@ export class AiToolRegistry {
 
     try {
       switch (toolName) {
+        case "searchProducts":
         case "search_products": {
           const parsed = searchProductsArgsSchema.safeParse(rawArgs || {});
           if (!parsed.success) {
@@ -483,6 +487,7 @@ export class AiToolRegistry {
           }));
         }
 
+        case "getProductDetails":
         case "get_product_detail":
         case "get_product_details": {
           const normalizedInput = {
@@ -576,6 +581,8 @@ export class AiToolRegistry {
         }
 
         
+        case "prepareCheckout":
+        case "prepare_checkout":
         case "start_checkout":
         case "buy_now": {
           const parsed = startCheckoutArgsSchema.safeParse(rawArgs || {});
@@ -836,6 +843,7 @@ export class AiToolRegistry {
           };
         }
 
+        case "addToCart":
         case "add_to_cart": {
           // 1. Validate schema
           const parsed = addToCartArgsSchema.safeParse(rawArgs || {});
@@ -1151,6 +1159,7 @@ export class AiToolRegistry {
           };
         }
 
+        case "getMyOrders":
         case "get_my_orders": {
           const parsed = getMyOrdersArgsSchema.safeParse(rawArgs || {});
           if (!parsed.success) {
@@ -1271,6 +1280,8 @@ export class AiToolRegistry {
           };
         }
 
+        case "searchPublishedPolicies":
+        case "search_published_policies":
         case "search_knowledge_base": {
           const parsed = searchKnowledgeBaseArgsSchema.safeParse(rawArgs || {});
           if (!parsed.success) {
@@ -1300,6 +1311,337 @@ export class AiToolRegistry {
               score: c.score,
             })),
             sources: retrieval.sources,
+          };
+        }
+
+        case "getProductVariants":
+        case "get_product_variants": {
+          const prodId = rawArgs.product_id || rawArgs.productId || rawArgs.slug;
+          if (!prodId) {
+            return { success: false, code: "MISSING_PRODUCT_ID", message: "Vui lòng cung cấp ID sản phẩm" };
+          }
+          let product = null;
+          if (mongoose.Types.ObjectId.isValid(prodId)) {
+            product = await Product.findById(prodId).lean();
+          }
+          if (!product) {
+            product = await Product.findOne({ slug: String(prodId) }).lean();
+          }
+          if (!product) {
+            return { success: false, code: "NOT_FOUND", message: "Không tìm thấy sản phẩm tương ứng" };
+          }
+          const variants = await ProductVariant.find({ product_id: product._id }).lean();
+          this.metrics.successfulCalls++;
+          return variants.map((v) => ({
+            variant_id: String(v._id),
+            sku: v.sku,
+            color: v.color,
+            size: v.size,
+            stock: Number(v.stock || 0),
+            price: Number(v.price || product.new_price || 0),
+            image_url: v.image_url || product.displayProduct?.[0] || null,
+          }));
+        }
+
+        case "checkStock":
+        case "check_stock": {
+          const prodId = rawArgs.product_id || rawArgs.productId;
+          const variantId = rawArgs.variant_id || rawArgs.variantId;
+          const requestedQty = Math.max(1, Number(rawArgs.quantity || 1));
+          if (!prodId) {
+            return { success: false, code: "MISSING_PRODUCT_ID", message: "Vui lòng cung cấp ID sản phẩm cần kiểm tra tồn kho." };
+          }
+          let product = null;
+          if (mongoose.Types.ObjectId.isValid(prodId)) {
+            product = await Product.findById(prodId).lean();
+          }
+          if (!product) {
+            product = await Product.findOne({ slug: String(prodId) }).lean();
+          }
+          if (!product) {
+            return { success: false, code: "NOT_FOUND", message: "Không tìm thấy sản phẩm trong hệ thống." };
+          }
+          let availableStock = Number(product.stock || 0);
+          if (variantId && mongoose.Types.ObjectId.isValid(variantId)) {
+            const variant = await ProductVariant.findById(variantId).lean();
+            if (variant) {
+              availableStock = Number(variant.stock || 0);
+            }
+          }
+          this.metrics.successfulCalls++;
+          return {
+            success: true,
+            available: availableStock >= requestedQty,
+            stock: availableStock,
+            requested: requestedQty,
+            productId: String(product._id),
+            productName: product.name,
+          };
+        }
+
+        case "updateCart":
+        case "update_cart": {
+          if (!userId) {
+            return { success: false, code: "AUTH_REQUIRED", message: "Quý khách cần đăng nhập để cập nhật giỏ hàng." };
+          }
+          if (userRole === "admin") {
+            return { success: false, code: "FORBIDDEN_ROLE", message: "Quản trị viên không được phép sửa giỏ hàng khách hàng." };
+          }
+          const itemId = rawArgs.item_id || rawArgs.itemId;
+          const quantity = Number(rawArgs.quantity);
+          if (!itemId || isNaN(quantity)) {
+            return { success: false, code: "INVALID_ARGS", message: "Vui lòng cung cấp mã món hàng (itemId) và số lượng hợp lệ." };
+          }
+          const updated = await cartService.updateCartItem(itemId, { quantity });
+          this.metrics.successfulCalls++;
+          return {
+            success: true,
+            message: "Đã cập nhật số lượng món hàng thành công!",
+            cart: updated,
+          };
+        }
+
+        case "removeFromCart":
+        case "remove_from_cart": {
+          if (!userId) {
+            return { success: false, code: "AUTH_REQUIRED", message: "Quý khách cần đăng nhập để xóa sản phẩm khỏi giỏ hàng." };
+          }
+          if (userRole === "admin") {
+            return { success: false, code: "FORBIDDEN_ROLE", message: "Quản trị viên không được phép sửa giỏ hàng khách hàng." };
+          }
+          const itemId = rawArgs.item_id || rawArgs.itemId;
+          if (!itemId) {
+            return { success: false, code: "INVALID_ARGS", message: "Vui lòng cung cấp mã món hàng (itemId) cần xóa." };
+          }
+          const removed = await cartService.deleteCartItem(itemId);
+          this.metrics.successfulCalls++;
+          return {
+            success: true,
+            message: "Đã xóa sản phẩm khỏi giỏ hàng thành công!",
+            cart: removed,
+          };
+        }
+
+        case "getWishlist":
+        case "get_wishlist": {
+          if (!userId) {
+            return { success: false, code: "AUTH_REQUIRED", message: "Quý khách cần đăng nhập để xem danh sách yêu thích." };
+          }
+          const favs = await favoriteService.getFavorites(userId);
+          this.metrics.successfulCalls++;
+          return {
+            success: true,
+            favorites: favs,
+          };
+        }
+
+        case "addToWishlist":
+        case "add_to_wishlist": {
+          if (!userId) {
+            return { success: false, code: "AUTH_REQUIRED", message: "Quý khách cần đăng nhập để thêm vào danh sách yêu thích." };
+          }
+          const prodId = rawArgs.product_id || rawArgs.productId;
+          if (!prodId) {
+            return { success: false, code: "INVALID_ARGS", message: "Vui lòng cung cấp mã sản phẩm cần thêm." };
+          }
+          const resFav = await favoriteService.addFavorite(userId, prodId);
+          this.metrics.successfulCalls++;
+          return {
+            success: true,
+            message: "Đã thêm sản phẩm vào danh sách yêu thích thành công!",
+            data: resFav,
+          };
+        }
+
+        case "validateVoucher":
+        case "validate_voucher": {
+          const code = String(rawArgs.code || "").trim().toUpperCase();
+          if (!code) {
+            return { success: false, code: "INVALID_ARGS", message: "Vui lòng cung cấp mã giảm giá cần kiểm tra." };
+          }
+          let subtotal = Number(rawArgs.subtotal || 0);
+          if (subtotal <= 0 && userId) {
+            try {
+              const currentCart = await cartService.getCart(userId);
+              subtotal = Number(currentCart?.total_amount || 0);
+            } catch {}
+          }
+          const valRes = await voucherService.validateVoucher(userId, code, subtotal, []);
+          this.metrics.successfulCalls++;
+          return {
+            success: Boolean(valRes.isValid),
+            valid: Boolean(valRes.isValid),
+            code,
+            discountAmount: valRes.discountAmount || 0,
+            message: valRes.message || (valRes.isValid ? "Mã giảm giá hợp lệ!" : "Mã giảm giá không áp dụng được."),
+          };
+        }
+
+        case "applyVoucher":
+        case "apply_voucher": {
+          if (!userId) {
+            return { success: false, code: "AUTH_REQUIRED", message: "Quý khách cần đăng nhập để áp dụng mã giảm giá." };
+          }
+          const code = String(rawArgs.code || "").trim().toUpperCase();
+          if (!code) {
+            return { success: false, code: "INVALID_ARGS", message: "Vui lòng cung cấp mã voucher cần áp dụng." };
+          }
+          const applyRes = await voucherService.applyVoucherNoUsage(userId, code);
+          this.metrics.successfulCalls++;
+          return {
+            success: true,
+            message: `Đã áp dụng mã giảm giá ${code} thành công!`,
+            data: applyRes,
+          };
+        }
+
+        case "confirmOrder":
+        case "confirm_order": {
+          if (!userId) {
+            return { success: false, code: "AUTH_REQUIRED", message: "Quý khách cần đăng nhập để xác nhận đặt hàng." };
+          }
+          if (userRole === "admin") {
+            return { success: false, code: "FORBIDDEN_ROLE", message: "Quản trị viên không được phép tạo đơn hàng mua sắm." };
+          }
+          const isConfirmed = Boolean(authContext?.isConfirmedByGate === true || authContext?.confirmed === true);
+          if (!isConfirmed) {
+            return {
+              success: false,
+              requiresConfirmation: true,
+              code: "CONFIRMATION_REQUIRED",
+              message: "Quý khách vui lòng xác nhận để hoàn tất đặt hàng.",
+            };
+          }
+          const orderData = {
+            payment_method: rawArgs.payment_method || "cod",
+            shipping_address: rawArgs.shipping_address,
+            voucher_code: rawArgs.voucher_code,
+          };
+          const { createOrder } = await import("../../orders/commands/createOrder.command.js");
+          const order = await createOrder(userId, orderData);
+          this.metrics.confirmedActionsExecuted++;
+          this.metrics.successfulCalls++;
+          return {
+            success: true,
+            status: "CONFIRMED",
+            orderId: String(order._id),
+            orderCode: order.order_code || String(order._id),
+            totalAmount: order.total_price || order.total_amount,
+            message: "Đơn hàng của quý khách đã được tạo thành công!",
+          };
+        }
+
+        case "getLoyaltyStatus":
+        case "get_loyalty_status": {
+          if (!userId) {
+            return { success: false, code: "AUTH_REQUIRED", message: "Quý khách cần đăng nhập để xem thông tin tích điểm thành viên." };
+          }
+          const completedOrders = await Order.find({
+            userId,
+            status: "delivered",
+            payment_status: "paid",
+          }).lean();
+
+          const totalSpend = completedOrders.reduce((sum, o) => sum + Number(o.total_price || 0), 0);
+          const qualifyingPoints = Math.floor(totalSpend / 10000);
+
+          const tiers = [
+            { min: 0, name: "Đồng I", tier: "BRONZE_I" },
+            { min: 100, name: "Đồng II", tier: "BRONZE_II" },
+            { min: 250, name: "Đồng III", tier: "BRONZE_III" },
+            { min: 500, name: "Bạc I", tier: "SILVER_I" },
+            { min: 900, name: "Bạc II", tier: "SILVER_II" },
+            { min: 1400, name: "Bạc III", tier: "SILVER_III" },
+            { min: 2000, name: "Vàng I", tier: "GOLD_I" },
+            { min: 3000, name: "Vàng II", tier: "GOLD_II" },
+            { min: 4500, name: "Vàng III", tier: "GOLD_III" },
+            { min: 6500, name: "Kim Cương I", tier: "DIAMOND_I" },
+            { min: 9000, name: "Kim Cương II", tier: "DIAMOND_II" },
+            { min: 12000, name: "Kim Cương III", tier: "DIAMOND_III" },
+          ];
+
+          let currentTier = tiers[0];
+          let nextTier = tiers[1];
+          for (let i = 0; i < tiers.length; i++) {
+            if (qualifyingPoints >= tiers[i].min) {
+              currentTier = tiers[i];
+              nextTier = tiers[i + 1] || null;
+            }
+          }
+
+          const pointsNeeded = nextTier ? Math.max(0, nextTier.min - qualifyingPoints) : 0;
+          this.metrics.successfulCalls++;
+          return {
+            success: true,
+            qualifyingPoints,
+            tier: currentTier.tier,
+            tierName: currentTier.name,
+            nextTier: nextTier ? nextTier.name : "Hạng tối đa",
+            pointsNeeded,
+            benefits: [
+              "Tích lũy 1 điểm cho mỗi 10.000đ mua sắm",
+              "Ưu đãi sinh nhật đặc quyền",
+              "Tham gia trước các bộ sưu tập giới hạn Atelier",
+            ],
+          };
+        }
+
+        case "getMyProfile":
+        case "get_my_profile": {
+          if (!userId) {
+            return { success: false, code: "AUTH_REQUIRED", message: "Quý khách cần đăng nhập để xem thông tin hồ sơ." };
+          }
+          const user = await User.findById(userId).select("-passWord").lean();
+          if (!user) {
+            return { success: false, code: "USER_NOT_FOUND", message: "Không tìm thấy hồ sơ người dùng." };
+          }
+          this.metrics.successfulCalls++;
+          return {
+            success: true,
+            fullName: user.fullName,
+            email: user.email,
+            phone: user.phone,
+            role: user.role,
+            addresses: user.addresses || [],
+          };
+        }
+
+        case "updateAllowedProfileFields":
+        case "update_allowed_profile_fields": {
+          if (!userId) {
+            return { success: false, code: "AUTH_REQUIRED", message: "Quý khách cần đăng nhập để cập nhật hồ sơ." };
+          }
+          const allowedUpdates = {};
+          if (rawArgs.fullName && typeof rawArgs.fullName === "string") {
+            allowedUpdates.fullName = rawArgs.fullName.trim();
+          }
+          if (rawArgs.phone && typeof rawArgs.phone === "string") {
+            allowedUpdates.phone = rawArgs.phone.trim();
+          }
+          if (rawArgs.avatar_url && typeof rawArgs.avatar_url === "string") {
+            allowedUpdates.avatar_url = rawArgs.avatar_url.trim();
+          }
+          if (Array.isArray(rawArgs.addresses)) {
+            allowedUpdates.addresses = rawArgs.addresses;
+          }
+
+          if (Object.keys(allowedUpdates).length === 0) {
+            return { success: false, code: "NO_VALID_FIELDS", message: "Không có trường thông tin hợp lệ nào được phép cập nhật." };
+          }
+
+          const updatedUser = await User.findByIdAndUpdate(userId, { $set: allowedUpdates }, { new: true })
+            .select("-passWord")
+            .lean();
+
+          this.metrics.successfulCalls++;
+          return {
+            success: true,
+            message: "Cập nhật thông tin hồ sơ thành công!",
+            user: {
+              fullName: updatedUser.fullName,
+              email: updatedUser.email,
+              phone: updatedUser.phone,
+            },
           };
         }
 

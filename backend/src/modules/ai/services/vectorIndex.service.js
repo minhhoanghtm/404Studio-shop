@@ -5,6 +5,7 @@ import Category from "../../categories/category.model.js";
 import Page from "../../pages/page.model.js";
 import PageSection from "../../pageSections/pageSection.model.js";
 import Voucher from "../../vouchers/voucher.model.js";
+import Campaign from "../../campaigns/campaign.model.js";
 import WebsiteSettings from "../../websiteSettings/websiteSettings.model.js";
 import pricingService from "../../campaigns/pricing.service.js";
 import { toNoAccent } from "../../../common/utils/removeAccents.js";
@@ -303,6 +304,64 @@ export class VectorIndexService {
   }
 
   /**
+   * Build structured document representation for Category
+   */
+  buildCategoryDocument(category) {
+    const catId = String(category._id);
+    const content = `Danh mục thời trang: ${category.name}. Khám phá các thiết kế thời trang cao cấp thuộc danh mục ${category.name} tại Atelier Vérité.`;
+    return {
+      sourceId: catId,
+      sourceType: "category",
+      title: `Danh mục ${category.name}`,
+      content,
+      contentNoAccents: toNoAccent(content).toLowerCase(),
+      isActive: true,
+      permissionScope: "public",
+      tenantId: "default",
+      metadata: {
+        categoryId: catId,
+        name: category.name,
+        slug: category.slug,
+        image: category.image || "",
+      },
+    };
+  }
+
+  /**
+   * Build structured document representation for Promotional Campaign
+   */
+  buildCampaignDocument(campaign) {
+    const campId = String(campaign._id);
+    const desc = stripHtml(campaign.description || "");
+    const content = [
+      `Chiến dịch khuyến mãi: ${campaign.name}`,
+      `Loại chiến dịch: ${campaign.type || "Chương trình ưu đãi"}`,
+      desc ? `Mô tả: ${desc}` : "",
+      campaign.endAt ? `Thời hạn áp dụng đến: ${new Date(campaign.endAt).toLocaleDateString("vi-VN")}` : "",
+    ].filter(Boolean).join(". ");
+
+    const isActive = campaign.status === "ACTIVE" && !campaign.isDeleted;
+
+    return {
+      sourceId: campId,
+      sourceType: "campaign",
+      title: campaign.name,
+      content,
+      contentNoAccents: toNoAccent(content).toLowerCase(),
+      isActive,
+      permissionScope: isActive ? "public" : "admin",
+      tenantId: "default",
+      metadata: {
+        campaignId: campId,
+        name: campaign.name,
+        slug: campaign.slug,
+        type: campaign.type,
+        status: campaign.status,
+      },
+    };
+  }
+
+  /**
    * Upsert a single document into Vector Storage, avoiding re-embedding if contentHash is unchanged
    */
   async upsertDocument(doc, options = {}) {
@@ -547,7 +606,7 @@ export class VectorIndexService {
    * Full or selective synchronization of business database into Vector Storage
    */
   async syncAll({
-    types = ["product", "page", "voucher", "settings"],
+    types = ["product", "page", "voucher", "settings", "category", "campaign"],
     force = false,
     batchSize = 25,
     allowLocalFallback = false,
@@ -660,6 +719,30 @@ export class VectorIndexService {
           docsToSync.push(this.buildWebsiteSettingsDocument(settings));
         }
         activeIdsByType.set("settings", settingsSourceIds);
+      }
+
+      // 5. Collect Categories
+      if (types.includes("category")) {
+        const categories = await Category.find({}).lean();
+        const catSourceIds = new Set();
+        for (const c of categories) {
+          const cid = String(c._id);
+          catSourceIds.add(cid);
+          docsToSync.push(this.buildCategoryDocument(c));
+        }
+        activeIdsByType.set("category", catSourceIds);
+      }
+
+      // 6. Collect Promotional Campaigns
+      if (types.includes("campaign")) {
+        const campaigns = await Campaign.find({ isDeleted: { $ne: true } }).lean();
+        const campSourceIds = new Set();
+        for (const cmp of campaigns) {
+          const cid = String(cmp._id);
+          campSourceIds.add(cid);
+          docsToSync.push(this.buildCampaignDocument(cmp));
+        }
+        activeIdsByType.set("campaign", campSourceIds);
       }
 
       this.syncState.progress.total = docsToSync.length;

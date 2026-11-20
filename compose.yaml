@@ -75,6 +75,35 @@ services:
       - atelier-network
     restart: unless-stopped
 
+  ai-service:
+    profiles: ["ai"]
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    container_name: atelier_ai_service
+    ports:
+      - "8081:8081"
+    environment:
+      AI_SERVICE_PORT: 8081
+      NODE_BACKEND_BASE_URL: http://backend:5000
+      AI_SERVICE_SHARED_SECRET: ${AI_SERVICE_SHARED_SECRET:-dev_shared_secret_key_minimum_32_characters_123456}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-openai/text-embedding-3-small}
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - atelier-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://127.0.0.1:8081/health/liveness || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
   mongo:
     image: mongo:7.0
     container_name: atelier_mongo

@@ -7,6 +7,7 @@ import ragService from "./services/rag.service.js";
 import aiToolRegistry from "./services/aiAgent.service.js";
 import aiChatService from "../communication/aiChat/aiChat.service.js";
 import { enqueueVectorSyncJob } from "./queues/vectorSync.queue.js";
+import { sendToSpringAi } from "./services/springAiProxy.service.js";
 
 export const semanticSearchController = async (req, res, next) => {
   try {
@@ -38,6 +39,18 @@ export const aiChatController = async (req, res, next) => {
       return successResponse(res, ragData, "Trả lời RAG thành công", 200);
     }
 
+    if (process.env.NODE_ENV !== "test" && (process.env.AI_ORCHESTRATOR === "spring" || process.env.AI_ORCHESTRATOR === "ai-service")) {
+      try {
+        const chatData = await sendToSpringAi(payload, { userId, role });
+        return successResponse(res, chatData, "AI Shopping Agent chat processed successfully", 200);
+      } catch (proxyError) {
+        if (proxyError.code === "SPRING_AI_UNAVAILABLE" || proxyError.code === "SPRING_AI_NOT_CONFIGURED") {
+          const chatData = await aiChatService.sendMessage(userId, payload, { role });
+          return successResponse(res, chatData, "AI chat message processed successfully (fallback)", 200);
+        }
+        throw proxyError;
+      }
+    }
     const chatData = await aiChatService.sendMessage(userId, payload, { role });
     return successResponse(res, chatData, "AI chat message processed successfully", 200);
   } catch (error) {

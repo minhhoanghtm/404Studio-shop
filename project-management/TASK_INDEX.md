@@ -28,6 +28,8 @@
 | **TASK-PROMOTIONAL-CAMPAIGNS** | Promotional Campaigns, Sale Popups & Smart Redirects | `COMPLETED` | CRITICAL | Senior Fullstack / Campaign & MarTech Specialist | [TASK-PROMOTIONAL-CAMPAIGNS.md](file:///d:/Project/404Studio/project-management/tasks/completed/TASK-PROMOTIONAL-CAMPAIGNS.md) |
 | **TASK-VISUAL-PAGE-BUILDER** | Admin Visual Page Builder & Dynamic Content Management | `COMPLETED` | CRITICAL | Principal Fullstack / Headless CMS Specialist | [TASK-VISUAL-PAGE-BUILDER.md](file:///d:/Project/404Studio/project-management/tasks/completed/TASK-VISUAL-PAGE-BUILDER.md) |
 | **TASK-FULL-WEBSITE-VIDEO-QA** | Autonomous Full Website QA, UI Video Recording & Business Flow Testing (MP4) | `COMPLETED` | CRITICAL | Principal QA Automation Architect & CI/CD Specialist | [TASK-FULL-WEBSITE-VIDEO-QA.md](file:///d:/Project/404Studio/project-management/tasks/completed/TASK-FULL-WEBSITE-VIDEO-QA.md) |
+| **TASK-ROOT-DEV-COMMAND** | One Command to Start Frontend & Backend from Project Root | `COMPLETED` | CRITICAL | Senior Fullstack Engineer & DevOps Specialist | [TASK-ROOT-DEV-COMMAND.md](file:///d:/Project/404Studio/project-management/tasks/completed/TASK-ROOT-DEV-COMMAND.md) |
+| **TASK-SPRING-AI-SHOPPING-AGENT** | Implement Vector AI Shopping Agent in Node.js / TypeScript based on Spring AI Concepts | `COMPLETED` | CRITICAL | Principal AI Engineer & Fullstack Architect | [TASK-SPRING-AI-SHOPPING-AGENT.md](file:///d:/Project/404Studio/project-management/tasks/completed/TASK-SPRING-AI-SHOPPING-AGENT.md) |
 
 ---
 

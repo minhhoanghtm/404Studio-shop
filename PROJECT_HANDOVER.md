@@ -29,6 +29,10 @@
 > **Promotional Campaigns, Sale Popups & Smart Redirects Delivery — 20/11/2026:** Delivered complete enterprise promotional campaign management and public sale popup system with smart redirects. Features Admin Campaign Suite (`/admin/campaigns`, `/admin/campaigns/new`, `/admin/campaigns/:id`, `/admin/campaigns/:id/edit`) supporting Flash Sale, Seasonal Campaigns, product quota allocation, priority sorting, and real-time sales analytics (`totalRevenue`, `totalItemsSold`, `totalOrders`, `totalQuota`, `totalRemainingQuota`). Implemented Smart Destination Selector resolving canonical destinations for Products (`/products/:slug`), Categories (`/products?category=:slug`), Collections (`/collections/:slug`), Lookbooks (`/lookbooks/:slug`), Vouchers (`/vouchers`), Sale Page (`/collections/sale`), and Custom URLs with CWE-937/CWE-79 defense blocking `javascript:`, `data:`, `file:`, `vbscript:`, and protocol-relative `//` URLs. Delivered Public Promotional Popup (`PromotionalPopup.tsx`) featuring Haute Couture styling, desktop/mobile responsive banner switching, live countdown ticker, frequency cap management (`sessionStorage`, `localStorage` daily expiry), and strict Cookie Consent priority (never overlaps consent banner; suppresses marketing telemetry prior to affirmative consent). Passed 100% quality gates: TypeScript strict (`npx tsc -b`, 0 errors), Oxlint (0 errors), Vitest (138/138 passed across 17 suites), Playwright cross-device E2E (15/15 passed across Desktop, Tablet, and Mobile), Vite production build (3.58s), and Docker Compose verification. See [Campaign Popup UI Test Report](project-management/test-reports/frontend/CAMPAIGN_POPUP_UI_TEST.md), [Campaign API Test Report](project-management/test-reports/integration/CAMPAIGN_API_TEST.md), [Campaign Security Test Report](project-management/test-reports/security/CAMPAIGN_SECURITY_TEST.md), and [Backend Gaps Audit](docs/api/CAMPAIGN_BACKEND_GAPS.md).
 >
 > **Autonomous Full Website QA, UI Video Recording & Business Flow Testing (MP4) Delivery — 20/11/2026:** Complete automated end-to-end quality assurance, UI exploration, and business flow video recording pipeline across the entire Atelier Vérité luxury e-commerce platform. Recorded **53 UI exploration MP4 videos** (`UI01-20-11-2026.mp4` to `UI53-20-11-2026.mp4`) covering 100% of discovered routes (25 Public, 6 Customer, 22 Admin) with smooth human-paced scrolling (200–350px per step), top/bottom pauses (1.5s), and landmark inspections (1.2s), including independent scroll container verification for fixed-viewport routes (`/admin/chats`). Recorded **20 Functional MP4 videos** covering 12 core business flows across all supported execution methods (`cach01`, `cach02`, `cach03`) with authentic backend mutations and database persistence. Transcoded 100% of video recordings to true H.264 / `yuv420p` / `+faststart` MP4 containers via FFmpeg 9.0.2 with automated FFprobe decode and stream validation. Maintained atomic JSON manifests (`UI_MANIFEST.json`, `FUNCTION_MANIFEST.json`) and generated comprehensive coverage, test, and privacy audit reports. Strict Git isolation enforced (zero video binaries committed; verified by `.gitignore` and `.dockerignore`). Passed all local quality gates: TypeScript (`npx tsc -b`, 0 errors), Oxlint (0 errors), Vitest (151/151 tests green across 18 suites), Vite production build (4.22s), and Docker Compose verification. See [Video Coverage Report](project-management/test-reports/e2e/VIDEO_COVERAGE_REPORT.md), [UI Video Test Report](project-management/test-reports/e2e/UI_VIDEO_TEST_REPORT.md), [Function Video Test Report](project-management/test-reports/e2e/FUNCTION_VIDEO_TEST_REPORT.md), and [Video Privacy Audit](project-management/test-reports/security/VIDEO_PRIVACY_AUDIT.md).
+>
+> **One Command Fullstack Startup (TASK-ROOT-DEV-COMMAND) Delivery — 20/11/2026:** Delivered unified monorepo orchestration enabling developers to boot the entire platform with a single `npm run dev` command from the project root. Automatically starts Backend (Express + MongoDB + Redis on port 5000) and Frontend (Vite + React 19 on port 5173) concurrently using `concurrently` with color-coded multiplexed logging (`[BACKEND]` blue, `[FRONTEND]` green). Enforces `--kill-others-on-fail` and synchronized SIGINT/Ctrl+C graceful termination, closing HTTP listeners, MongoDB connection, Redis client, and Vite server with zero orphan Node.js background processes. Full proxy compatibility verified (`/api` and `/uploads` forwarding to port 5000) preserving JWT Bearer tokens, HTTP-only refresh cookies, and CORS security. Created root `.env.example` and configured fullstack root commands (`npm run dev`, `npm run dev:frontend`, `npm run dev:backend`, `npm run build`, `npm run test`, `npm run test:frontend`, `npm run test:backend`, `npm run test:e2e`, `npm run lint`). Quality gates passed: Frontend Vitest (151/151 green), Backend Jest (215/215 green), Vite production build (0 errors), Oxlint/ESLint (0 errors), and Docker compose configs verified. See [Task Completion Record](project-management/tasks/completed/TASK-ROOT-DEV-COMMAND.md).
+>
+> **Vector AI Shopping Agent & Spring AI Architectural Delivery (TASK-SPRING-AI-SHOPPING-AGENT) — 20/11/2026:** Implemented production-grade conversational Vector AI Shopping Agent adhering to Chapter 7 – Spring AI architectural principles engineered in 100% pure **Node.js & TypeScript**. Strictly **NO Java, NO Spring Boot, and NO Java microservices**. Architected `ai-service/` with fluent `ChatClient` builder, `PromptTemplate`, `NodeVectorStore` (1536-dimensional Cosine Similarity), `OpenAiEmbeddingModel` with deterministic `LocalFallbackEmbeddingModel`, `ShoppingMemoryAdvisor` for multi-turn shopping dialogs, `QuestionAnswerAdvisor` with `ContentSanitizer` for prompt injection protection, `ToolRegistry` with 18 production tools mapped to real backend endpoints and MongoDB/Redis operations, and `SafetyGuardrails` for HMAC signature validation and price tampering / OTP bypass prevention. React Chat UI (`AiAssistantModal.tsx`) features interactive candidate product cards, real image/price rendering, color/size variant pills, "Chọn mẫu", "Thêm giỏ", and immediate Cart Badge state synchronization (`useCartStore`). Quality gates passed: AI Service Vitest (14/14 green), Backend Vector AI Jest (29/29 green), Frontend Vitest (151/151 green across 18 suites), Playwright E2E (`vectorAiShoppingAgent.spec.ts`) passing 4/4 scenarios (100% green), clean TypeScript/Vite production build in 3.32s, and valid H.264 MP4 functional video test recordings (`ai_shopping_agent_01-20-11-2026-cach01.mp4`, `ai_shopping_agent_01-20-11-2026-cach02.mp4`) verified via FFmpeg 9.0.2 / ffprobe. See [AI Architecture](docs/ai/AI_ARCHITECTURE.md), [Vector RAG Pipeline](docs/ai/VECTOR_RAG_PIPELINE.md), [AI Tool Catalog](docs/ai/AI_TOOL_CATALOG.md), and [AI Backend Mapping](docs/api/AI_BACKEND_MAPPING.md).
 
 ## 1. Executive Summary
 
@@ -534,6 +538,40 @@ Toàn bộ hệ thống quản lý task và kết quả kiểm thử được l�
 - [Functional Video Test Report](project-management/test-reports/e2e/FUNCTION_VIDEO_TEST_REPORT.md): Verification report for 20 business flow execution videos.
 - [Video Privacy & Security Audit](project-management/test-reports/security/VIDEO_PRIVACY_AUDIT.md): Security analysis of test artifacts and data masking.
 - [Task Completion Record](project-management/tasks/completed/TASK-FULL-WEBSITE-VIDEO-QA.md): Complete task specification and verification ledger.
+
+---
+
+## 16. Unified Fullstack Dev Command & Root Orchestration (TASK-ROOT-DEV-COMMAND)
+
+### 16.1. Architecture & Capabilities Overview
+- **Single Root Command Development**:
+  - Developers can boot the entire platform from the project root using `npm run dev`.
+  - Concurrently boots Backend (Express, MongoDB, Redis, Socket.IO, BullMQ on port 5000) and Frontend (React 19, ThreeUI, Vite on port 5173).
+  - Uses `concurrently` with distinct, color-coded prefixes: `[BACKEND]` (blue) and `[FRONTEND]` (green).
+  - Enforces `--kill-others-on-fail` to immediately terminate all services if either service fails or crashes during startup.
+- **Process Lifecycle & Signal Management**:
+  - Handles `SIGINT` (Ctrl+C) and `SIGTERM` cleanly across Windows PowerShell and Unix terminals.
+  - Automatically invokes graceful shutdown hooks in `backend/src/server.js`, closing HTTP connections, disconnecting from MongoDB Atlas and Redis, and terminating Vite HMR server without leaving orphan `node.exe` processes.
+- **Proxy, Ports & Authentication Preservation**:
+  - Backend runs on `http://localhost:5000`.
+  - Frontend runs on `http://localhost:5173`.
+  - Vite dev server reverse-proxies `/api` and `/uploads` to port 5000, preserving HTTP cookies (`credentials: 'include'`), Authorization Bearer tokens, and token refresh mechanisms.
+- **Monorepo Scripts Portfolio**:
+  - `npm run dev`: Fullstack development.
+  - `npm run dev:frontend`: Storefront & Admin Portal development only.
+  - `npm run dev:backend`: REST API & Worker development only.
+  - `npm run build`: Production bundle compilation (`npm run build:frontend`).
+  - `npm run test`: Full test suite (Frontend Vitest + Backend Jest).
+  - `npm run test:frontend`: Frontend unit & component tests.
+  - `npm run test:backend`: Backend unit & integration tests.
+  - `npm run test:e2e`: Playwright cross-device end-to-end tests.
+  - `npm run lint`: Frontend Oxlint + Backend ESLint checks.
+
+### 16.2. Deliverables & Documentation Links
+- [Root Package Configuration](package.json): Root monorepo configuration with `concurrently`.
+- [Root Environment Template](.env.example): Monorepo environment configuration template.
+- [Task Completion Record](project-management/tasks/completed/TASK-ROOT-DEV-COMMAND.md): Complete task record and verification evidence.
+
 
 
 
