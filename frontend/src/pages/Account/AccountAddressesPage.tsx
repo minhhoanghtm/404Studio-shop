@@ -4,12 +4,19 @@ import { useAuthStore } from '@/shared/stores/useAuthStore';
 import { useToastStore } from '@/shared/stores/useToastStore';
 import { MapPin, Plus, Trash2, CheckCircle2, X } from 'lucide-react';
 import { ShippingAddress } from '@/shared/types';
+import { useModal, ModalPortal } from '@/shared/context/ModalContext';
 
 export const AccountAddressesPage: React.FC = () => {
   const { user, addAddress, removeAddress, setDefaultAddress } = useAuthStore();
   const { addToast } = useToastStore();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const { overlayZIndex, contentZIndex } = useModal({
+    id: 'account-address-modal',
+    isOpen: isModalOpen,
+    onClose: () => setIsModalOpen(false),
+  });
   const [formData, setFormData] = useState<ShippingAddress>({
     name: 'Tư gia',
     firstName: user?.name.split(' ')[0] || 'Geneviève',
@@ -145,19 +152,33 @@ export const AccountAddressesPage: React.FC = () => {
 
         {/* Modal for adding address */}
         {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[rgba(26,26,23,0.45)] backdrop-blur-sm animate-fade-in">
-            <div className="w-full max-w-lg bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-6 sm:p-8 space-y-6 shadow-2xl text-[var(--text)]">
-              <div className="flex items-center justify-between border-b border-[var(--border)] pb-4">
-                <h3 className="font-display text-xl text-[var(--text)]">Thêm Địa Chỉ Giao Hàng</h3>
-                <button
-                  onClick={() => setIsModalOpen(false)}
-                  className="text-[var(--text-muted)] hover:text-[var(--text)] p-1"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
+          <ModalPortal>
+            <div
+              className="fixed inset-0 flex items-center justify-center p-4 bg-[rgba(26,26,23,0.45)] backdrop-blur-sm animate-fade-in pointer-events-auto"
+              style={{ zIndex: overlayZIndex }}
+              onClick={(e) => {
+                if (e.target === e.currentTarget) setIsModalOpen(false);
+              }}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Thêm Địa Chỉ Giao Hàng"
+            >
+              <div
+                className="w-full max-w-lg bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-6 sm:p-8 space-y-6 shadow-2xl text-[var(--text)] max-h-[calc(100dvh-32px)] overflow-y-auto"
+                style={{ zIndex: contentZIndex }}
+              >
+                <div className="flex items-center justify-between border-b border-[var(--border)] pb-4">
+                  <h3 className="font-display text-xl text-[var(--text)]">Thêm Địa Chỉ Giao Hàng</h3>
+                  <button
+                    onClick={() => setIsModalOpen(false)}
+                    className="text-[var(--text-muted)] hover:text-[var(--text)] p-1"
+                    aria-label="Đóng"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
 
-              <form onSubmit={handleSubmit} className="space-y-4 text-xs font-sans">
+                <form onSubmit={handleSubmit} className="space-y-4 text-xs font-sans">
                 <div>
                   <label className="block text-[var(--text-muted)] mb-1">Tên nhãn địa chỉ *</label>
                   <input
@@ -286,6 +307,7 @@ export const AccountAddressesPage: React.FC = () => {
               </form>
             </div>
           </div>
+        </ModalPortal>
         )}
       </div>
     </AccountLayout>

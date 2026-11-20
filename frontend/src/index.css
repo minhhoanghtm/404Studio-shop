@@ -43,6 +43,19 @@
   --input-foreground: var(--text);
   --input-placeholder: var(--text-muted);
   --input-border: var(--border);
+
+  /* Layering Z-Index Contract */
+  --z-base: 0;
+  --z-sticky: 50;
+  --z-dropdown: 60;
+  --z-tooltip: 60;
+  --z-drawer-overlay: 90;
+  --z-drawer: 100;
+  --z-modal-overlay: 110;
+  --z-modal: 120;
+  --z-chat: 130;
+  --z-toast: 200;
+  --z-page-transition: 300;
   --input-focus: var(--accent);
   --input-disabled-background: #ECE7DB;
   --input-disabled-foreground: var(--text-muted);
@@ -510,7 +523,7 @@ html.dark .atelier-skeleton {
   top: 0;
   left: 0;
   right: 0;
-  z-index: 1000;
+  z-index: var(--z-sticky, 50);
 }
 
 .site-main-standard {
@@ -710,13 +723,29 @@ html.dark .atelier-skeleton {
 .atelier-mobile-menu {
   position: fixed;
   inset: 0;
-  z-index: 1100;
+  z-index: var(--z-drawer, 100);
   background: var(--bg);
   color: var(--text);
   padding: 30px;
   display: flex;
   flex-direction: column;
   transition: background-color 300ms ease, color 300ms ease;
+}
+
+/* Modal Viewport & Scroll Sizing Constraints */
+.modal-dialog-viewport {
+  max-height: calc(100dvh - 32px);
+  max-height: calc(100vh - 32px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modal-dialog-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .atelier-mobile-close {

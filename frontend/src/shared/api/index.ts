@@ -513,6 +513,7 @@ export const adminApi = {
     category?: string;
     search?: string;
     includeImages?: boolean;
+    maxItems?: number;
   }) => {
     const { getAccessToken } = await import('./client');
     const token = getAccessToken();

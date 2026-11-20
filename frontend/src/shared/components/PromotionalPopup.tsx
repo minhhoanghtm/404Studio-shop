@@ -10,6 +10,7 @@ import {
   canShowCampaignPopup,
   recordCampaignDismissal,
 } from '../campaigns';
+import { useModal, ModalPortal } from '../context/ModalContext';
 
 export const PromotionalPopup: React.FC = () => {
   const navigate = useNavigate();
@@ -27,6 +28,12 @@ export const PromotionalPopup: React.FC = () => {
   const isPreferencesOpen = useConsentStore((state) => state.isPreferencesOpen);
   const isConsentInitialized = useConsentStore((state) => state.isInitialized);
   const consentRecord = useConsentStore((state) => state.consentRecord);
+
+  const { overlayZIndex, contentZIndex } = useModal({
+    id: 'promotional-popup',
+    isOpen: isOpen && Boolean(activeCampaign),
+    onClose: () => handleClose(),
+  });
 
   const calculateCountdown = useCallback((endAtStr: string, remainingSeconds?: number) => {
     if (typeof remainingSeconds === 'number' && remainingSeconds > 0) {
@@ -246,29 +253,34 @@ export const PromotionalPopup: React.FC = () => {
   const mobileImage = associatedBanner?.mobileImageUrl || desktopImage;
   const ctaText = associatedBanner?.buttonText || 'Khám Phá Ưu Đãi';
 
+  if (!isOpen || !activeCampaign) return null;
+
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="campaign-popup-title"
-      aria-describedby="campaign-popup-desc"
-      data-testid="promotional-popup"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-[rgba(26,26,23,0.45)] backdrop-blur-sm animate-fade-in"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) handleClose();
-      }}
-    >
+    <ModalPortal>
       <div
-        ref={modalRef}
-        tabIndex={-1}
-        onKeyDown={(e) => {
-          if (e.key === 'Escape') {
-            e.stopPropagation();
-            handleClose();
-          }
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="campaign-popup-title"
+        aria-describedby="campaign-popup-desc"
+        data-testid="promotional-popup"
+        className="fixed inset-0 flex items-center justify-center p-4 sm:p-6 bg-[rgba(26,26,23,0.45)] backdrop-blur-sm animate-fade-in pointer-events-auto"
+        style={{ zIndex: overlayZIndex }}
+        onClick={(e) => {
+          if (e.target === e.currentTarget) handleClose();
         }}
-        className="relative w-full max-w-2xl bg-[var(--surface)] border border-[var(--border)] text-[var(--text)] rounded-sm shadow-2xl overflow-hidden flex flex-col md:flex-row transition-all duration-300 focus:outline-none"
       >
+        <div
+          ref={modalRef}
+          tabIndex={-1}
+          style={{ zIndex: contentZIndex }}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              e.stopPropagation();
+              handleClose();
+            }
+          }}
+          className="relative w-full max-w-2xl bg-[var(--surface)] border border-[var(--border)] text-[var(--text)] rounded-sm shadow-2xl overflow-hidden flex flex-col md:flex-row transition-all duration-300 focus:outline-none max-h-[calc(100dvh-32px)]"
+        >
         {/* Close Button */}
         <button
           onClick={handleClose}
@@ -381,5 +393,6 @@ export const PromotionalPopup: React.FC = () => {
         </div>
       </div>
     </div>
+  </ModalPortal>
   );
 };

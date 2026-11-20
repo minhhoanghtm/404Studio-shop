@@ -25,6 +25,8 @@ import { useCartStore } from '../stores/useCartStore';
 import { useToastStore } from '../stores/useToastStore';
 import { evaluateSecurityPolicy } from '../utils/aiSecurityGuard';
 import { SecurityVerificationModal, SensitiveActionType } from './security/SecurityVerificationModal';
+import { useModal, ModalPortal } from '../context/ModalContext';
+import { Z_INDEX } from '../config/zIndex';
 
 type ChatMode = 'ai' | 'staff';
 
@@ -130,6 +132,12 @@ export const AiAssistantModal: React.FC<{ isOpen: boolean; onClose: () => void }
   isOpen,
   onClose,
 }) => {
+  const { overlayZIndex, contentZIndex } = useModal({
+    id: 'ai-concierge-modal',
+    isOpen,
+    onClose,
+  });
+
   const { isAuthenticated, user } = useAuthStore();
   const { addToast } = useToastStore();
 
@@ -677,15 +685,35 @@ export const AiAssistantModal: React.FC<{ isOpen: boolean; onClose: () => void }
     }));
   };
 
+  if (!isOpen) {
+    return (
+      <SecurityVerificationModal
+        isOpen={securityModalOpen}
+        onClose={() => setSecurityModalOpen(false)}
+        actionType={selectedSecurityAction}
+        initialIdentifier={user?.email || user?.phone || undefined}
+        onActionComplete={handleSecurityActionComplete}
+      />
+    );
+  }
+
   return (
     <>
-      <div
-        className="fixed inset-0 z-50 bg-[rgba(26,26,23,0.45)] backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Stylist AI"
-      >
-        <div className="bg-[var(--surface)] border border-[var(--border)] w-full sm:max-w-[420px] sm:h-[640px] h-[95vh] sm:rounded-xl shadow-2xl flex flex-col text-[var(--text)] min-w-0 overflow-hidden transition-all duration-250 ease-out">
+      <ModalPortal>
+        <div
+          className="fixed inset-0 bg-[rgba(26,26,23,0.45)] backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 pointer-events-auto"
+          style={{ zIndex: overlayZIndex }}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Stylist AI"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) onClose();
+          }}
+        >
+          <div
+            className="bg-[var(--surface)] border border-[var(--border)] w-full sm:max-w-[420px] sm:h-[640px] h-[95vh] max-h-[calc(100dvh-32px)] sm:rounded-xl shadow-2xl flex flex-col text-[var(--text)] min-w-0 overflow-hidden transition-all duration-250 ease-out"
+            style={{ zIndex: contentZIndex }}
+          >
           
           {/* ================================================================ */}
           {/* 1. HEADER: 2 Tabs ("Trợ lý AI" & "Chat với nhân viên") */}
@@ -1355,6 +1383,7 @@ export const AiAssistantModal: React.FC<{ isOpen: boolean; onClose: () => void }
           </div>
         </div>
       </div>
+    </ModalPortal>
 
       {/* Independent Security Verification Modal */}
       <SecurityVerificationModal

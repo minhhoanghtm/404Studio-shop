@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Sparkles, ArrowRight, Eye, ShoppingBag, X } from 'lucide-react';
 import { lookbooksApi } from '@/shared/api';
 import { formatCurrency } from '@/shared/utils/formatters';
+import { useModal, ModalPortal } from '@/shared/context/ModalContext';
 
 interface LookbookItem {
   id: string;
@@ -103,6 +104,12 @@ const FALLBACK_LOOKBOOKS: LookbookItem[] = [
 export const LookbooksPage: React.FC = () => {
   const [lookbooks, setLookbooks] = useState<LookbookItem[]>(FALLBACK_LOOKBOOKS);
   const [activeLookbook, setActiveLookbook] = useState<LookbookItem | null>(null);
+
+  const { overlayZIndex, contentZIndex } = useModal({
+    id: 'lookbook-hotspots-modal',
+    isOpen: Boolean(activeLookbook),
+    onClose: () => setActiveLookbook(null),
+  });
 
   useEffect(() => {
     const fetchLookbooks = async () => {
@@ -213,47 +220,61 @@ export const LookbooksPage: React.FC = () => {
 
         {/* Modal Shoppable Hotspots */}
         {activeLookbook && (
-          <div className="fixed inset-0 z-50 bg-[rgba(26,26,23,0.45)] backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-[var(--surface)] border border-[var(--border)] max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6 sm:p-8 rounded-2xl relative animate-fade-in text-[var(--text)] shadow-2xl">
-              <button
-                type="button"
-                onClick={() => setActiveLookbook(null)}
-                className="absolute top-5 right-5 p-2 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
-                aria-label="Đóng"
+          <ModalPortal>
+            <div
+              className="fixed inset-0 flex items-center justify-center p-4 bg-[rgba(26,26,23,0.45)] backdrop-blur-sm pointer-events-auto"
+              style={{ zIndex: overlayZIndex }}
+              onClick={(e) => {
+                if (e.target === e.currentTarget) setActiveLookbook(null);
+              }}
+              role="dialog"
+              aria-modal="true"
+              aria-label={activeLookbook.title}
+            >
+              <div
+                className="bg-[var(--surface)] border border-[var(--border)] max-w-3xl w-full max-h-[calc(100dvh-32px)] overflow-y-auto p-6 sm:p-8 rounded-2xl relative animate-fade-in text-[var(--text)] shadow-2xl flex flex-col"
+                style={{ zIndex: contentZIndex }}
               >
-                <X className="w-5 h-5" />
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveLookbook(null)}
+                  className="absolute top-5 right-5 p-2 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
+                  aria-label="Đóng"
+                >
+                  <X className="w-5 h-5" />
+                </button>
 
-              <div className="mb-6">
-                <span className="text-[11px] uppercase tracking-widest text-[var(--accent)] block">
-                  Điểm Chạm Mua Sắm Lookbook
-                </span>
-                <h3 className="font-serif text-2xl tracking-wide mt-1 text-[var(--text)]">{activeLookbook.title}</h3>
-                <p className="text-xs text-[var(--text-muted)] mt-1">{activeLookbook.description}</p>
-              </div>
+                <div className="mb-6 shrink-0">
+                  <span className="text-[11px] uppercase tracking-widest text-[var(--accent)] block">
+                    Điểm Chạm Mua Sắm Lookbook
+                  </span>
+                  <h3 className="font-serif text-2xl tracking-wide mt-1 text-[var(--text)]">{activeLookbook.title}</h3>
+                  <p className="text-xs text-[var(--text-muted)] mt-1">{activeLookbook.description}</p>
+                </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {activeLookbook.featuredProducts?.map((prod) => (
-                  <div key={prod.id} className="p-4 border border-[var(--border)] bg-[var(--bg-alt)] rounded-xl flex gap-4 items-center">
-                    <img src={prod.image} alt={prod.name} className="w-20 h-24 object-cover border border-[var(--border)] rounded-lg bg-[var(--surface)]" />
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-serif text-xs truncate mb-1 text-[var(--text)]">{prod.name}</h4>
-                      <p className="text-xs font-mono font-bold text-[var(--accent)] mb-2">
-                        {formatCurrency(prod.price)}
-                      </p>
-                      <Link
-                        to={`/products/${prod.slug}`}
-                        className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-[var(--text)] hover:text-[var(--accent)] font-medium transition-colors"
-                      >
-                        <ShoppingBag className="w-3 h-3" />
-                        <span>Xem Sản Phẩm</span>
-                      </Link>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1 overflow-y-auto">
+                  {activeLookbook.featuredProducts?.map((prod) => (
+                    <div key={prod.id} className="p-4 border border-[var(--border)] bg-[var(--bg-alt)] rounded-xl flex gap-4 items-center">
+                      <img src={prod.image} alt={prod.name} className="w-20 h-24 object-cover border border-[var(--border)] rounded-lg bg-[var(--surface)]" />
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-serif text-xs truncate mb-1 text-[var(--text)]">{prod.name}</h4>
+                        <p className="text-xs font-mono font-bold text-[var(--accent)] mb-2">
+                          {formatCurrency(prod.price)}
+                        </p>
+                        <Link
+                          to={`/products/${prod.slug}`}
+                          className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-[var(--text)] hover:text-[var(--accent)] font-medium transition-colors"
+                        >
+                          <ShoppingBag className="w-3 h-3" />
+                          <span>Xem Sản Phẩm</span>
+                        </Link>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
+          </ModalPortal>
         )}
       </div>
     </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { X, ShieldCheck, RotateCcw, ArrowLeft } from 'lucide-react';
 import { useAuthStore } from '@/shared/stores/useAuthStore';
 import { useToastStore } from '@/shared/stores/useToastStore';
@@ -9,6 +9,7 @@ import { ChangePhoneForm } from './ChangePhoneForm';
 import { ChangeEmailForm } from './ChangeEmailForm';
 import { SecurityNotification } from './SecurityNotification';
 import { VerificationExpiredState } from './VerificationExpiredState';
+import { useModal, ModalPortal } from '@/shared/context/ModalContext';
 
 export type SensitiveActionType =
   | 'PASSWORD_CHANGE'
@@ -54,6 +55,28 @@ export const SecurityVerificationModal: React.FC<SecurityVerificationModalProps>
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [verifiedToken, setVerifiedToken] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  const resetModal = useCallback(() => {
+    setPhase('CHALLENGE_INIT');
+    setOtpValue('');
+    setRemainingAttempts(MAX_OTP_ATTEMPTS);
+    setIsLocked(false);
+    setLockoutSeconds(0);
+    setCooldown(0);
+    setTtlSeconds(OTP_TTL_SECONDS);
+    setErrorMessage(null);
+    setVerifiedToken(null);
+    setSuccessMessage(null);
+  }, []);
+
+  const { overlayZIndex, contentZIndex } = useModal({
+    id: 'security-verification-modal',
+    isOpen,
+    onClose: () => {
+      resetModal();
+      onClose();
+    },
+  });
 
   const contactEmail = user?.email || initialIdentifier || 'patron@verite-atelier.com';
   const contactPhone = user?.phone || '0901234567';
@@ -260,14 +283,27 @@ export const SecurityVerificationModal: React.FC<SecurityVerificationModalProps>
     });
   };
 
+  if (!isOpen) return null;
+
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="security-modal-title"
-      className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-[rgba(26,26,23,0.45)] backdrop-blur-md transition-opacity"
-    >
-      <div className="w-full max-w-lg bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-2xl text-[var(--text)] overflow-hidden flex flex-col max-h-[92vh] transition-all">
+    <ModalPortal>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="security-modal-title"
+        className="fixed inset-0 flex items-center justify-center p-4 bg-[rgba(26,26,23,0.45)] backdrop-blur-md transition-opacity pointer-events-auto"
+        style={{ zIndex: overlayZIndex }}
+        onClick={(e) => {
+          if (e.target === e.currentTarget && !isLoading) {
+            resetModal();
+            onClose();
+          }
+        }}
+      >
+        <div
+          className="w-full max-w-lg bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-2xl text-[var(--text)] overflow-hidden flex flex-col max-h-[calc(100dvh-32px)] transition-all"
+          style={{ zIndex: contentZIndex }}
+        >
         {/* Modal Header */}
         <div className="p-5 sm:p-6 border-b border-[var(--border)] flex items-center justify-between bg-[var(--bg-alt)]/50">
           <div className="flex items-center gap-3">
@@ -550,5 +586,6 @@ export const SecurityVerificationModal: React.FC<SecurityVerificationModalProps>
         </div>
       </div>
     </div>
+  </ModalPortal>
   );
 };

@@ -4,9 +4,17 @@ import { X, Lock, Check, Shield, Info, ArrowUpRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useConsentStore } from './useConsentStore';
 import { ConsentCategories } from './types';
+import { useModal, ModalPortal } from '../context/ModalContext';
 
 export const ConsentPreferencesModal: React.FC = () => {
   const { isPreferencesOpen, closePreferences, consentRecord, saveCustomPreferences, rejectOptional, acceptAll } = useConsentStore();
+
+  const { overlayZIndex, contentZIndex } = useModal({
+    id: 'cookie-preferences-modal',
+    isOpen: isPreferencesOpen,
+    onClose: closePreferences,
+    priority: 160,
+  });
 
   const [categories, setCategories] = useState<ConsentCategories>({
     necessary: true,
@@ -43,43 +51,51 @@ export const ConsentPreferencesModal: React.FC = () => {
   };
 
   return (
-    <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-[rgba(26,26,23,0.45)] backdrop-blur-sm">
-        <motion.div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="cookie-preferences-title"
-          initial={{ scale: 0.95, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.95, opacity: 0 }}
-          transition={{ duration: 0.25, ease: 'easeOut' }}
-          className="relative w-full max-w-2xl bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] text-[var(--text)]"
+    <ModalPortal>
+      <AnimatePresence>
+        <div
+          className="fixed inset-0 flex items-center justify-center p-4 sm:p-6 bg-[rgba(26,26,23,0.45)] backdrop-blur-sm pointer-events-auto"
+          style={{ zIndex: overlayZIndex }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closePreferences();
+          }}
         >
-          {/* Header */}
-          <div className="px-6 py-5 border-b border-[var(--border)] flex items-center justify-between bg-[var(--surface)]">
-            <div className="flex items-center gap-3">
-              <span className="p-2 rounded-lg bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20">
-                <Shield className="w-5 h-5" />
-              </span>
-              <div>
-                <h2 id="cookie-preferences-title" className="font-serif text-lg tracking-wide uppercase text-[var(--text)] font-medium">
-                  Tùy Chỉnh Quyền Riêng Tư & Cookie
-                </h2>
-                <p className="text-xs text-[var(--text-muted)]">Tuân thủ Luật Bảo vệ dữ liệu cá nhân 91/2025/QH15</p>
+          <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="cookie-preferences-title"
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.95, opacity: 0 }}
+            transition={{ duration: 0.25, ease: 'easeOut' }}
+            style={{ zIndex: contentZIndex }}
+            className="relative w-full max-w-2xl bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-32px)] text-[var(--text)]"
+          >
+            {/* Header */}
+            <div className="px-6 py-5 border-b border-[var(--border)] flex items-center justify-between bg-[var(--surface)] shrink-0">
+              <div className="flex items-center gap-3">
+                <span className="p-2 rounded-lg bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20">
+                  <Shield className="w-5 h-5" />
+                </span>
+                <div>
+                  <h2 id="cookie-preferences-title" className="font-serif text-lg tracking-wide uppercase text-[var(--text)] font-medium">
+                    Tùy Chỉnh Quyền Riêng Tư & Cookie
+                  </h2>
+                  <p className="text-xs text-[var(--text-muted)]">Tuân thủ Luật Bảo vệ dữ liệu cá nhân 91/2025/QH15</p>
+                </div>
               </div>
+              <button
+                type="button"
+                onClick={closePreferences}
+                className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--bg-alt)] transition-colors"
+                aria-label="Đóng bảng tùy chọn"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={closePreferences}
-              className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--bg-alt)] transition-colors"
-              aria-label="Đóng bảng tùy chọn"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
 
-          {/* Body: Category Toggles */}
-          <div className="p-6 space-y-5 overflow-y-auto divide-y divide-[var(--border)]">
+            {/* Body: Category Toggles */}
+            <div className="p-6 space-y-5 overflow-y-auto divide-y divide-[var(--border)] flex-1 min-h-0">
             <p className="text-xs sm:text-sm text-[var(--text-muted)] leading-relaxed font-light">
               Quý khách có thể tự quyết định việc cho phép hay vô hiệu hóa từng nhóm công nghệ theo dõi. Các nhóm không thiết yếu được <strong>tắt mặc định</strong> và chỉ kích hoạt khi quý khách chủ động bật công tắc tương ứng.
             </p>
@@ -242,16 +258,16 @@ export const ConsentPreferencesModal: React.FC = () => {
           </div>
 
           {/* Footer Actions */}
-          <div className="px-6 py-4 border-t border-[var(--border)] bg-[var(--surface)] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          <div className="px-6 py-4 border-t border-[var(--border)] bg-[var(--surface)] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shrink-0">
             <button
               type="button"
               onClick={rejectOptional}
-              className="px-4 py-2 rounded-xl border border-[var(--border)] text-[var(--text)] hover:bg-[var(--bg-alt)] transition-all text-xs tracking-wider uppercase font-medium"
+              className="px-5 py-2.5 rounded-xl border border-[var(--border)] hover:border-[var(--accent)] text-[var(--text)] hover:bg-[var(--bg-alt)] transition-all text-xs tracking-wider uppercase font-medium flex items-center justify-center gap-1.5"
             >
               Từ chối tất cả tùy chọn
             </button>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
               <button
                 type="button"
                 onClick={handleSave}
@@ -263,7 +279,7 @@ export const ConsentPreferencesModal: React.FC = () => {
               <button
                 type="button"
                 onClick={acceptAll}
-                className="px-5 py-2.5 rounded-xl bg-[var(--accent)] text-[var(--accent-contrast)] hover:bg-[#9E7B15] transition-all text-xs tracking-wider uppercase font-semibold shadow-md"
+                className="px-5 py-2.5 rounded-xl bg-[var(--accent)] text-[var(--accent-contrast)] hover:bg-[#9E7B15] transition-all text-xs tracking-wider uppercase font-semibold flex items-center justify-center gap-1.5 shadow-md"
               >
                 Đồng ý tất cả
               </button>
@@ -272,5 +288,6 @@ export const ConsentPreferencesModal: React.FC = () => {
         </motion.div>
       </div>
     </AnimatePresence>
+    </ModalPortal>
   );
 };

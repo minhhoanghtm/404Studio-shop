@@ -1,6 +1,8 @@
 import React from 'react';
 import { useToastStore } from '../stores/useToastStore';
 import { CheckCircle2, AlertCircle, Info, ShoppingBag, X } from 'lucide-react';
+import { ModalPortal } from '../context/ModalContext';
+import { Z_INDEX } from '../config/zIndex';
 
 export const ToastContainer: React.FC = () => {
   const { toasts, removeToast } = useToastStore();
@@ -8,7 +10,13 @@ export const ToastContainer: React.FC = () => {
   if (toasts.length === 0) return null;
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3 max-w-sm w-full pointer-events-none">
+    <ModalPortal>
+      <div
+        className="fixed bottom-6 right-6 flex flex-col gap-3 max-w-sm w-full pointer-events-none"
+        style={{ zIndex: Z_INDEX.toast }}
+        aria-live="polite"
+        aria-atomic="false"
+      >
       {toasts.map((toast) => {
         const isError = toast.type === 'error';
         const isBag = toast.type === 'bag';
@@ -54,5 +62,6 @@ export const ToastContainer: React.FC = () => {
         );
       })}
     </div>
+    </ModalPortal>
   );
 };

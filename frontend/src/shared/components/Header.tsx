@@ -5,6 +5,8 @@ import { useCartStore } from '../stores/useCartStore';
 import { useSearchStore } from '../stores/useSearchStore';
 import { useWishlistStore } from '../stores/useWishlistStore';
 import { useThemeStore } from '../stores/useThemeStore';
+import { useModal, ModalPortal } from '../context/ModalContext';
+import { Z_INDEX } from '../config/zIndex';
 
 const navigation = [['BỘ SƯU TẬP', '/collections'], ['NỮ', '/products?category=women'], ['NAM', '/products?category=men'], ['TẠP CHÍ', '/journal'], ['ATELIER', '/about']];
 
@@ -18,6 +20,12 @@ export const Header: React.FC = () => {
   const openSearch = useSearchStore((state) => state.openSearch);
   const { theme, toggleTheme } = useThemeStore();
   const isHome = location.pathname === '/';
+
+  const { contentZIndex } = useModal({
+    id: 'header-mobile-menu',
+    isOpen: mobileOpen,
+    onClose: () => setMobileOpen(false),
+  });
 
   useEffect(() => {
     const update = () => setScrolled(window.scrollY > 80);
@@ -73,27 +81,35 @@ export const Header: React.FC = () => {
       </div>
     </header>
     {mobileOpen && (
-      <div className="atelier-mobile-menu" role="dialog" aria-label="Menu điều hướng">
-        <div className="flex items-center justify-between w-full">
-          <button
-            onClick={toggleTheme}
-            className="text-[var(--text)] hover:text-[var(--accent)] flex items-center gap-2 text-xs font-mono uppercase"
-            aria-label="Đổi giao diện sáng tối"
-          >
-            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-            <span>{theme === 'dark' ? 'CHẾ ĐỘ SÁNG' : 'CHẾ ĐỘ TỐI'}</span>
-          </button>
-          <button className="atelier-mobile-close" onClick={() => setMobileOpen(false)} aria-label="Đóng menu">
-            <X size={24} />
-          </button>
+      <ModalPortal>
+        <div
+          className="atelier-mobile-menu"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Menu điều hướng"
+          style={{ zIndex: contentZIndex }}
+        >
+          <div className="flex items-center justify-between w-full">
+            <button
+              onClick={toggleTheme}
+              className="text-[var(--text)] hover:text-[var(--accent)] flex items-center gap-2 text-xs font-mono uppercase"
+              aria-label="Đổi giao diện sáng tối"
+            >
+              {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+              <span>{theme === 'dark' ? 'CHẾ ĐỘ SÁNG' : 'CHẾ ĐỘ TỐI'}</span>
+            </button>
+            <button className="atelier-mobile-close" onClick={() => setMobileOpen(false)} aria-label="Đóng menu">
+              <X size={24} />
+            </button>
+          </div>
+          <Link className="atelier-mobile-logo" to="/" onClick={() => setMobileOpen(false)}>ATELIER VÉRITÉ</Link>
+          <nav>
+            {navigation.map(([label, href]) => (
+              <Link key={href} to={href} onClick={() => setMobileOpen(false)}>{label}</Link>
+            ))}
+          </nav>
         </div>
-        <Link className="atelier-mobile-logo" to="/">ATELIER VÉRITÉ</Link>
-        <nav>
-          {navigation.map(([label, href]) => (
-            <Link key={href} to={href}>{label}</Link>
-          ))}
-        </nav>
-      </div>
+      </ModalPortal>
     )}
   </>;
 };

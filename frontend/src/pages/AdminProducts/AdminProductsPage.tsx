@@ -18,6 +18,7 @@ export const AdminProductsPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [stockFilter, setStockFilter] = useState<'all' | 'in_stock' | 'out_of_stock'>('all');
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -97,6 +98,21 @@ export const AdminProductsPage: React.FC = () => {
     return matchesSearch && matchesStock;
   });
 
+  const toggleSelectProduct = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAll = () => {
+    const allFilteredIds = filteredProducts.map((p) => p.id || p._id);
+    if (selectedIds.length === allFilteredIds.length && allFilteredIds.length > 0) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(allFilteredIds);
+    }
+  };
+
   return (
     <AdminLayout
       title="Quản Lý Sản Phẩm"
@@ -158,7 +174,12 @@ export const AdminProductsPage: React.FC = () => {
               <span>Nhập Excel</span>
             </button>
 
-            <ExcelExportButton type="product" />
+            <ExcelExportButton
+              type="product"
+              selectedIds={selectedIds}
+              currentCategory={selectedCategory}
+              currentSearch={search}
+            />
 
             <Link
               to="/admin/products/new"
@@ -169,6 +190,24 @@ export const AdminProductsPage: React.FC = () => {
             </Link>
           </div>
         </div>
+
+        {/* Selection Bar */}
+        {selectedIds.length > 0 && (
+          <div className="flex items-center justify-between p-3 bg-champagne/10 border border-champagne/20 rounded-sm">
+            <div className="flex items-center gap-2 text-xs font-mono">
+              <span className="text-champagne font-semibold">Đã chọn: {selectedIds.length} sản phẩm</span>
+              <span className="text-platinum-dark">•</span>
+              <span className="text-platinum-light">Sẵn sàng xuất Excel hoặc thao tác hàng loạt</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSelectedIds([])}
+              className="text-xs text-platinum-dark hover:text-white underline font-mono"
+            >
+              Bỏ chọn tất cả
+            </button>
+          </div>
+        )}
 
         {/* Product Inventory Table */}
         <div className="bg-noir-900 border border-white/10 rounded-sm overflow-hidden">
@@ -196,6 +235,15 @@ export const AdminProductsPage: React.FC = () => {
               <table className="w-full text-left text-xs">
                 <thead>
                   <tr className="border-b border-white/10 text-platinum-dark uppercase tracking-wider bg-white/5 font-mono text-[11px]">
+                    <th className="py-3 px-3 w-8 text-center">
+                      <input
+                        type="checkbox"
+                        checked={filteredProducts.length > 0 && selectedIds.length === filteredProducts.length}
+                        onChange={handleSelectAll}
+                        aria-label="Chọn tất cả sản phẩm"
+                        className="rounded-sm border-white/20 bg-noir-900 text-champagne focus:ring-champagne/40 cursor-pointer"
+                      />
+                    </th>
                     <th className="py-3 px-4">Sản Phẩm</th>
                     <th className="py-3 px-4">Phân Loại</th>
                     <th className="py-3 px-4">Đơn Giá</th>
@@ -208,6 +256,7 @@ export const AdminProductsPage: React.FC = () => {
                 <tbody className="divide-y divide-white/5 font-sans">
                   {filteredProducts.map((p) => {
                     const id = p.id || p._id;
+                    const isSelected = selectedIds.includes(id);
                     const stock = Number(p.stock || 0);
                     const variantsCount = Array.isArray(p.variants) ? p.variants.length : 0;
                     const displayImage =
@@ -222,7 +271,22 @@ export const AdminProductsPage: React.FC = () => {
                         : p.category || 'Mặc định';
 
                     return (
-                      <tr key={id} className="hover:bg-white/[0.02] transition-colors">
+                      <tr
+                        key={id}
+                        className={`hover:bg-white/[0.02] transition-colors ${
+                          isSelected ? 'bg-champagne/[0.04]' : ''
+                        }`}
+                      >
+                        {/* Checkbox */}
+                        <td className="py-3.5 px-3 text-center">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleSelectProduct(id)}
+                            aria-label={`Chọn sản phẩm ${p.name}`}
+                            className="rounded-sm border-white/20 bg-noir-900 text-champagne focus:ring-champagne/40 cursor-pointer"
+                          />
+                        </td>
                         {/* Product Info */}
                         <td className="py-3.5 px-4 flex items-center gap-3">
                           <img

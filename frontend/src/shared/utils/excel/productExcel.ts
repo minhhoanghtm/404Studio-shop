@@ -31,11 +31,13 @@ export interface ParsedProductGroup {
 export interface ProductImportParseResult {
   validProducts: ParsedProductGroup[];
   errors: ExcelValidationError[];
+  warnings?: Array<{ row: number; field: string; message: string }>;
   summary: {
     totalRows: number;
     totalProducts: number;
     totalVariants: number;
     errorCount: number;
+    warningCount?: number;
   };
 }
 
@@ -404,6 +406,7 @@ export const parseAndValidateProductExcel = async (
     variantImage: 13,
   };
 
+  const headerRow = sheet.getRow(1);
   headerRow.eachCell((cell, colNumber) => {
     const val = String(cell.value || '').trim().toLowerCase();
     if (val.includes('mã sản phẩm') || (val.includes('sku') && val.includes('nhóm'))) colMap.productSku = colNumber;
@@ -413,14 +416,16 @@ export const parseAndValidateProductExcel = async (
     else if (val.includes('giá bán') || val.includes('giá khuyến mãi')) colMap.newPrice = colNumber;
     else if (val.includes('thương hiệu') || val.includes('brand')) colMap.brand = colNumber;
     else if (val.includes('mô tả') || val.includes('desc')) colMap.desc = colNumber;
-    else if ((val.includes('ảnh') || val.includes('image')) && val.includes('chính')) colMap.productImage = colNumber;
+    else if (val.includes('ảnh đại diện') || ((val.includes('ảnh') || val.includes('image')) && (val.includes('chính') || val.includes('đại diện')))) colMap.productImage = colNumber;
+    else if (val.includes('mã sku biến thể') || (val.includes('sku') && val.includes('biến thể'))) colMap.variantSku = colNumber;
     else if (val.includes('màu') || val.includes('color')) colMap.color = colNumber;
     else if (val.includes('cỡ') || val.includes('size')) colMap.size = colNumber;
     else if (val.includes('tồn kho') || val.includes('stock')) colMap.stock = colNumber;
-    else if ((val.includes('ảnh') || val.includes('image')) && val.includes('biến thể')) colMap.variantImage = colNumber;
+    else if (val.includes('ảnh biến thể') || ((val.includes('ảnh') || val.includes('image')) && val.includes('biến thể'))) colMap.variantImage = colNumber;
   });
 
   const errors: ExcelValidationError[] = [];
+  const warnings: Array<{ row: number; field: string; message: string }> = [];
   const errorRowNumbers = new Set<number>();
   const addError = (err: ExcelValidationError) => {
     errors.push(err);
@@ -461,13 +466,19 @@ export const parseAndValidateProductExcel = async (
     const rawNewPrice = row.getCell(colMap.newPrice).value;
     const brand = String(row.getCell(colMap.brand).value || 'Atelier Vérité').trim();
     const desc = String(row.getCell(colMap.desc).value || '').trim();
-    const productImage = String(row.getCell(colMap.productImage).value || '').trim();
+    const rawProdImgCell = row.getCell(colMap.productImage).value;
+    const productImage = (typeof rawProdImgCell === 'object' && rawProdImgCell !== null)
+      ? String((rawProdImgCell as any).text || (rawProdImgCell as any).hyperlink || '').trim()
+      : String(rawProdImgCell || '').trim();
 
     const variantSku = String(row.getCell(colMap.variantSku).value || '').trim();
     const color = String(row.getCell(colMap.color).value || '').trim();
     const size = String(row.getCell(colMap.size).value || '').trim();
     const rawStock = row.getCell(colMap.stock).value;
-    const variantImage = String(row.getCell(colMap.variantImage).value || '').trim();
+    const rawVarImgCell = row.getCell(colMap.variantImage).value;
+    const variantImage = (typeof rawVarImgCell === 'object' && rawVarImgCell !== null)
+      ? String((rawVarImgCell as any).text || (rawVarImgCell as any).hyperlink || '').trim()
+      : String(rawVarImgCell || '').trim();
 
     // Check Product Name
     if (!productName) {
@@ -571,6 +582,14 @@ export const parseAndValidateProductExcel = async (
       embeddedImagesByCell.get(`${r}:${colMap.productImage}`) ||
       embeddedImagesByCell.get(`${r}:primary`);
     const embeddedVarImg = embeddedImagesByCell.get(`${r}:${colMap.variantImage}`);
+
+    if (!embeddedImg && productImage && (/^https?:\/\//i.test(productImage) || productImage.startsWith('/uploads/'))) {
+      warnings.push({
+        row: r,
+        field: 'Ảnh Đại Diện',
+        message: 'Dòng này dùng liên kết URL thay vì hình ảnh nhúng trực tiếp. Khuyên dùng ảnh nhúng.',
+      });
+    }
 
     const finalProductImage =
       embeddedImg || productImage || 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=800';
@@ -688,11 +707,13 @@ export const parseAndValidateProductExcel = async (
   return {
     validProducts,
     errors,
+    warnings,
     summary: {
       totalRows,
       totalProducts: validProducts.length,
       totalVariants: totalVariantsCount,
       errorCount: errors.length,
+      warningCount: warnings.length,
     },
   };
 };

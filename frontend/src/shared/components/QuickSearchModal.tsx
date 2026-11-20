@@ -8,6 +8,7 @@ import { Product } from '../types';
 import { formatCurrency } from '../utils/formatters';
 import { vi } from '../locales/vi/common';
 import { useBehaviorTracking } from '../tracking/useBehaviorTracking';
+import { useModal, ModalPortal } from '../context/ModalContext';
 
 export const QuickSearchModal: React.FC = () => {
   const {
@@ -19,6 +20,12 @@ export const QuickSearchModal: React.FC = () => {
     addRecentSearch,
     clearRecentSearches,
   } = useSearchStore();
+
+  const { overlayZIndex, contentZIndex } = useModal({
+    id: 'quick-search-modal',
+    isOpen,
+    onClose: closeSearch,
+  });
 
   const [allProducts, setAllProducts] = useState<Product[]>([]);
 
@@ -103,18 +110,31 @@ export const QuickSearchModal: React.FC = () => {
     addRecentSearch(term);
   };
 
-  return (
-    <div className="fixed inset-0 z-50 overflow-y-auto p-4 sm:p-6 md:p-20 flex items-start justify-center animate-fade-in">
-      {/* Backdrop */}
-      <div
-        onClick={closeSearch}
-        className="fixed inset-0 bg-[rgba(26,26,23,0.45)] backdrop-blur-sm transition-opacity"
-      />
+  if (!isOpen) return null;
 
-      {/* Modal Dialog */}
-      <div className="relative w-full max-w-2xl bg-[var(--surface)] text-[var(--text)] rounded-2xl border border-[var(--border)] shadow-2xl overflow-hidden z-10">
-        {/* Search Input Bar */}
-        <form onSubmit={handleSearchSubmit} className="relative flex items-center px-6 py-4 border-b border-[var(--border)]">
+  return (
+    <ModalPortal>
+      <div
+        className="fixed inset-0 overflow-y-auto p-4 sm:p-6 md:p-20 flex items-start justify-center animate-fade-in pointer-events-auto"
+        style={{ zIndex: overlayZIndex }}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Tìm kiếm sản phẩm"
+      >
+        {/* Backdrop */}
+        <div
+          onClick={closeSearch}
+          className="fixed inset-0 bg-[rgba(26,26,23,0.45)] backdrop-blur-sm transition-opacity"
+          style={{ zIndex: overlayZIndex }}
+        />
+
+        {/* Modal Dialog */}
+        <div
+          className="relative w-full max-w-2xl bg-[var(--surface)] text-[var(--text)] rounded-2xl border border-[var(--border)] shadow-2xl overflow-hidden max-h-[calc(100dvh-32px)] flex flex-col"
+          style={{ zIndex: contentZIndex }}
+        >
+          {/* Search Input Bar */}
+          <form onSubmit={handleSearchSubmit} className="relative flex items-center px-6 py-4 border-b border-[var(--border)] shrink-0">
           <Search className="w-5 h-5 text-[var(--accent)] mr-3 flex-shrink-0" />
           <input
             ref={inputRef}
@@ -286,5 +306,6 @@ export const QuickSearchModal: React.FC = () => {
         </div>
       </div>
     </div>
+    </ModalPortal>
   );
 };

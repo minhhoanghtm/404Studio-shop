@@ -5,6 +5,8 @@ import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight, Tag, ShieldCheck, Aler
 import { useCartStore } from '../stores/useCartStore';
 import { formatCurrency } from '../utils/formatters';
 import { vi } from '../locales/vi/common';
+import { useModal } from '../context/ModalContext';
+import { Z_INDEX } from '../config/zIndex';
 
 export const CartDrawer: React.FC = () => {
   const navigate = useNavigate();
@@ -39,6 +41,13 @@ export const CartDrawer: React.FC = () => {
 
   const drawerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Synchronize with Central Modal Stack
+  const { overlayZIndex, contentZIndex, isTop } = useModal({
+    id: 'cart-drawer',
+    isOpen: isRendered && isOpen,
+    onClose: closeDrawer,
+  });
 
   // Manage mounting & animation states
   useEffect(() => {
@@ -83,17 +92,11 @@ export const CartDrawer: React.FC = () => {
     }
   }, [isRendered, isOpen]);
 
-  // Focus trap & Escape key listener
+  // Focus trap: Only active when top modal in stack
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !isTop) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        closeDrawer();
-        return;
-      }
-
       if (e.key === 'Tab' && drawerRef.current) {
         const focusable = drawerRef.current.querySelectorAll<HTMLElement>(
           'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
@@ -161,12 +164,13 @@ export const CartDrawer: React.FC = () => {
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[1200] pointer-events-auto">
+    <div className="fixed inset-0 pointer-events-auto" style={{ zIndex: overlayZIndex }}>
       {/* 1. Backdrop Overlay */}
       <div
         onClick={closeDrawer}
         aria-hidden="true"
-        className={`fixed inset-0 z-[1200] bg-black/60 backdrop-blur-sm transition-opacity duration-[350ms] ease-out ${
+        style={{ zIndex: overlayZIndex }}
+        className={`fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-[350ms] ease-out ${
           isOpen ? 'opacity-100' : 'opacity-0'
         }`}
       />
@@ -177,7 +181,8 @@ export const CartDrawer: React.FC = () => {
         role="dialog"
         aria-modal="true"
         aria-label="Giỏ hàng"
-        className={`fixed top-0 right-0 z-[1210] h-[100dvh] w-full sm:w-[440px] max-w-full bg-[var(--surface)] text-[var(--text)] border-l border-[var(--border)] shadow-2xl flex flex-col justify-between transition-transform duration-[350ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${
+        style={{ zIndex: contentZIndex }}
+        className={`fixed top-0 right-0 h-[100dvh] w-full sm:w-[440px] max-w-full bg-[var(--surface)] text-[var(--text)] border-l border-[var(--border)] shadow-2xl flex flex-col justify-between transition-transform duration-[350ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >

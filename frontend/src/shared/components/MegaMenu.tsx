@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Sparkles } from 'lucide-react';
 import { vi } from '../locales/vi/common';
+import { Z_INDEX } from '../config/zIndex';
 
 interface MegaMenuProps {
   isOpen: boolean;
@@ -14,7 +15,8 @@ export const MegaMenu: React.FC<MegaMenuProps> = ({ isOpen, onClose }) => {
   return (
     <div
       onMouseLeave={onClose}
-      className="editorial-page absolute top-full left-0 w-full bg-ivory-50/98 text-noir-900 dark:bg-noir-950/95 dark:text-white backdrop-blur-2xl border-b border-black/10 dark:border-white/10 shadow-2xl py-10 px-8 transition-all duration-300 z-40 animate-fade-in"
+      style={{ zIndex: Z_INDEX.dropdown }}
+      className="editorial-page absolute top-full left-0 w-full bg-ivory-50/98 text-noir-900 dark:bg-noir-950/95 dark:text-white backdrop-blur-2xl border-b border-black/10 dark:border-white/10 shadow-2xl py-10 px-8 transition-all duration-300 animate-fade-in"
     >
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8">
         {/* Column 1: Tiêu điểm Runway */}
