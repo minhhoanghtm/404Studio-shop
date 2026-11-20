@@ -29,6 +29,7 @@ blob-report/
 playwright/.auth/
 *.har
 *.trace
+videos/
 
 # Version control & IDE
 .git

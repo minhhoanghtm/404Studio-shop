@@ -111,6 +111,11 @@ playwright/.auth/
 *.har
 *.trace
 
+# Local UI and functional test recordings
+/videos/
+videos/
+
+
 # ==========================================
 # IDE / OS
 # ==========================================

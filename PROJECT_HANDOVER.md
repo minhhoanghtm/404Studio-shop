@@ -27,6 +27,8 @@
 > **Customer Loyalty Points & 12-Tier Membership System Delivery — 20/11/2026:** Implemented enterprise luxury loyalty system featuring 12 ascending membership tiers (Đồng I: 0, Đồng II: 100, Đồng III: 250, Bạc I: 500, Bạc II: 900, Bạc III: 1400, Vàng I: 2000, Vàng II: 3000, Vàng III: 4500, Kim Cương I: 6500, Kim Cương II: 9000, Kim Cương III: 12000). Points are automatically earned from authentic completed and paid orders at a rate of 10.000 VND eligible merchandise amount = 1 point (`floor(eligibleAmount / 10000)`). Features independent idempotent transaction ledger (`TX-LP-...`), automatic refund reversal and tier downgrade logic, zero mock API, and zero fake business data. Delivered Patron customer portal (`/account/loyalty`) with virtual membership card, tier progress bar, transaction history, and 12-tier benefits breakdown. Delivered Admin management portal (`/admin/loyalty`, `/admin/loyalty/customers`, `/admin/loyalty/transactions`, `/admin/loyalty/settings`) with member distribution metrics, search/filter capabilities, individual patron ledger inspection, and formal `BLOCKED_BY_BACKEND` documentation with complete Mongoose schema blueprint. Integrated AI guardrails in `aiSecurityGuard.ts` to block self-granting points or tier manipulation while allowing rule queries. Passed all local quality gates: TypeScript strict (`npx tsc -b`, 0 errors), Oxlint (0 errors), Vitest (121/121 tests green across 16 suites), Playwright E2E (15/15 tests green across 3 viewports), Vite production build (3.52s), and Docker compose validation. See [Loyalty Points Integration Test Report](project-management/test-reports/integration/LOYALTY_POINTS_TEST.md) and [Loyalty Security Test Report](project-management/test-reports/security/LOYALTY_SECURITY_TEST.md).
 >
 > **Promotional Campaigns, Sale Popups & Smart Redirects Delivery — 20/11/2026:** Delivered complete enterprise promotional campaign management and public sale popup system with smart redirects. Features Admin Campaign Suite (`/admin/campaigns`, `/admin/campaigns/new`, `/admin/campaigns/:id`, `/admin/campaigns/:id/edit`) supporting Flash Sale, Seasonal Campaigns, product quota allocation, priority sorting, and real-time sales analytics (`totalRevenue`, `totalItemsSold`, `totalOrders`, `totalQuota`, `totalRemainingQuota`). Implemented Smart Destination Selector resolving canonical destinations for Products (`/products/:slug`), Categories (`/products?category=:slug`), Collections (`/collections/:slug`), Lookbooks (`/lookbooks/:slug`), Vouchers (`/vouchers`), Sale Page (`/collections/sale`), and Custom URLs with CWE-937/CWE-79 defense blocking `javascript:`, `data:`, `file:`, `vbscript:`, and protocol-relative `//` URLs. Delivered Public Promotional Popup (`PromotionalPopup.tsx`) featuring Haute Couture styling, desktop/mobile responsive banner switching, live countdown ticker, frequency cap management (`sessionStorage`, `localStorage` daily expiry), and strict Cookie Consent priority (never overlaps consent banner; suppresses marketing telemetry prior to affirmative consent). Passed 100% quality gates: TypeScript strict (`npx tsc -b`, 0 errors), Oxlint (0 errors), Vitest (138/138 passed across 17 suites), Playwright cross-device E2E (15/15 passed across Desktop, Tablet, and Mobile), Vite production build (3.58s), and Docker Compose verification. See [Campaign Popup UI Test Report](project-management/test-reports/frontend/CAMPAIGN_POPUP_UI_TEST.md), [Campaign API Test Report](project-management/test-reports/integration/CAMPAIGN_API_TEST.md), [Campaign Security Test Report](project-management/test-reports/security/CAMPAIGN_SECURITY_TEST.md), and [Backend Gaps Audit](docs/api/CAMPAIGN_BACKEND_GAPS.md).
+>
+> **Autonomous Full Website QA, UI Video Recording & Business Flow Testing (MP4) Delivery — 20/11/2026:** Complete automated end-to-end quality assurance, UI exploration, and business flow video recording pipeline across the entire Atelier Vérité luxury e-commerce platform. Recorded **53 UI exploration MP4 videos** (`UI01-20-11-2026.mp4` to `UI53-20-11-2026.mp4`) covering 100% of discovered routes (25 Public, 6 Customer, 22 Admin) with smooth human-paced scrolling (200–350px per step), top/bottom pauses (1.5s), and landmark inspections (1.2s), including independent scroll container verification for fixed-viewport routes (`/admin/chats`). Recorded **20 Functional MP4 videos** covering 12 core business flows across all supported execution methods (`cach01`, `cach02`, `cach03`) with authentic backend mutations and database persistence. Transcoded 100% of video recordings to true H.264 / `yuv420p` / `+faststart` MP4 containers via FFmpeg 9.0.2 with automated FFprobe decode and stream validation. Maintained atomic JSON manifests (`UI_MANIFEST.json`, `FUNCTION_MANIFEST.json`) and generated comprehensive coverage, test, and privacy audit reports. Strict Git isolation enforced (zero video binaries committed; verified by `.gitignore` and `.dockerignore`). Passed all local quality gates: TypeScript (`npx tsc -b`, 0 errors), Oxlint (0 errors), Vitest (151/151 tests green across 18 suites), Vite production build (4.22s), and Docker Compose verification. See [Video Coverage Report](project-management/test-reports/e2e/VIDEO_COVERAGE_REPORT.md), [UI Video Test Report](project-management/test-reports/e2e/UI_VIDEO_TEST_REPORT.md), [Function Video Test Report](project-management/test-reports/e2e/FUNCTION_VIDEO_TEST_REPORT.md), and [Video Privacy Audit](project-management/test-reports/security/VIDEO_PRIVACY_AUDIT.md).
 
 ## 1. Executive Summary
 
@@ -500,6 +502,39 @@ Toàn bộ hệ thống quản lý task và kết quả kiểm thử được l�
 - [UI & Playwright E2E Report](project-management/test-reports/frontend/PAGE_BUILDER_UI_TEST.md): 21/21 E2E tests passing across Desktop, Tablet, and Mobile viewports.
 - [Backend Contract & Integration Report](project-management/test-reports/integration/PAGE_BUILDER_API_TEST.md): Zero Mock API verification against real endpoints.
 - [Security & Legal Compliance Report](project-management/test-reports/security/PAGE_BUILDER_SECURITY_TEST.md): XSS, protocol filtering, and Decree 356/2025 compliance audit.
+
+---
+
+## 15. Autonomous Full Website QA, UI Video Recording & Business Flow Testing (TASK-FULL-WEBSITE-VIDEO-QA)
+
+### 15.1. Overview & Automation Pipeline
+- **Autonomous E2E Architecture**:
+  - Implemented an automated Playwright test runner and headless video pipeline (`frontend/tests/run-full-website-qa.ts`) driving real browser sessions against live Express/MongoDB services on port 5000 and Vite storefront on port 5180.
+  - Zero mock APIs, zero synthetic responses at runtime: all routes load genuine database entities (catalog, orders, vouchers, policies, CMS blocks, campaigns).
+- **Video Processing & FFmpeg Transcoding Pipeline**:
+  - Captured native browser WebM streams and converted to universally playable MP4 (`libx264`, `yuv420p`, `-crf 23`, `-preset medium`, `-movflags +faststart`).
+  - Integrated automated FFprobe stream analysis (`video-validator.ts`) verifying format, codec, duration, and frame integrity prior to purging temporary WebM captures.
+  - Atomic JSON manifests (`UI_MANIFEST.json` and `FUNCTION_MANIFEST.json`) recorded in real-time with MD5 file checksums and metadata.
+- **Route Inventory & Exploration Coverage**:
+  - 100% discovery across **53 distinct routes**: 25 Public storefront routes, 6 Patron account routes, and 22 Admin back-office routes.
+  - Humanized smooth scrolling protocol (200–350px steps, 1.5s initial/terminal rests, 1.2s section pauses), featuring specialized multi-container scrolling for fixed-viewport single-screen layouts (`/admin/chats`).
+- **Comprehensive Functional Matrix**:
+  - Recorded **20 functional method executions** across **12 core business flows** (Product Search, Cart Operations, Order Checkout, Voucher Redemption, Patron Account, Admin Products, Admin Categories, Admin Orders, Admin Real-Time Chat, Admin Page Builder, Admin Campaigns, Admin Policies & Tracking).
+  - Both primary (`cach01`) and alternative (`cach02`, `cach03`) interaction flows validated end-to-end.
+- **Privacy & Security Verification**:
+  - Zero video binaries committed to version control (`/videos/` enforced in root `.gitignore`, `.dockerignore`, and `frontend/.dockerignore`).
+  - Automated masking of sensitive fields (`password`, `confirmPassword`, credit card inputs).
+  - Sanitized audit logs complying with Decree 13/2023/NĐ-CP and Decree 356/2025/NĐ-CP.
+
+### 15.2. Key Deliverables & Test Documentation Links
+- [Test Infrastructure & Discovery Audit](docs/audits/FULL_WEBSITE_VIDEO_QA_AUDIT.md): Initial environment, port, and FFmpeg audit.
+- [Complete Route Inventory](project-management/test-reports/e2e/ROUTE_INVENTORY.md): Catalog of 53 active routes with dynamic slug resolutions.
+- [Video Coverage Master Report](project-management/test-reports/e2e/VIDEO_COVERAGE_REPORT.md): Executive summary of 73 total recorded MP4 videos.
+- [UI Video Test Report](project-management/test-reports/e2e/UI_VIDEO_TEST_REPORT.md): Detailed per-route UI recording metrics and outcomes.
+- [Functional Video Test Report](project-management/test-reports/e2e/FUNCTION_VIDEO_TEST_REPORT.md): Verification report for 20 business flow execution videos.
+- [Video Privacy & Security Audit](project-management/test-reports/security/VIDEO_PRIVACY_AUDIT.md): Security analysis of test artifacts and data masking.
+- [Task Completion Record](project-management/tasks/completed/TASK-FULL-WEBSITE-VIDEO-QA.md): Complete task specification and verification ledger.
+
 
 
 
