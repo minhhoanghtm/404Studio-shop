@@ -128,4 +128,79 @@ describe("Auth routes", () => {
     expect(authServiceMock.signOut).toHaveBeenCalledWith("refresh-token", undefined);
     expect(response.headers["set-cookie"].join(";")).toContain("refreshToken=");
   });
+
+  test("POST /api/auth/logout alias revokes refresh token and clears cookie", async () => {
+    authServiceMock.signOut.mockResolvedValue();
+
+    const response = await request(app)
+      .post("/api/auth/logout")
+      .send({ refreshToken: "body-rt" });
+
+    expect(response.status).toBe(204);
+    expect(authServiceMock.signOut).toHaveBeenCalledWith("body-rt", undefined);
+    expect(response.headers["set-cookie"].join(";")).toContain("refreshToken=");
+  });
+
+  test("POST /api/auth/refresh with valid token returns rotated tokens", async () => {
+    authServiceMock.refreshAccessToken.mockResolvedValue({
+      accessToken: "new-access-token",
+      refreshToken: "new-rotated-refresh-token",
+      user: { _id: "user-1", fullName: "Linh Nguyen" },
+    });
+
+    const response = await request(app)
+      .post("/api/auth/refresh")
+      .send({ refreshToken: "valid-rt" });
+
+    expect(response.status).toBe(200);
+    expect(response.body.success).toBe(true);
+    expect(response.body.data.accessToken).toBe("new-access-token");
+    expect(response.body.data.refreshToken).toBe("new-rotated-refresh-token");
+    expect(response.headers["set-cookie"].join(";")).toContain("refreshToken=new-rotated-refresh-token");
+  });
+
+  test("POST /api/auth/refresh without token returns 401 REFRESH_MISSING", async () => {
+    const { AppError } = await import("../../../common/exceptions/AppError.js");
+    const err = new AppError("Thiếu refresh token", 401);
+    err.code = "REFRESH_MISSING";
+    authServiceMock.refreshAccessToken.mockRejectedValue(err);
+
+    const response = await request(app)
+      .post("/api/auth/refresh")
+      .send({});
+
+    expect(response.status).toBe(401);
+    expect(response.body.success).toBe(false);
+    expect(response.body.code).toBe("REFRESH_MISSING");
+  });
+
+  test("POST /api/auth/refresh with invalid token returns 401 REFRESH_INVALID", async () => {
+    const { AppError } = await import("../../../common/exceptions/AppError.js");
+    const err = new AppError("Phiên đăng nhập không hợp lệ hoặc đã hết hạn", 401);
+    err.code = "REFRESH_INVALID";
+    authServiceMock.refreshAccessToken.mockRejectedValue(err);
+
+    const response = await request(app)
+      .post("/api/auth/refresh")
+      .send({ refreshToken: "bad-token" });
+
+    expect(response.status).toBe(401);
+    expect(response.body.success).toBe(false);
+    expect(response.body.code).toBe("REFRESH_INVALID");
+  });
+
+  test("POST /api/auth/refresh with expired token returns 401 REFRESH_EXPIRED", async () => {
+    const { AppError } = await import("../../../common/exceptions/AppError.js");
+    const err = new AppError("Refresh token đã hết hạn", 401);
+    err.code = "REFRESH_EXPIRED";
+    authServiceMock.refreshAccessToken.mockRejectedValue(err);
+
+    const response = await request(app)
+      .post("/api/auth/refresh")
+      .send({ refreshToken: "expired-token" });
+
+    expect(response.status).toBe(401);
+    expect(response.body.success).toBe(false);
+    expect(response.body.code).toBe("REFRESH_EXPIRED");
+  });
 });

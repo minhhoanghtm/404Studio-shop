@@ -1,5 +1,6 @@
 import userRepository from "../users/user.repository.js";
 import authRepository from "./auth.repository.js";
+import RefreshTokenModel from "./refreshToken.model.js";
 import { AppError } from "../../common/exceptions/AppError.js";
 import { normalizeEmail } from "../../common/utils/normalizeEmail.js";
 import { generateOTP } from "../../common/helpers/generateOTP.js";
@@ -66,6 +67,22 @@ class AuthService {
     await redis.set(sessionKey, JSON.stringify(sessionData), "EX", REFRESH_TOKEN_REDIS_TTL);
     await redis.set(`rt:${hashedRt}`, sessionKey, "EX", REFRESH_TOKEN_REDIS_TTL);
     await redis.set(`at:${jti}`, String(user._id || user.id), "EX", ACCESS_TOKEN_REDIS_TTL);
+
+    // Persist hashed token in DB with userId, expiration, ip, ua, revokable
+    try {
+      const expiresAt = new Date(Date.now() + REFRESH_TOKEN_REDIS_TTL * 1000);
+      await RefreshTokenModel.create({
+        userId: user._id || user.id,
+        tokenHash: hashedRt,
+        jti,
+        expiresAt,
+        ip: ip || null,
+        userAgent: ua || null,
+        revoked: false,
+      });
+    } catch (dbErr) {
+      logger.warn("Không thể lưu RefreshToken vào MongoDB:", dbErr.message);
+    }
 
     return {
       accessToken,
@@ -635,6 +652,14 @@ class AuthService {
   async signOut(refreshToken, jti = null) {
     if (refreshToken) {
       const hashedRt = hashToken(refreshToken);
+      try {
+        await RefreshTokenModel.updateOne(
+          { tokenHash: hashedRt },
+          { revoked: true, revokedAt: new Date() }
+        );
+      } catch (dbErr) {
+        logger.warn("Lỗi thu hồi token trong DB khi signOut:", dbErr.message);
+      }
       const sessionKey = await redis.get(`rt:${hashedRt}`);
       if (sessionKey) {
         await redis.del(sessionKey);
@@ -649,13 +674,15 @@ class AuthService {
 
   async refreshAccessToken(refreshToken, ip = null, ua = null) {
     if (!refreshToken) {
-      throw new AppError("Thiếu refresh token", 401);
+      const err = new AppError("Thiếu refresh token", 401);
+      err.code = "REFRESH_MISSING";
+      throw err;
     }
 
     const hashedRt = hashToken(refreshToken);
     const sessionKey = await redis.get(`rt:${hashedRt}`);
     if (!sessionKey) {
-      // Check 30s Grace Period for rotated tokens (handles multi-tab & concurrent requests race conditions)
+      // 1. Check 30s Grace Period for rotated tokens (handles multi-tab & concurrent requests race conditions)
       const graceStr = await redis.get(`rt:grace:${hashedRt}`);
       if (graceStr) {
         try {
@@ -672,12 +699,52 @@ class AuthService {
           // Fall through to 401
         }
       }
-      throw new AppError("Phiên đăng nhập không hợp lệ hoặc đã hết hạn", 401);
+
+      // 2. Token Reuse Detection via DB record
+      let tokenDoc = null;
+      try {
+        tokenDoc = await RefreshTokenModel.findOne({ tokenHash: hashedRt });
+      } catch (dbErr) {
+        logger.warn("Lỗi tra cứu RefreshToken từ DB:", dbErr.message);
+      }
+
+      if (tokenDoc) {
+        if (tokenDoc.revoked || tokenDoc.replacedByTokenHash) {
+          // Stale / rotated token was reused: immediately revoke all user sessions!
+          logger.warn(`[Security] Phát hiện refresh token cũ bị dùng lại cho user ${tokenDoc.userId}. Thu hồi toàn bộ phiên!`);
+          await this.signOutAll(tokenDoc.userId);
+          const err = new AppError("Phát hiện token cũ bị sử dụng lại. Toàn bộ phiên đăng nhập đã bị thu hồi.", 401);
+          err.code = "REFRESH_INVALID";
+          throw err;
+        }
+
+        if (tokenDoc.expiresAt && tokenDoc.expiresAt.getTime() < Date.now()) {
+          const err = new AppError("Refresh token đã hết hạn", 401);
+          err.code = "REFRESH_EXPIRED";
+          throw err;
+        }
+      }
+
+      // 3. Token Reuse Detection via Redis record
+      const usedUserId = await redis.get(`rt:used:${hashedRt}`);
+      if (usedUserId) {
+        logger.warn(`[Security] Phát hiện token cũ bị dùng lại (Redis) cho user ${usedUserId}. Thu hồi toàn bộ phiên!`);
+        await this.signOutAll(usedUserId);
+        const err = new AppError("Phát hiện token cũ bị sử dụng lại. Toàn bộ phiên đăng nhập đã bị thu hồi.", 401);
+        err.code = "REFRESH_INVALID";
+        throw err;
+      }
+
+      const err = new AppError("Phiên đăng nhập không hợp lệ hoặc đã hết hạn", 401);
+      err.code = "REFRESH_INVALID";
+      throw err;
     }
 
     const sessionDataStr = await redis.get(sessionKey);
     if (!sessionDataStr) {
-      throw new AppError("Phiên đăng nhập không tồn tại", 401);
+      const err = new AppError("Phiên đăng nhập không tồn tại", 401);
+      err.code = "REFRESH_INVALID";
+      throw err;
     }
 
     const sessionData = JSON.parse(sessionDataStr);
@@ -689,7 +756,9 @@ class AuthService {
     if (!user || user.status === "blocked") {
       await redis.del(sessionKey);
       await redis.del(`rt:${hashedRt}`);
-      throw new AppError("Tài khoản không tồn tại hoặc đã bị khóa", 403);
+      const err = new AppError("Tài khoản không tồn tại hoặc đã bị khóa", 403);
+      err.code = "ACCOUNT_BLOCKED";
+      throw err;
     }
 
     await redis.del(`at:${oldJti}`);
@@ -712,9 +781,32 @@ class AuthService {
       createdAt: sessionData.createdAt,
     };
 
+    // Update token rotation in DB
+    try {
+      await RefreshTokenModel.updateOne(
+        { tokenHash: hashedRt },
+        { revoked: true, revokedAt: new Date(), replacedByTokenHash: newHashedRt }
+      );
+
+      const expiresAt = new Date(Date.now() + REFRESH_TOKEN_REDIS_TTL * 1000);
+      await RefreshTokenModel.create({
+        userId: user._id,
+        tokenHash: newHashedRt,
+        jti: newJti,
+        expiresAt,
+        ip: ip || null,
+        userAgent: ua || null,
+        revoked: false,
+      });
+    } catch (dbErr) {
+      logger.warn("Lỗi cập nhật xoay vòng RefreshToken trong DB:", dbErr.message);
+    }
+
     const pipeline = redis.pipeline();
     pipeline.del(sessionKey);
     pipeline.del(`rt:${hashedRt}`);
+    // Record old token hash in rt:used for reuse detection
+    pipeline.set(`rt:used:${hashedRt}`, String(user._id), "EX", REFRESH_TOKEN_REDIS_TTL);
     // Store in grace period for 30s to allow concurrent in-flight requests and multi-tab synchronization
     pipeline.set(
       `rt:grace:${hashedRt}`,
@@ -740,6 +832,16 @@ class AuthService {
 
   async signOutAll(userId) {
     if (!userId) return;
+
+    // Revoke all tokens in DB
+    try {
+      await RefreshTokenModel.updateMany(
+        { userId, revoked: false },
+        { revoked: true, revokedAt: new Date() }
+      );
+    } catch (dbErr) {
+      logger.warn("Lỗi thu hồi toàn bộ token trong DB khi signOutAll:", dbErr.message);
+    }
 
     let cursor = "0";
     const pattern = `sess:${userId}:*`;

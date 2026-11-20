@@ -17,8 +17,10 @@ import {
   sendForgotPasswordOtpController,
   resetPasswordWithOtpController,
   resendOtpController,
+  getMyPermissions,
 } from "./auth.controller.js";
 import { protectedRoute, optionalProtectedRoute } from "../../middlewares/auth.middleware.js";
+import { authenticate } from "../../middlewares/rbac.middleware.js";
 import {
   validateSignUp,
   validateSignIn,
@@ -39,6 +41,7 @@ import {
   sendOtpLimiter,
   verifyOtpLimiter,
   resetPasswordLimiter,
+  refreshLimiter,
 } from "../../middlewares/rateLimiter.middleware.js";
 import { ConsoleSmsProvider } from "../sms/providers/console.provider.js";
 
@@ -80,12 +83,19 @@ if (process.env.NODE_ENV !== "production") {
   });
 }
 
+// ── RBAC Effective Permissions Query ────────────────────────────────────────
+router.get("/me/permissions", authenticate, getMyPermissions);
+
+// ── Modern Refresh & Logout Aliases ─────────────────────────────────────────
+router.post("/refresh", refreshLimiter, refreshAccessToken);
+router.post("/logout", optionalProtectedRoute, signOut);
+
 // ── Legacy Auth Routes (Backwards Compatibility) ────────────────────────────
 router.post("/signUp", signUpLimiter, validateSignUp, signUp);
 router.post("/signIn", signInLimiter, validateSignIn, signIn);
 router.post("/signOut", optionalProtectedRoute, signOut);
 router.post("/signOutAll", protectedRoute, signOutAllDevices);
-router.post("/refreshToken", refreshAccessToken);
+router.post("/refreshToken", refreshLimiter, refreshAccessToken);
 router.post("/sendOTP", sendOtpLimiter, validateSendOTP, sendOTPController);
 router.post("/sendResetOTP", sendOtpLimiter, validateSendOTP, sendResetOTPController);
 router.post("/verify-otp", verifyOtpLimiter, validateVerifyOTP, verifyOTP);

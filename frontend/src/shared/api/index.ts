@@ -7,10 +7,16 @@ export * from './client';
 // ============================================================================
 export const authApi = {
   login: (credentials: { email: string; passWord: string }) =>
-    api.post<ApiResponse<{ user: any; accessToken: string }>>('/auth/login', credentials),
+    api.post<ApiResponse<{ user: any; accessToken: string; refreshToken?: string }>>('/auth/login', credentials),
 
   register: (payload: { email: string; passWord: string; fullName: string; phone?: string; termsAccepted: true; privacyAccepted: true; marketingAccepted?: boolean; policyVersion: string }) =>
-    api.post<ApiResponse<{ message: string; user?: any; accessToken?: string }>>('/auth/signUp', payload),
+    api.post<ApiResponse<{ message: string; user?: any; accessToken?: string; refreshToken?: string }>>('/auth/signUp', payload),
+
+  refresh: (refreshToken?: string) =>
+    api.post<ApiResponse<{ accessToken: string; refreshToken: string; user: any }>>(
+      '/auth/refresh',
+      refreshToken ? { refreshToken } : {}
+    ),
 
   sendOtp: (payload: { email?: string; phone?: string; purpose?: string }) =>
     api.post<ApiResponse<{ message: string }>>('/auth/register/send-otp', {
@@ -76,11 +82,11 @@ export const productsApi = {
     if (params?.search) query.set('q', params.search);
     
     const qs = query.toString();
-    return api.get<ApiResponse<any[]>>(`/products${qs ? `?${qs}` : ''}`);
+    return api.get<ApiResponse<any[]>>(`/products/catalog${qs ? `?${qs}` : ''}`);
   },
 
   searchProducts: (queryText: string, limit: number = 8) =>
-    api.get<ApiResponse<any[]>>(`/products/search?q=${encodeURIComponent(queryText)}&limit=${limit}`),
+    api.get<ApiResponse<any[]>>(`/products/search?search=${encodeURIComponent(queryText)}&limit=${limit}`),
 
   getProductBySlug: (slug: string) =>
     api.get<ApiResponse<any>>(`/products/${slug}`),
@@ -376,6 +382,8 @@ export const adminApi = {
   getMessages: (conversationId: string) => api.get<ApiResponse<any[]>>(`/admin/messages/${conversationId}`),
   createProduct: (data: any) => api.post<ApiResponse<any>>('/products', data),
   updateProduct: (id: string, data: any) => api.put<ApiResponse<any>>(`/products/${id}`, data),
+  createAdminFormProduct: (data: any) => api.post<ApiResponse<any>>('/products/admin-form', data),
+  updateAdminFormProduct: (id: string, data: any) => api.put<ApiResponse<any>>(`/products/admin-form/${id}`, data),
   deleteProduct: (id: string) => api.delete<ApiResponse<any>>(`/products/${id}`),
   createProductVariant: (data: any) => api.post<ApiResponse<any>>('/product_variants', data),
   updateProductVariant: (id: string, data: any) => api.put<ApiResponse<any>>(`/product_variants/${id}`, data),
@@ -709,3 +717,6 @@ export const loyaltyApi = {
   },
   updateTierSettings: (data: any) => api.put<ApiResponse<any>>('/loyalty/admin/tiers', data),
 };
+
+export * from './communicationApi';
+

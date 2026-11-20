@@ -77,6 +77,13 @@ export const resetPasswordLimiter = createLimiter(
   "Bạn đã đặt lại mật khẩu quá nhiều lần. Vui lòng thử lại sau 15 phút.",
 );
 
+/** /auth/refresh & /auth/refreshToken — 30 req / 15 min (chống brute force & spam refresh) */
+export const refreshLimiter = createLimiter(
+  15 * 60 * 1000,
+  30,
+  "Quá nhiều yêu cầu làm mới phiên. Vui lòng thử lại sau.",
+);
+
 /** Áp cho toàn bộ /auth — 100 req / 15 min (lưới an toàn chống DDoS) */
 export const authGlobalLimiter = createLimiter(
   15 * 60 * 1000,
