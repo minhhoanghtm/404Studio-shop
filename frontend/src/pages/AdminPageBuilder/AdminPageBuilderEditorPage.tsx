@@ -46,6 +46,8 @@ import { PageStructurePanel } from './components/PageStructurePanel';
 import { BlockInspectorPanel } from './components/BlockInspectorPanel';
 import { TemplateSelectorModal } from './components/TemplateSelectorModal';
 import { cmsPagesApi } from '@/shared/api';
+import { useModal, ModalPortal } from '@/shared/context/ModalContext';
+import { Z_INDEX } from '@/shared/config/zIndex';
 
 export const AdminPageBuilderEditorPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -93,6 +95,12 @@ export const AdminPageBuilderEditorPage: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [legalValidationModal, setLegalValidationModal] = useState<LegalValidationResult | null>(null);
+
+  const { overlayZIndex: legalOverlayZ, contentZIndex: legalContentZ } = useModal({
+    id: 'admin-legal-validation-modal',
+    isOpen: Boolean(legalValidationModal),
+    onClose: () => setLegalValidationModal(null),
+  });
 
   const showToast = (type: 'success' | 'error', text: string) => {
     setToastMessage({ type, text });
@@ -645,16 +653,18 @@ export const AdminPageBuilderEditorPage: React.FC = () => {
         {/* Mobile Backdrop */}
         {activeMobileDrawer !== 'none' && (
           <div
-            className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm xl:hidden"
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm xl:hidden"
+            style={{ zIndex: Z_INDEX.drawerOverlay }}
             onClick={() => setActiveMobileDrawer('none')}
           />
         )}
 
         {/* LEFT PANEL: Block Library & Page Structure (w-72) */}
         <aside
+          style={activeMobileDrawer === 'left' ? { zIndex: Z_INDEX.drawer } : undefined}
           className={`w-72 shrink-0 h-full flex flex-col bg-[#0e0e14] border-r border-white/10 transition-all ${
             activeMobileDrawer === 'left'
-              ? 'fixed inset-y-0 left-0 z-50 shadow-2xl flex'
+              ? 'fixed inset-y-0 left-0 shadow-2xl flex'
               : 'hidden xl:flex'
           }`}
         >
@@ -787,9 +797,10 @@ export const AdminPageBuilderEditorPage: React.FC = () => {
 
         {/* RIGHT PANEL: Block & Page Inspector (w-80) */}
         <aside
+          style={activeMobileDrawer === 'right' ? { zIndex: Z_INDEX.drawer } : undefined}
           className={`w-80 shrink-0 h-full bg-[#0e0e14] border-l border-white/10 flex flex-col transition-all ${
             activeMobileDrawer === 'right'
-              ? 'fixed inset-y-0 right-0 z-50 shadow-2xl flex'
+              ? 'fixed inset-y-0 right-0 shadow-2xl flex'
               : 'hidden xl:flex'
           }`}
         >
@@ -825,44 +836,60 @@ export const AdminPageBuilderEditorPage: React.FC = () => {
 
       {/* ================= LEGAL VALIDATION GATE MODAL ================= */}
       {legalValidationModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="w-full max-w-lg bg-[#14141c] border border-red-500/40 rounded-2xl p-6 space-y-4 shadow-2xl">
-            <div className="flex items-center gap-3 text-red-400">
-              <AlertCircle className="w-6 h-6 shrink-0" />
-              <h3 className="font-serif text-lg font-medium text-white">
-                Không Thể Xuất Bản: Thiếu Quy Định Pháp Lý Bắt Buộc
-              </h3>
-            </div>
+        <ModalPortal>
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="fixed inset-0 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm pointer-events-auto"
+            style={{ zIndex: legalOverlayZ }}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setLegalValidationModal(null);
+            }}
+          >
+            <div
+              className="w-full max-w-lg bg-[#14141c] border border-red-500/40 rounded-2xl p-6 space-y-4 shadow-2xl max-h-[calc(100dvh-32px)] overflow-y-auto"
+              style={{ zIndex: legalContentZ }}
+            >
+              <div className="flex items-center gap-3 text-red-400">
+                <AlertCircle className="w-6 h-6 shrink-0" />
+                <h3 className="font-serif text-lg font-medium text-white">
+                  Không Thể Xuất Bản: Thiếu Quy Định Pháp Lý Bắt Buộc
+                </h3>
+              </div>
 
-            <p className="text-xs text-white/70 leading-relaxed">
-              Theo quy định của <strong>Luật Bảo vệ dữ liệu cá nhân số 91/2025/QH15</strong> và Nghị định 356/2025/NĐ-CP, trang chính sách pháp lý của doanh nghiệp không được lược bỏ các điều khoản bắt buộc sau:
-            </p>
+              <p className="text-xs text-white/70 leading-relaxed">
+                Theo quy định của <strong>Luật Bảo vệ dữ liệu cá nhân số 91/2025/QH15</strong> và Nghị định 356/2025/NĐ-CP, trang chính sách pháp lý của doanh nghiệp không được lược bỏ các điều khoản bắt buộc sau:
+              </p>
 
-            <ul className="space-y-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-xs text-red-300">
-              {legalValidationModal.errors.map((err, i) => (
-                <li key={i} className="flex items-start gap-2">
-                  <span className="font-bold">•</span>
-                  <span>{err}</span>
-                </li>
-              ))}
-            </ul>
+              <ul className="space-y-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-xs text-red-300">
+                {legalValidationModal.errors.map((err, i) => (
+                  <li key={i} className="flex items-start gap-2">
+                    <span className="font-bold">•</span>
+                    <span>{err}</span>
+                  </li>
+                ))}
+              </ul>
 
-            <div className="pt-2 flex items-center justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setLegalValidationModal(null)}
-                className="px-5 py-2 rounded-lg bg-white/10 text-white text-xs font-medium hover:bg-white/20 transition-colors"
-              >
-                Đã Hiểu, Quay Lại Bổ Sung
-              </button>
+              <div className="pt-2 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setLegalValidationModal(null)}
+                  className="px-5 py-2 rounded-lg bg-white/10 text-white text-xs font-medium hover:bg-white/20 transition-colors"
+                >
+                  Đã Hiểu, Quay Lại Bổ Sung
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
 
       {/* ================= TOAST NOTIFICATION ================= */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 animate-bounce">
+        <div
+          className="fixed bottom-6 right-6 animate-bounce pointer-events-auto"
+          style={{ zIndex: Z_INDEX.toast }}
+        >
           <div
             className={`flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-2xl text-xs font-medium border ${
               toastMessage.type === 'success'

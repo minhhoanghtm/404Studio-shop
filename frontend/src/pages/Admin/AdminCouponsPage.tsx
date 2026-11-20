@@ -4,10 +4,17 @@ import { Plus, Ticket, Trash2, Edit3, Clock, CheckCircle } from 'lucide-react';
 import { vouchersApi, adminApi } from '@/shared/api';
 import { formatCurrency } from '@/shared/utils/formatters';
 import { useToastStore } from '@/shared/stores/useToastStore';
+import { useModal, ModalPortal } from '@/shared/context/ModalContext';
 
 export const AdminCouponsPage: React.FC = () => {
   const [coupons, setCoupons] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const { overlayZIndex, contentZIndex } = useModal({
+    id: 'admin-coupon-modal',
+    isOpen: isModalOpen,
+    onClose: () => setIsModalOpen(false),
+  });
   const [code, setCode] = useState('');
   const [discountPercent, setDiscountPercent] = useState(15);
   const [minOrder, setMinOrder] = useState(0);
@@ -151,8 +158,21 @@ export const AdminCouponsPage: React.FC = () => {
 
         {/* Modal */}
         {isModalOpen && (
-          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-noir-900 border border-white/10 w-full max-w-md p-6 rounded-sm text-white">
+          <ModalPortal>
+            <div
+              className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 pointer-events-auto"
+              style={{ zIndex: overlayZIndex }}
+              onClick={(e) => {
+                if (e.target === e.currentTarget) setIsModalOpen(false);
+              }}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Khởi Tạo Mã Ưu Đãi"
+            >
+              <div
+                className="bg-noir-900 border border-white/10 w-full max-w-md p-6 rounded-sm text-white max-h-[calc(100dvh-32px)] overflow-y-auto"
+                style={{ zIndex: contentZIndex }}
+              >
               <h3 className="font-display text-lg mb-4">Khởi Tạo Mã Ưu Đãi</h3>
               <form onSubmit={handleCreateCoupon} className="space-y-4 text-xs">
                 <div>
@@ -224,6 +244,7 @@ export const AdminCouponsPage: React.FC = () => {
               </form>
             </div>
           </div>
+          </ModalPortal>
         )}
       </div>
     </AdminLayout>

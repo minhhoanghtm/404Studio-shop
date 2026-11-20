@@ -7,6 +7,7 @@ import { CategoryImageUploader } from '@/shared/components/category/CategoryImag
 import { ExcelTemplateButton } from '@/shared/components/excel/ExcelTemplateButton';
 import { ExcelExportButton } from '@/shared/components/excel/ExcelExportButton';
 import { ExcelImportModal } from '@/shared/components/excel/ExcelImportModal';
+import { useModal, ModalPortal } from '@/shared/context/ModalContext';
 
 export const AdminCategoriesPage: React.FC = () => {
   const [categories, setCategories] = useState<any[]>([]);
@@ -16,6 +17,12 @@ export const AdminCategoriesPage: React.FC = () => {
   // Modal form states
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+
+  const { overlayZIndex, contentZIndex } = useModal({
+    id: 'admin-category-form-modal',
+    isOpen: isModalOpen,
+    onClose: () => setIsModalOpen(false),
+  });
   const [editingCat, setEditingCat] = useState<any | null>(null);
   const [formName, setFormName] = useState('');
   const [formSlug, setFormSlug] = useState('');
@@ -290,20 +297,33 @@ export const AdminCategoriesPage: React.FC = () => {
 
         {/* Modal Create / Edit */}
         {isModalOpen && (
-          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-noir-900 border border-white/10 w-full max-w-md p-6 rounded-sm text-white space-y-4">
-              <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                <h3 className="font-display text-base font-semibold text-white">
-                  {editingCat ? 'Chỉnh Sửa Danh Mục Thời Trang' : 'Tạo Danh Mục Thời Trang Mới'}
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="p-1 text-platinum-dark hover:text-white"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
+          <ModalPortal>
+            <div
+              className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 pointer-events-auto"
+              style={{ zIndex: overlayZIndex }}
+              onClick={(e) => {
+                if (e.target === e.currentTarget && !isSaving) setIsModalOpen(false);
+              }}
+              role="dialog"
+              aria-modal="true"
+              aria-label={editingCat ? 'Chỉnh Sửa Danh Mục' : 'Tạo Danh Mục Mới'}
+            >
+              <div
+                className="bg-noir-900 border border-white/10 w-full max-w-md p-6 rounded-sm text-white space-y-4 max-h-[calc(100dvh-32px)] overflow-y-auto"
+                style={{ zIndex: contentZIndex }}
+              >
+                <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                  <h3 className="font-display text-base font-semibold text-white">
+                    {editingCat ? 'Chỉnh Sửa Danh Mục Thời Trang' : 'Tạo Danh Mục Thời Trang Mới'}
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="p-1 text-platinum-dark hover:text-white"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
 
               <form onSubmit={handleSave} className="space-y-4 text-xs">
                 {/* Category Name */}
@@ -378,6 +398,7 @@ export const AdminCategoriesPage: React.FC = () => {
               </form>
             </div>
           </div>
+          </ModalPortal>
         )}
 
         {/* Excel Import Modal */}

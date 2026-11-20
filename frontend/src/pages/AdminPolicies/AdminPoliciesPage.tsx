@@ -20,6 +20,7 @@ import { AdminLayout } from '../Admin/AdminLayout';
 import { adminPoliciesApi, PolicyDocument } from '@/shared/api';
 import { useToastStore } from '@/shared/stores/useToastStore';
 import { POLICY_CATEGORIES, PolicyStatusFilter } from './types';
+import { useModal, ModalPortal } from '@/shared/context/ModalContext';
 
 export const AdminPoliciesPage: React.FC = () => {
   const navigate = useNavigate();
@@ -40,6 +41,12 @@ export const AdminPoliciesPage: React.FC = () => {
   // Deletion modal state
   const [deletingPolicy, setDeletingPolicy] = useState<PolicyDocument | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const { overlayZIndex, contentZIndex } = useModal({
+    id: 'admin-delete-policy-modal',
+    isOpen: Boolean(deletingPolicy),
+    onClose: () => setDeletingPolicy(null),
+  });
 
   const fetchPolicies = useCallback(async () => {
     setLoading(true);
@@ -495,8 +502,21 @@ export const AdminPoliciesPage: React.FC = () => {
 
         {/* Delete Confirmation Modal */}
         {deletingPolicy && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-            <div className="w-full max-w-md bg-noir-900 border border-white/20 rounded-sm p-6 space-y-4 shadow-2xl">
+          <ModalPortal>
+            <div
+              className="fixed inset-0 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in pointer-events-auto"
+              style={{ zIndex: overlayZIndex }}
+              onClick={(e) => {
+                if (e.target === e.currentTarget && !isDeleting) setDeletingPolicy(null);
+              }}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Xác nhận xóa chính sách"
+            >
+              <div
+                className="w-full max-w-md bg-noir-900 border border-white/20 rounded-sm p-6 space-y-4 shadow-2xl max-h-[calc(100dvh-32px)] overflow-y-auto"
+                style={{ zIndex: contentZIndex }}
+              >
               <div className="flex items-center gap-3 text-red-400">
                 <div className="w-10 h-10 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center shrink-0">
                   <Trash2 className="w-5 h-5" />
@@ -539,6 +559,7 @@ export const AdminPoliciesPage: React.FC = () => {
               </div>
             </div>
           </div>
+          </ModalPortal>
         )}
       </div>
     </AdminLayout>

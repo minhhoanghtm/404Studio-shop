@@ -7,7 +7,9 @@
  * ATELIER VÉRITÉ DESIGN TOKENS
  * Master Color System (Light Default + Dark Mode fallback)
  */
-:root, [data-theme="light"], html.light {
+:root,
+[data-theme="light"],
+html.light {
   /* 1. Official Atelier Vérité Light Palette (WCAG AA Compliant) */
   --bg: #FAF8F3;
   --bg-alt: #F1EDE4;
@@ -73,7 +75,8 @@
   color-scheme: light;
 }
 
-[data-theme="dark"], html.dark {
+[data-theme="dark"],
+html.dark {
   --bg: #121217;
   --bg-alt: #191920;
   --surface: #1E1E26;
@@ -205,13 +208,16 @@
     width: 6px;
     height: 6px;
   }
+
   ::-webkit-scrollbar-track {
     background: transparent;
   }
+
   ::-webkit-scrollbar-thumb {
     background: rgba(184, 146, 31, 0.25);
     border-radius: 9999px;
   }
+
   ::-webkit-scrollbar-thumb:hover {
     background: rgba(184, 146, 31, 0.55);
   }
@@ -237,17 +243,21 @@
     scrollbar-color: rgba(184, 146, 31, 0.3) transparent;
     overscroll-behavior: contain;
   }
+
   .admin-sidebar-scrollbar::-webkit-scrollbar {
     width: 6px;
     height: 6px;
   }
+
   .admin-sidebar-scrollbar::-webkit-scrollbar-track {
     background: transparent;
   }
+
   .admin-sidebar-scrollbar::-webkit-scrollbar-thumb {
     background: rgba(184, 146, 31, 0.25);
     border-radius: 9999px;
   }
+
   .admin-sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
     background: rgba(184, 146, 31, 0.6);
   }
@@ -259,17 +269,21 @@
     scrollbar-gutter: stable;
     overscroll-behavior: contain;
   }
+
   .admin-content-scrollbar::-webkit-scrollbar {
     width: 8px;
     height: 8px;
   }
+
   .admin-content-scrollbar::-webkit-scrollbar-track {
     background: var(--bg);
   }
+
   .admin-content-scrollbar::-webkit-scrollbar-thumb {
     background: var(--border);
     border-radius: 9999px;
   }
+
   .admin-content-scrollbar::-webkit-scrollbar-thumb:hover {
     background: var(--text-muted);
   }
@@ -279,6 +293,7 @@
     overflow-x: auto;
     overscroll-behavior: contain;
   }
+
   .admin-table-container table thead th {
     position: sticky;
     top: 0;
@@ -479,8 +494,13 @@ html.dark .atelier-skeleton {
 }
 
 @keyframes atelier-skeleton-pulse {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 /* Link hover animated underline */
@@ -488,6 +508,7 @@ html.dark .atelier-skeleton {
   position: relative;
   text-decoration: none;
 }
+
 .hover-draw-underline::after {
   content: '';
   position: absolute;
@@ -500,6 +521,7 @@ html.dark .atelier-skeleton {
   transform-origin: right;
   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
+
 .hover-draw-underline:hover::after {
   transform: scaleX(1);
   transform-origin: left;
@@ -507,7 +529,10 @@ html.dark .atelier-skeleton {
 
 /* Reduced Motion Support */
 @media (prefers-reduced-motion: reduce) {
-  *, ::before, ::after {
+
+  *,
+  ::before,
+  ::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
@@ -552,7 +577,7 @@ html.dark .atelier-skeleton {
   animation: atelier-marquee 40s linear infinite;
 }
 
-.announcement-track > div {
+.announcement-track>div {
   display: flex;
   align-items: center;
   flex: none;
@@ -573,7 +598,9 @@ html.dark .atelier-skeleton {
 }
 
 @keyframes atelier-marquee {
-  to { transform: translateX(-50%); }
+  to {
+    transform: translateX(-50%);
+  }
 }
 
 /* Navbar: trong suốt đè lên hero, khi cuộn chuyển sang --bg có blur nhẹ + viền dưới 1px */
@@ -787,15 +814,19 @@ html.dark .atelier-skeleton {
   .atelier-nav-inner {
     grid-template-columns: 1fr auto;
   }
+
   .atelier-nav-links {
     display: none;
   }
+
   .atelier-logo {
     justify-self: start;
   }
+
   .atelier-nav-actions {
     gap: 13px;
   }
+
   .atelier-menu-toggle {
     display: grid !important;
   }
@@ -805,28 +836,36 @@ html.dark .atelier-skeleton {
   .atelier-nav {
     height: 64px;
   }
+
   .site-main-standard {
     padding-top: 100px;
   }
+
   .atelier-nav-inner {
     padding: 0 18px;
   }
+
   .atelier-logo {
     font-size: 15px;
   }
+
   .atelier-logo small {
     font-size: 6px;
   }
+
   .atelier-nav-actions {
     gap: 11px;
   }
+
   .atelier-nav-actions svg {
     width: 16px;
     height: 16px;
   }
+
   .atelier-nav-actions a[href='/account'] {
     display: none;
   }
+
   .announcement-track span {
     padding: 0 12px;
   }

@@ -21,6 +21,7 @@ import { AdminLayout } from '../Admin/AdminLayout';
 import { campaignsApi } from '@/shared/api';
 import { Campaign, CampaignStatus, CampaignType } from '@/shared/campaigns';
 import { useToastStore } from '@/shared/stores/useToastStore';
+import { useModal, ModalPortal } from '@/shared/context/ModalContext';
 
 export const AdminCampaignsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -42,6 +43,12 @@ export const AdminCampaignsPage: React.FC = () => {
   // Deletion state
   const [deletingCampaign, setDeletingCampaign] = useState<Campaign | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const { overlayZIndex: deleteOverlayZ, contentZIndex: deleteContentZ } = useModal({
+    id: 'admin-campaign-delete-modal',
+    isOpen: Boolean(deletingCampaign),
+    onClose: () => setDeletingCampaign(null),
+  });
 
   const fetchCampaigns = useCallback(async () => {
     setLoading(true);
@@ -402,44 +409,53 @@ export const AdminCampaignsPage: React.FC = () => {
 
       {/* Delete Confirmation Modal */}
       {deletingCampaign && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
-        >
-          <div className="w-full max-w-md bg-noir-900 border border-rose-500/40 p-6 rounded-sm text-white shadow-2xl">
-            <div className="flex items-center gap-3 text-rose-400 mb-3">
-              <AlertCircle className="w-5 h-5 shrink-0" />
-              <h3 className="font-serif text-base uppercase tracking-wider font-medium">
-                Xác Nhận Xóa Chiến Dịch
-              </h3>
-            </div>
-            <p className="text-xs text-white/70 leading-relaxed mb-6">
-              Bạn có chắc chắn muốn xóa chiến dịch{' '}
-              <strong className="text-white">"{deletingCampaign.name}"</strong>? Thao tác này sẽ dừng
-              mọi hiển thị Popup và gỡ bỏ ưu đãi của các sản phẩm liên quan. Lịch sử đơn hàng vẫn
-              được bảo toàn.
-            </p>
-            <div className="flex items-center justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setDeletingCampaign(null)}
-                disabled={isDeleting}
-                className="px-4 py-2 bg-noir-950 border border-white/10 text-xs text-white/70 hover:text-white rounded-sm"
-              >
-                Hủy bỏ
-              </button>
-              <button
-                type="button"
-                onClick={handleDeleteConfirm}
-                disabled={isDeleting}
-                className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-xs font-semibold text-white rounded-sm shadow-md"
-              >
-                {isDeleting ? 'Đang xóa...' : 'Xác Nhận Xóa'}
-              </button>
+        <ModalPortal>
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="fixed inset-0 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm pointer-events-auto"
+            style={{ zIndex: deleteOverlayZ }}
+            onClick={(e) => {
+              if (e.target === e.currentTarget && !isDeleting) setDeletingCampaign(null);
+            }}
+          >
+            <div
+              className="w-full max-w-md bg-noir-900 border border-rose-500/40 p-6 rounded-sm text-white shadow-2xl max-h-[calc(100dvh-32px)] overflow-y-auto"
+              style={{ zIndex: deleteContentZ }}
+            >
+              <div className="flex items-center gap-3 text-rose-400 mb-3">
+                <AlertCircle className="w-5 h-5 shrink-0" />
+                <h3 className="font-serif text-base uppercase tracking-wider font-medium">
+                  Xác Nhận Xóa Chiến Dịch
+                </h3>
+              </div>
+              <p className="text-xs text-white/70 leading-relaxed mb-6">
+                Bạn có chắc chắn muốn xóa chiến dịch{' '}
+                <strong className="text-white">"{deletingCampaign.name}"</strong>? Thao tác này sẽ dừng
+                mọi hiển thị Popup và gỡ bỏ ưu đãi của các sản phẩm liên quan. Lịch sử đơn hàng vẫn
+                được bảo toàn.
+              </p>
+              <div className="flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDeletingCampaign(null)}
+                  disabled={isDeleting}
+                  className="px-4 py-2 bg-noir-950 border border-white/10 text-xs text-white/70 hover:text-white rounded-sm"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeleteConfirm}
+                  disabled={isDeleting}
+                  className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-xs font-semibold text-white rounded-sm shadow-md"
+                >
+                  {isDeleting ? 'Đang xóa...' : 'Xác Nhận Xóa'}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
     </AdminLayout>
   );

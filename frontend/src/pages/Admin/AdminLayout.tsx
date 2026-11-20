@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '@/shared/stores/useAuthStore';
 import { motion, useReducedMotion } from 'motion/react';
+import { Z_INDEX } from '@/shared/config/zIndex';
 import { PERMISSIONS } from '@/shared/config/routePermissions';
 
 interface AdminLayoutProps {
@@ -141,7 +142,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
       {/* Mobile Drawer Backdrop (<= 1024px) */}
       {isMobileMenuOpen && (
         <div
-          className="fixed inset-0 z-40 bg-[rgba(26,26,23,0.55)] backdrop-blur-sm lg:hidden transition-opacity"
+          className="fixed inset-0 bg-[rgba(26,26,23,0.55)] backdrop-blur-sm lg:hidden transition-opacity"
+          style={{ zIndex: Z_INDEX.drawerOverlay }}
           onClick={() => setIsMobileMenuOpen(false)}
           aria-label="Đóng menu điều hướng"
         />
@@ -149,9 +151,12 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
 
       {/* Sidebar Navigation (Desktop: Fixed 260px in-flow; Mobile: Slide-out Drawer <= 1024px) */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-[260px] max-w-[85vw] h-full bg-[var(--surface)] border-r border-[var(--border)] flex flex-col justify-between shrink-0 overscroll-contain transition-transform duration-300 ease-in-out lg:static lg:z-auto lg:h-full lg:max-w-none lg:translate-x-0 lg:shadow-none lg:transition-none ${isMobileMenuOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'
+        className={`fixed inset-y-0 left-0 w-[260px] max-w-[85vw] h-full bg-[var(--surface)] border-r border-[var(--border)] flex flex-col justify-between shrink-0 overscroll-contain transition-transform duration-300 ease-in-out lg:static lg:z-auto lg:h-full lg:max-w-none lg:translate-x-0 lg:shadow-none lg:transition-none ${isMobileMenuOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'
           }`}
-        style={{ overscrollBehavior: 'contain' }}
+        style={{
+          overscrollBehavior: 'contain',
+          zIndex: isMobileMenuOpen ? Z_INDEX.drawer : undefined,
+        }}
         aria-label="Menu quản trị"
       >
         {/* Sidebar Header: Brand & Logo (Fixed at top) */}

@@ -4,6 +4,7 @@ import { OrderExportData, exportOrdersToExcel, normalizeOrderForExport } from '@
 import { adminApi } from '@/shared/api';
 import { useToastStore } from '@/shared/stores/useToastStore';
 import { useAuthStore } from '@/shared/stores/useAuthStore';
+import { useModal, ModalPortal } from '@/shared/context/ModalContext';
 
 interface OrderExportModalProps {
   isOpen: boolean;
@@ -24,6 +25,12 @@ export const OrderExportModal: React.FC<OrderExportModalProps> = ({
   currentSearchQuery,
   totalFilteredCount,
 }) => {
+  const { overlayZIndex, contentZIndex } = useModal({
+    id: 'order-export-modal',
+    isOpen,
+    onClose,
+  });
+
   const { addToast } = useToastStore();
   const { user } = useAuthStore();
 
@@ -131,9 +138,24 @@ export const OrderExportModal: React.FC<OrderExportModalProps> = ({
     }
   };
 
+  if (!isOpen) return null;
+
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-noir-900 border border-white/10 rounded-sm w-full max-w-lg shadow-2xl overflow-hidden flex flex-col">
+    <ModalPortal>
+      <div
+        className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 pointer-events-auto"
+        style={{ zIndex: overlayZIndex }}
+        onClick={(e) => {
+          if (e.target === e.currentTarget && !isExporting) onClose();
+        }}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Xuất Dữ Liệu Đơn Hàng Ra Excel"
+      >
+        <div
+          className="bg-noir-900 border border-white/10 rounded-sm w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-32px)]"
+          style={{ zIndex: contentZIndex }}
+        >
         {/* Header */}
         <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-noir-950">
           <div className="flex items-center gap-2.5">
@@ -339,5 +361,6 @@ export const OrderExportModal: React.FC<OrderExportModalProps> = ({
         </div>
       </div>
     </div>
-  );
+  </ModalPortal>
+);
 };

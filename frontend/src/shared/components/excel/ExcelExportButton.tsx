@@ -4,6 +4,7 @@ import { exportCategoriesToExcel } from '@/shared/utils/excel/categoryExcel';
 import { exportProductsToExcel } from '@/shared/utils/excel/productExcel';
 import { categoriesApi, productsApi, adminApi } from '@/shared/api';
 import { useToastStore } from '@/shared/stores/useToastStore';
+import { useModal, ModalPortal } from '@/shared/context/ModalContext';
 
 interface ExcelExportButtonProps {
   type: 'category' | 'product';
@@ -27,6 +28,12 @@ export const ExcelExportButton: React.FC<ExcelExportButtonProps> = ({
   );
   const [includeImages, setIncludeImages] = useState(true);
   const { addToast } = useToastStore();
+
+  const { overlayZIndex, contentZIndex } = useModal({
+    id: 'excel-export-products-modal',
+    isOpen: isModalOpen,
+    onClose: () => setIsModalOpen(false),
+  });
 
   const handleOpenExportModal = () => {
     if (type === 'category') {
@@ -162,33 +169,45 @@ export const ExcelExportButton: React.FC<ExcelExportButtonProps> = ({
 
       {/* Export Options Modal for Products */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-noir-900 border border-white/10 rounded-sm w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            {/* Modal Header */}
-            <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between bg-noir-950">
-              <div className="flex items-center gap-2.5">
-                <FileSpreadsheet className="w-5 h-5 text-champagne" />
-                <div>
-                  <h3 className="text-xs font-semibold text-white tracking-wide uppercase font-mono">
-                    Xuất Dữ Liệu Sản Phẩm Ra Excel (.xlsx)
-                  </h3>
-                  <p className="text-[11px] text-platinum-dark">
-                    Tùy chọn phạm vi xuất và hình thức nhúng hình ảnh
-                  </p>
+        <ModalPortal>
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 pointer-events-auto"
+            style={{ zIndex: overlayZIndex }}
+            onClick={(e) => {
+              if (e.target === e.currentTarget && !loading) setIsModalOpen(false);
+            }}
+          >
+            <div
+              className="bg-noir-900 border border-white/10 rounded-sm w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 max-h-[calc(100dvh-32px)] flex flex-col"
+              style={{ zIndex: contentZIndex }}
+            >
+              {/* Modal Header */}
+              <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between bg-noir-950 shrink-0">
+                <div className="flex items-center gap-2.5">
+                  <FileSpreadsheet className="w-5 h-5 text-champagne" />
+                  <div>
+                    <h3 className="text-xs font-semibold text-white tracking-wide uppercase font-mono">
+                      Xuất Dữ Liệu Sản Phẩm Ra Excel (.xlsx)
+                    </h3>
+                    <p className="text-[11px] text-platinum-dark">
+                      Tùy chọn phạm vi xuất và hình thức nhúng hình ảnh
+                    </p>
+                  </div>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  disabled={loading}
+                  className="p-1.5 text-platinum-dark hover:text-white transition-colors rounded-sm"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                disabled={loading}
-                className="p-1.5 text-platinum-dark hover:text-white transition-colors rounded-sm"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
 
-            {/* Modal Body */}
-            <div className="p-5 space-y-5">
+              {/* Modal Body */}
+              <div className="p-5 space-y-5 overflow-y-auto flex-1">
               {/* Scope Selection */}
               <div>
                 <label className="text-xs font-mono uppercase text-platinum-light block mb-2.5">
@@ -330,7 +349,8 @@ export const ExcelExportButton: React.FC<ExcelExportButtonProps> = ({
             </div>
           </div>
         </div>
-      )}
-    </>
-  );
+      </ModalPortal>
+    )}
+  </>
+);
 };

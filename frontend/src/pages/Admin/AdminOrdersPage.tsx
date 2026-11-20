@@ -18,6 +18,7 @@ import { formatCurrency, formatDate } from '@/shared/utils/formatters';
 import { useToastStore } from '@/shared/stores/useToastStore';
 import { useAuthStore } from '@/shared/stores/useAuthStore';
 import { OrderExportModal } from '@/shared/components/excel/OrderExportModal';
+import { useModal, ModalPortal } from '@/shared/context/ModalContext';
 import {
   normalizeOrderForExport,
   exportOrdersToExcel,
@@ -42,6 +43,12 @@ export const AdminOrdersPage: React.FC = () => {
   // Modal states
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
+
+  const { overlayZIndex, contentZIndex } = useModal({
+    id: 'admin-order-detail-modal',
+    isOpen: Boolean(selectedOrder),
+    onClose: () => setSelectedOrder(null),
+  });
   const [selectedOrderItems, setSelectedOrderItems] = useState<any[]>([]);
   const [isLoadingItems, setIsLoadingItems] = useState(false);
   const [isExportingSingle, setIsExportingSingle] = useState(false);
@@ -386,8 +393,21 @@ export const AdminOrdersPage: React.FC = () => {
 
         {/* Order Detail Modal */}
         {selectedOrder && (
-          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-noir-900 border border-white/10 w-full max-w-2xl p-6 rounded-sm text-white space-y-5 text-xs shadow-2xl">
+          <ModalPortal>
+            <div
+              className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 pointer-events-auto"
+              style={{ zIndex: overlayZIndex }}
+              onClick={(e) => {
+                if (e.target === e.currentTarget) setSelectedOrder(null);
+              }}
+              role="dialog"
+              aria-modal="true"
+              aria-label={`Chi tiết đơn hàng ${selectedOrder.orderCode || selectedOrder._id}`}
+            >
+              <div
+                className="bg-noir-900 border border-white/10 w-full max-w-2xl p-6 rounded-sm text-white space-y-5 text-xs shadow-2xl max-h-[calc(100dvh-32px)] overflow-y-auto"
+                style={{ zIndex: contentZIndex }}
+              >
               <div className="flex justify-between items-start pb-3 border-b border-white/10">
                 <div>
                   <div className="flex items-center gap-2">
@@ -532,6 +552,7 @@ export const AdminOrdersPage: React.FC = () => {
               </div>
             </div>
           </div>
+          </ModalPortal>
         )}
 
         {/* Multi-Scope Order Export Modal */}

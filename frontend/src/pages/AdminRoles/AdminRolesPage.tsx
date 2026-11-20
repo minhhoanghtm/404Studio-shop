@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useToastStore } from '@/shared/stores/useToastStore';
 import { useAuthStore } from '@/shared/stores/useAuthStore';
+import { useModal, ModalPortal } from '@/shared/context/ModalContext';
 
 interface RoleItem {
   _id: string;
@@ -82,6 +83,12 @@ export const AdminRolesPage: React.FC = () => {
   const [newRoleDisplayName, setNewRoleDisplayName] = useState('');
   const [newRoleDescription, setNewRoleDescription] = useState('');
 
+  const { overlayZIndex: createRoleOverlayZ, contentZIndex: createRoleContentZ } = useModal({
+    id: 'admin-create-role-modal',
+    isOpen: isCreateRoleModalOpen,
+    onClose: () => setIsCreateRoleModalOpen(false),
+  });
+
   // Users Tab State
   const [users, setUsers] = useState<RbacUserItem[]>([]);
   const [userSearch, setUserSearch] = useState('');
@@ -97,6 +104,12 @@ export const AdminRolesPage: React.FC = () => {
   const [editUserAllow, setEditUserAllow] = useState<string[]>([]);
   const [editUserDeny, setEditUserDeny] = useState<string[]>([]);
   const [isSavingUserOverrides, setIsSavingUserOverrides] = useState(false);
+
+  const { overlayZIndex: userEditOverlayZ, contentZIndex: userEditContentZ } = useModal({
+    id: 'admin-edit-user-overrides-modal',
+    isOpen: Boolean(selectedUserForEdit),
+    onClose: () => setSelectedUserForEdit(null),
+  });
 
   // Audit Logs State
   const [auditLogs, setAuditLogs] = useState<AuditLogItem[]>([]);
@@ -784,25 +797,39 @@ export const AdminRolesPage: React.FC = () => {
 
         {/* MODAL 1: CREATE NEW ROLE */}
         {isCreateRoleModalOpen && (
-          <div className="fixed inset-0 z-50 bg-[rgba(26,26,23,0.55)] backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-[var(--surface)] border border-[var(--border)] w-full max-w-md p-6 rounded-sm shadow-2xl text-[var(--text)] space-y-5 text-xs">
-              <div className="flex items-center justify-between pb-3 border-b border-[var(--border)]">
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-5 h-5 text-[var(--accent)]" />
-                  <h3 className="font-display text-base text-[var(--text)] font-semibold uppercase tracking-wider">
-                    Tạo Vai Trò Mới
-                  </h3>
+          <ModalPortal>
+            <div
+              className="fixed inset-0 bg-[rgba(26,26,23,0.55)] backdrop-blur-sm flex items-center justify-center p-4 pointer-events-auto"
+              style={{ zIndex: createRoleOverlayZ }}
+              onClick={(e) => {
+                if (e.target === e.currentTarget) setIsCreateRoleModalOpen(false);
+              }}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Tạo Vai Trò Mới"
+            >
+              <div
+                className="bg-[var(--surface)] border border-[var(--border)] w-full max-w-md p-6 rounded-sm shadow-2xl text-[var(--text)] space-y-5 text-xs max-h-[calc(100dvh-32px)] overflow-y-auto"
+                style={{ zIndex: createRoleContentZ }}
+              >
+                <div className="flex items-center justify-between pb-3 border-b border-[var(--border)]">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-5 h-5 text-[var(--accent)]" />
+                    <h3 className="font-display text-base text-[var(--text)] font-semibold uppercase tracking-wider">
+                      Tạo Vai Trò Mới
+                    </h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsCreateRoleModalOpen(false)}
+                    className="text-[var(--text-muted)] hover:text-[var(--text)]"
+                    aria-label="Đóng"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setIsCreateRoleModalOpen(false)}
-                  className="text-[var(--text-muted)] hover:text-[var(--text)]"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
 
-              <form onSubmit={handleCreateRole} className="space-y-4">
+                <form onSubmit={handleCreateRole} className="space-y-4">
                 <div>
                   <label className="block text-[11px] font-mono uppercase tracking-wider text-[var(--text)] mb-1">
                     Mã Vai Trò (System Key) *
@@ -865,29 +892,44 @@ export const AdminRolesPage: React.FC = () => {
               </form>
             </div>
           </div>
+          </ModalPortal>
         )}
 
         {/* MODAL 2: EDIT USER ROLE & OVERRIDES */}
         {selectedUserForEdit && (
-          <div className="fixed inset-0 z-50 bg-[rgba(26,26,23,0.55)] backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-[var(--surface)] border border-[var(--border)] w-full max-w-2xl max-h-[90vh] flex flex-col p-6 rounded-sm shadow-2xl text-[var(--text)] space-y-4 text-xs">
-              <div className="flex items-center justify-between pb-3 border-b border-[var(--border)] shrink-0">
-                <div>
-                  <h3 className="font-display text-base text-[var(--text)] font-semibold uppercase tracking-wider">
-                    Phân Quyền & Overrides Tài Khoản
-                  </h3>
-                  <span className="text-[11px] text-[var(--text-muted)]">
-                    Tài khoản: <strong>{selectedUserForEdit.fullName}</strong> ({selectedUserForEdit.email})
-                  </span>
+          <ModalPortal>
+            <div
+              className="fixed inset-0 bg-[rgba(26,26,23,0.55)] backdrop-blur-sm flex items-center justify-center p-4 pointer-events-auto"
+              style={{ zIndex: userEditOverlayZ }}
+              onClick={(e) => {
+                if (e.target === e.currentTarget) setSelectedUserForEdit(null);
+              }}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Phân Quyền & Overrides Tài Khoản"
+            >
+              <div
+                className="bg-[var(--surface)] border border-[var(--border)] w-full max-w-2xl max-h-[calc(100dvh-32px)] flex flex-col p-6 rounded-sm shadow-2xl text-[var(--text)] space-y-4 text-xs"
+                style={{ zIndex: userEditContentZ }}
+              >
+                <div className="flex items-center justify-between pb-3 border-b border-[var(--border)] shrink-0">
+                  <div>
+                    <h3 className="font-display text-base text-[var(--text)] font-semibold uppercase tracking-wider">
+                      Phân Quyền & Overrides Tài Khoản
+                    </h3>
+                    <span className="text-[11px] text-[var(--text-muted)]">
+                      Tài khoản: <strong>{selectedUserForEdit.fullName}</strong> ({selectedUserForEdit.email})
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedUserForEdit(null)}
+                    className="text-[var(--text-muted)] hover:text-[var(--text)]"
+                    aria-label="Đóng"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setSelectedUserForEdit(null)}
-                  className="text-[var(--text-muted)] hover:text-[var(--text)]"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
 
               <div className="flex-1 overflow-y-auto space-y-4 pr-1">
                 {/* Role Selection */}
@@ -1026,6 +1068,7 @@ export const AdminRolesPage: React.FC = () => {
               </div>
             </div>
           </div>
+          </ModalPortal>
         )}
       </div>
     </AdminLayout>

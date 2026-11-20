@@ -8,6 +8,7 @@ import {
   ArrowRight,
   Tag,
 } from 'lucide-react';
+import { useModal, ModalPortal } from '@/shared/context/ModalContext';
 
 interface PopupPreviewProps {
   isOpen: boolean;
@@ -32,21 +33,33 @@ export const PopupPreviewModal: React.FC<PopupPreviewProps> = ({
 }) => {
   const [deviceMode, setDeviceMode] = useState<'desktop' | 'mobile'>('desktop');
 
+  const { overlayZIndex, contentZIndex } = useModal({
+    id: 'campaign-popup-preview-modal',
+    isOpen,
+    onClose,
+  });
+
   if (!isOpen) return null;
 
   const currentImage =
     deviceMode === 'mobile' && mobileImage ? mobileImage : desktopImage;
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div className="relative w-full max-w-4xl bg-noir-950 border border-white/20 text-white rounded-sm shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+    <ModalPortal>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Xem trước popup ưu đãi"
+        className="fixed inset-0 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in pointer-events-auto"
+        style={{ zIndex: overlayZIndex }}
+        onClick={(e) => {
+          if (e.target === e.currentTarget) onClose();
+        }}
+      >
+        <div
+          className="relative w-full max-w-4xl bg-noir-950 border border-white/20 text-white rounded-sm shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-32px)]"
+          style={{ zIndex: contentZIndex }}
+        >
         {/* Top Control Bar */}
         <div className="p-4 bg-noir-900 border-b border-white/10 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -175,5 +188,6 @@ export const PopupPreviewModal: React.FC<PopupPreviewProps> = ({
         </div>
       </div>
     </div>
-  );
+  </ModalPortal>
+);
 };

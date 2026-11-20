@@ -12,6 +12,8 @@ import {
 } from './shared/components';
 import { AiAssistantModal } from './shared/components/AiAssistantModal';
 import { ConsentProvider } from './shared/consent';
+import { ModalProvider } from './shared/context/ModalContext';
+import { Z_INDEX } from './shared/config/zIndex';
 import { useCartStore } from './shared/stores/useCartStore';
 import { useAuthStore } from './shared/stores/useAuthStore';
 import { useToastStore } from './shared/stores/useToastStore';
@@ -197,7 +199,8 @@ const RootLayout: React.FC = () => {
       {/* Stylist AI Assistant Floating Action Button */}
       <button
         onClick={() => setIsAiOpen(true)}
-        className="fixed bottom-6 right-6 z-40 bg-[var(--surface)]/95 border border-[var(--border)] hover:border-[var(--accent)] text-[var(--accent)] p-3.5 rounded-full shadow-2xl backdrop-blur-md flex items-center gap-2 group transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+        style={{ zIndex: Z_INDEX.sticky }}
+        className="fixed bottom-6 right-6 bg-[var(--surface)]/95 border border-[var(--border)] hover:border-[var(--accent)] text-[var(--accent)] p-3.5 rounded-full shadow-2xl backdrop-blur-md flex items-center gap-2 group transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
         title="Trợ lý Stylist AI Maison"
         aria-label="Mở Trợ lý Stylist AI"
       >
@@ -262,8 +265,9 @@ export function App() {
   return (
     <BrowserRouter>
       <ConsentProvider>
-        <AppInitializer>
-          <Routes>
+        <ModalProvider>
+          <AppInitializer>
+            <Routes>
             {/* Main Customer Storefront Layout */}
             <Route path="/" element={<RootLayout />}>
               <Route index element={<HomePage />} />
@@ -622,6 +626,7 @@ export function App() {
             </Route>
           </Routes>
         </AppInitializer>
+        </ModalProvider>
       </ConsentProvider>
     </BrowserRouter>
   );

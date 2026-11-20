@@ -7,6 +7,7 @@ import React from 'react';
 import { X, Sparkles, BookOpen, Shirt, ShieldCheck, Zap } from 'lucide-react';
 import { PAGE_TEMPLATES } from '@/shared/cms';
 import { PageTemplate } from '@/shared/cms/types';
+import { useModal, ModalPortal } from '@/shared/context/ModalContext';
 
 interface TemplateSelectorModalProps {
   isOpen: boolean;
@@ -19,6 +20,12 @@ export const TemplateSelectorModal: React.FC<TemplateSelectorModalProps> = ({
   onClose,
   onSelectTemplate,
 }) => {
+  const { overlayZIndex, contentZIndex } = useModal({
+    id: 'cms-template-selector-modal',
+    isOpen,
+    onClose,
+  });
+
   if (!isOpen) return null;
 
   const getTemplateIcon = (type: string) => {
@@ -35,8 +42,21 @@ export const TemplateSelectorModal: React.FC<TemplateSelectorModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
-      <div className="relative w-full max-w-4xl bg-[#121218] border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+    <ModalPortal>
+      <div
+        className="fixed inset-0 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn pointer-events-auto"
+        style={{ zIndex: overlayZIndex }}
+        onClick={(e) => {
+          if (e.target === e.currentTarget) onClose();
+        }}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Thư Viện Mẫu Trang"
+      >
+        <div
+          className="relative w-full max-w-4xl bg-[#121218] border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-32px)]"
+          style={{ zIndex: contentZIndex }}
+        >
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-white/10">
           <div className="flex items-center gap-3">
@@ -115,5 +135,6 @@ export const TemplateSelectorModal: React.FC<TemplateSelectorModalProps> = ({
         </div>
       </div>
     </div>
-  );
+  </ModalPortal>
+);
 };

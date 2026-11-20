@@ -17,6 +17,7 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useModal, ModalPortal } from '@/shared/context/ModalContext';
 
 export const AdminLoyaltyCustomersPage: React.FC = () => {
   const { profiles, isLoading, error, refetch } = useAdminLoyalty();
@@ -24,6 +25,12 @@ export const AdminLoyaltyCustomersPage: React.FC = () => {
   const [familyFilter, setFamilyFilter] = useState<'ALL' | TierFamily>('ALL');
   const [tierFilter, setTierFilter] = useState<string>('ALL');
   const [selectedCustomer, setSelectedCustomer] = useState<any | null>(null);
+
+  const { overlayZIndex, contentZIndex } = useModal({
+    id: 'admin-loyalty-ledger-modal',
+    isOpen: Boolean(selectedCustomer),
+    onClose: () => setSelectedCustomer(null),
+  });
 
   const filteredProfiles = profiles.filter((p) => {
     // Search filter
@@ -206,12 +213,21 @@ export const AdminLoyaltyCustomersPage: React.FC = () => {
 
         {/* Modal: Customer Ledger History */}
         {selectedCustomer && (
-          <div
-            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
-            role="dialog"
-            aria-modal="true"
-          >
-            <div className="bg-noir-900 border border-white/15 rounded-2xl w-full max-w-3xl max-h-[85vh] flex flex-col overflow-hidden shadow-2xl">
+          <ModalPortal>
+            <div
+              className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 pointer-events-auto"
+              style={{ zIndex: overlayZIndex }}
+              onClick={(e) => {
+                if (e.target === e.currentTarget) setSelectedCustomer(null);
+              }}
+              role="dialog"
+              aria-modal="true"
+              aria-label={`Sổ Cái Điểm: ${selectedCustomer.customerName}`}
+            >
+              <div
+                className="bg-noir-900 border border-white/15 rounded-2xl w-full max-w-3xl max-h-[calc(100dvh-32px)] flex flex-col overflow-hidden shadow-2xl"
+                style={{ zIndex: contentZIndex }}
+              >
               {/* Modal Header */}
               <div className="p-5 border-b border-white/10 flex items-center justify-between bg-noir-950/80">
                 <div className="flex items-center gap-3">
@@ -312,6 +328,7 @@ export const AdminLoyaltyCustomersPage: React.FC = () => {
               </div>
             </div>
           </div>
+          </ModalPortal>
         )}
       </div>
     </AdminLayout>
