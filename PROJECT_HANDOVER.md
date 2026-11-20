@@ -468,6 +468,40 @@ Toàn bộ hệ thống quản lý task và kết quả kiểm thử được l�
 - [Backend Contract & Integration Report](project-management/test-reports/integration/PRODUCT_VARIANTS_API_TEST.md): Báo cáo kiểm thử hợp đồng Backend và MongoDB schema.
 - [Backend Variant Gaps Specification](docs/backend/BACKEND_PRODUCT_VARIANT_GAPS.md): Phân tích chi tiết các giới hạn schema Mongoose và khuyến nghị mở rộng.
 
+---
+
+## 14. Admin Visual Page Builder & Dynamic Content Management (TASK-VISUAL-PAGE-BUILDER)
+
+### 14.1. Architecture & Capabilities Overview
+- **Enterprise No-Code Visual Page Builder**:
+  - Drag-and-drop / click-to-insert AST block library with 28+ modular blocks across 6 categories (Typography, Media, Layout, Fashion, Legal, Marketing).
+  - Page Structure Panel with hierarchical section/block visualization, reorder handles, clone, and delete operations.
+  - Multi-device Live Canvas with responsive preview switcher (Desktop 100%, Tablet 768px, Mobile 390px) and Light/Dark luxury preview modes.
+  - Contextual Inspector Panel supporting Content editing, Typography formatting, Color customization with real-time WCAG AA contrast ratio validation, Spacing controls, and viewport visibility toggles.
+  - Undo / Redo action history stack, Draft persistence, and Instant Publication.
+- **Pre-Configured Page Templates**:
+  - `lookbook-runway`: Capsule Runway Showcase featuring hero banners, split lookbook galleries, and runway details.
+  - `about-us-heritage`: Brand heritage, atelier craftsmanship story, signature quotes, and design pillars.
+  - `legal-policy`: Statutory legal policy template pre-configured with mandatory disclosures.
+  - `campaign-landing`: Promotional spotlight with countdown tickers, product highlights, and conversion CTAs.
+- **Legal Compliance Engine (Vietnam Law 91/2025/QH15 & Decree 356/2025/NĐ-CP)**:
+  - Guardrail prevents publishing statutory policy pages (`privacy`, `terms`, `cookie`, `return`, `shipping`, `payment`) if mandatory disclosures (User Rights, Data Controller, Cookie Table, Consent Trigger, Deletion Request, Effective Date, Policy Version) are absent or marked hidden on mobile/desktop viewports.
+  - Remediation modal highlights missing legal clauses with a 1-click "Bổ Sung Khối Bắt Buộc" repair tool.
+- **Security & AST Sandboxing**:
+  - Pure React `BlockRenderer` mapping AST nodes without arbitrary script execution.
+  - Strict protocol filtering rejecting `javascript:`, `data:`, `file:`, `blob:`, and protocol-relative phishing URLs.
+  - Strict video embed domain allowlisting restricted to verified providers (YouTube, Vimeo).
+- **Storefront Dynamic Integration**:
+  - Storefront pages (`AboutPage`, `PrivacyPolicyPage`, `TermsOfServicePage`, `CookiePolicyPage`, `ReturnsRefundsPage`) dynamically render published CMS sections with automatic statutory fallback.
+
+### 14.2. Verification & Deliverables
+- [CMS Architecture Audit](docs/api/CMS_PAGE_BUILDER_AUDIT.md): Technical mapping of backend `/pages` and `/page-sections` endpoints.
+- [Task Completion Record](project-management/tasks/completed/TASK-VISUAL-PAGE-BUILDER.md): Completed task dossier with 100% acceptance criteria satisfied.
+- [UI & Playwright E2E Report](project-management/test-reports/frontend/PAGE_BUILDER_UI_TEST.md): 21/21 E2E tests passing across Desktop, Tablet, and Mobile viewports.
+- [Backend Contract & Integration Report](project-management/test-reports/integration/PAGE_BUILDER_API_TEST.md): Zero Mock API verification against real endpoints.
+- [Security & Legal Compliance Report](project-management/test-reports/security/PAGE_BUILDER_SECURITY_TEST.md): XSS, protocol filtering, and Decree 356/2025 compliance audit.
+
+
 
 
 

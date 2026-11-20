@@ -2,8 +2,41 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Sparkles, Compass, Shield, Feather } from 'lucide-react';
 import { vi } from '@/shared/locales/vi/common';
+import { useDynamicCMSPage } from '@/shared/hooks/useDynamicCMSPage';
+import { BlockRenderer } from '@/shared/cms/BlockRenderer';
 
 export const AboutPage: React.FC = () => {
+  const { page, sections, isDynamic, loading } = useDynamicCMSPage('ve-chung-toi', 'about');
+
+  if (isDynamic && sections.length > 0) {
+    return (
+      <div className="w-full bg-[#0b0b0e] text-[#f2f2f4] min-h-screen py-24 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-5xl mx-auto space-y-12">
+          {/* Dynamic Breadcrumbs & Badge */}
+          <div className="flex items-center justify-between border-b border-white/10 pb-4 text-xs font-mono">
+            <div className="flex items-center gap-2 uppercase tracking-widest text-[#d4af37]">
+              <Link to="/" className="hover:underline">Trang chủ</Link>
+              <span>/</span>
+              <span className="text-white/60">Về Chúng Tôi</span>
+            </div>
+            <span className="flex items-center gap-1 text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded border border-emerald-500/30">
+              <Sparkles className="w-3 h-3" /> Đã đồng bộ CMS Backend
+            </span>
+          </div>
+
+          {/* Dynamic Sections */}
+          <div className="space-y-12">
+            {sections.map((sec) => (
+              <section key={sec.id} className="relative">
+                <BlockRenderer blocks={sec.blocks} isEditorMode={false} />
+              </section>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full bg-noir-950 text-white min-h-screen py-16 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto space-y-24">

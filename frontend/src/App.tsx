@@ -97,6 +97,11 @@ const AdminCampaignCreatePage = lazy(() => import('./pages/AdminCampaigns').then
 const AdminCampaignEditPage = lazy(() => import('./pages/AdminCampaigns').then(m => ({ default: m.AdminCampaignEditPage })));
 const AdminCampaignDetailPage = lazy(() => import('./pages/AdminCampaigns').then(m => ({ default: m.AdminCampaignDetailPage })));
 
+// Admin Visual Page Builder & CMS Pages
+const AdminPageBuilderListPage = lazy(() => import('./pages/AdminPageBuilder').then(m => ({ default: m.AdminPageBuilderListPage })));
+const AdminPageBuilderEditorPage = lazy(() => import('./pages/AdminPageBuilder').then(m => ({ default: m.AdminPageBuilderEditorPage })));
+const AdminPageBuilderPreviewPage = lazy(() => import('./pages/AdminPageBuilder').then(m => ({ default: m.AdminPageBuilderPreviewPage })));
+
 // High-Fashion Loading Fallback
 const PageLoadingFallback: React.FC = () => (
   <div className="w-full min-h-[60vh] flex flex-col items-center justify-center bg-ivory-50 text-noir-900 dark:bg-noir-950 dark:text-white p-8 transition-colors duration-300">
@@ -373,6 +378,40 @@ export function App() {
             element={
               <Suspense fallback={<PageLoadingFallback />}>
                 <AdminCampaignEditPage />
+              </Suspense>
+            }
+          />
+
+          {/* Admin Visual Page Builder & CMS Routes */}
+          <Route
+            path="admin/page-builder"
+            element={
+              <Suspense fallback={<PageLoadingFallback />}>
+                <AdminPageBuilderListPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="admin/page-builder/new"
+            element={
+              <Suspense fallback={<PageLoadingFallback />}>
+                <AdminPageBuilderEditorPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="admin/page-builder/:id/edit"
+            element={
+              <Suspense fallback={<PageLoadingFallback />}>
+                <AdminPageBuilderEditorPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="admin/page-builder/:id/preview"
+            element={
+              <Suspense fallback={<PageLoadingFallback />}>
+                <AdminPageBuilderPreviewPage />
               </Suspense>
             }
           />

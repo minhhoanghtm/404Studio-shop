@@ -483,6 +483,77 @@ export const publicPoliciesApi = {
 };
 
 // ============================================================================
+// CMS PAGES & VISUAL PAGE BUILDER APIs
+// ============================================================================
+export const cmsPagesApi = {
+  getPages: (params?: {
+    type?: string;
+    excludeType?: string;
+    status?: string;
+    search?: string;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+    page?: number;
+    limit?: number;
+  }) => {
+    const query = new URLSearchParams();
+    if (params?.type) query.set('type', params.type);
+    if (params?.excludeType) query.set('excludeType', params.excludeType);
+    if (params?.status) query.set('status', params.status);
+    if (params?.search) query.set('search', params.search);
+    if (params?.sortBy) query.set('sortBy', params.sortBy);
+    if (params?.sortOrder) query.set('sortOrder', params.sortOrder);
+    if (params?.page) query.set('page', params.page.toString());
+    if (params?.limit) query.set('limit', params.limit.toString());
+    return api.get<ApiResponse<PolicyListResponse>>(`/admin/pages?${query.toString()}`);
+  },
+
+  getPageById: (id: string) =>
+    api.get<ApiResponse<PolicyDocument>>(`/admin/pages/${encodeURIComponent(id)}`),
+
+  getPageDetail: (id: string) =>
+    api.get<ApiResponse<{ page: PolicyDocument; sections: any[] }>>(`/admin/pages/${encodeURIComponent(id)}/detail`),
+
+  createPage: (data: Partial<PolicyDocument> & { sections?: any[] }) =>
+    api.post<ApiResponse<PolicyDocument>>('/admin/pages', data),
+
+  updatePage: (id: string, data: Partial<PolicyDocument> & { sections?: any[] }) =>
+    api.put<ApiResponse<PolicyDocument>>(`/admin/pages/${encodeURIComponent(id)}`, data),
+
+  deletePage: (id: string) =>
+    api.delete<ApiResponse<null>>(`/admin/pages/${encodeURIComponent(id)}`),
+
+  toggleFeature: (id: string) =>
+    api.put<ApiResponse<PolicyDocument>>(`/admin/pages/${encodeURIComponent(id)}/feature`, {}),
+
+  getPublicPages: (params?: { type?: string; search?: string; page?: number; limit?: number }) => {
+    const query = new URLSearchParams();
+    if (params?.type) query.set('type', params.type);
+    if (params?.search) query.set('search', params.search);
+    if (params?.page) query.set('page', params.page.toString());
+    if (params?.limit) query.set('limit', params.limit.toString());
+    return api.get<ApiResponse<PolicyListResponse>>(`/pages?${query.toString()}`);
+  },
+
+  getPublicPageBySlug: (slug: string) =>
+    api.get<ApiResponse<PolicyDocument & { sections: any[] }>>(`/pages/${encodeURIComponent(slug)}`),
+
+  incrementViewCount: (slug: string) =>
+    api.patch<ApiResponse<{ viewCount: number }>>(`/pages/${encodeURIComponent(slug)}/view`, {}),
+};
+
+export const pageSectionsApi = {
+  getSectionsByPageId: (pageId: string) =>
+    api.get<ApiResponse<any[]>>(`/admin/page-sections/${encodeURIComponent(pageId)}`),
+
+  replaceSections: (pageId: string, sections: any[]) =>
+    api.post<ApiResponse<any[]>>(`/admin/page-sections/${encodeURIComponent(pageId)}/replace`, { sections }),
+
+  reorderSections: (pageId: string, sectionOrders: { id: string; sortOrder: number }[]) =>
+    api.put<ApiResponse<any[]>>(`/admin/page-sections/${encodeURIComponent(pageId)}/reorder`, { sections: sectionOrders }),
+};
+
+// ============================================================================
 // ADMIN TRACKING & BEHAVIORAL ANALYTICS APIs
 // ============================================================================
 export interface TrackingOverviewMetrics {

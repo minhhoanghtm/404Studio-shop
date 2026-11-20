@@ -1,9 +1,13 @@
 import { useState, useEffect } from 'react';
 import { publicPoliciesApi, PolicyDocument } from '@/shared/api';
+import { EditorSection, BlockItem } from '@/shared/cms/types';
+import { createBlockInstance } from '@/shared/cms/blockLibrary';
 
 interface UsePublicPolicyResult {
   policy: PolicyDocument | null;
   dynamicContent: string | null;
+  sections: EditorSection[];
+  blocks: BlockItem[];
   isLivePolicy: boolean;
   loading: boolean;
   error: string | null;
@@ -12,6 +16,8 @@ interface UsePublicPolicyResult {
 export function usePublicPolicy(slug: string): UsePublicPolicyResult {
   const [policy, setPolicy] = useState<PolicyDocument | null>(null);
   const [dynamicContent, setDynamicContent] = useState<string | null>(null);
+  const [sections, setSections] = useState<EditorSection[]>([]);
+  const [blocks, setBlocks] = useState<BlockItem[]>([]);
   const [isLivePolicy, setIsLivePolicy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,12 +39,38 @@ export function usePublicPolicy(slug: string): UsePublicPolicyResult {
             setPolicy(doc);
             setIsLivePolicy(true);
 
-            // Extract content from sections
+            // Extract content and blocks from sections
             if (doc.sections && doc.sections.length > 0) {
               const story = doc.sections.find((s) => s.type === 'story');
               if (story?.data?.content) {
                 setDynamicContent(story.data.content);
               }
+
+              const parsedSections: EditorSection[] = doc.sections.map((s: any, idx: number) => {
+                let secBlocks: BlockItem[] = s.data?.blocks || [];
+                if (secBlocks.length === 0) {
+                  if (s.data?.content) {
+                    secBlocks = [
+                      {
+                        ...createBlockInstance('paragraph'),
+                        content: { text: s.data.content },
+                      },
+                    ];
+                  }
+                }
+                return {
+                  id: s._id || `sec_${idx}`,
+                  type: s.type,
+                  title: s.title || `Vùng ${idx + 1}`,
+                  order: s.order || idx,
+                  isActive: s.isActive ?? true,
+                  blocks: secBlocks,
+                  styles: s.data?.styles || {},
+                };
+              });
+
+              setSections(parsedSections);
+              setBlocks(parsedSections.flatMap((s) => s.blocks));
             }
 
             // Increment view count
@@ -64,5 +96,5 @@ export function usePublicPolicy(slug: string): UsePublicPolicyResult {
     };
   }, [slug]);
 
-  return { policy, dynamicContent, isLivePolicy, loading, error };
+  return { policy, dynamicContent, sections, blocks, isLivePolicy, loading, error };
 }

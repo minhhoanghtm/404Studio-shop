@@ -16,6 +16,7 @@ import {
   FileText,
   Activity,
   Award,
+  Palette,
   Menu,
   X,
 } from 'lucide-react';
@@ -40,6 +41,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
 
   const navLinks = [
     { label: 'Thống Kê Doanh Thu', to: '/admin', icon: LayoutDashboard, end: true },
+    { label: 'Thiết Kế Trang & Layouts', to: '/admin/page-builder', icon: Palette },
     { label: 'Chính Sách Doanh Nghiệp', to: '/admin/policies', icon: FileText },
     { label: 'Phân Tích & Tracking', to: '/admin/tracking', icon: Activity },
     { label: 'Quản Lý Sản Phẩm', to: '/admin/products', icon: Shirt },

@@ -1,11 +1,12 @@
 import React from 'react';
-import { ScrollText, ShieldCheck, Scale, Package, HelpCircle, Sparkles } from 'lucide-react';
+import { ShieldCheck, Scale, Package, HelpCircle, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { usePublicPolicy } from '@/shared/hooks/usePublicPolicy';
 import { sanitizeHtml } from '@/shared/utils/sanitizeHtml';
+import { BlockRenderer } from '@/shared/cms/BlockRenderer';
 
 export const TermsOfServicePage: React.FC = () => {
-  const { policy, dynamicContent, isLivePolicy } = usePublicPolicy('terms-of-service');
+  const { policy, dynamicContent, blocks, isLivePolicy } = usePublicPolicy('terms-of-service');
 
   return (
     <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#0b0b0e] text-[#f2f2f4] pt-28 pb-20 px-4 sm:px-6 lg:px-8">
@@ -41,16 +42,20 @@ export const TermsOfServicePage: React.FC = () => {
           </div>
         </div>
 
-        {/* Dynamic Published Policy Content from Backend */}
-        {isLivePolicy && dynamicContent && (
-          <section className="p-8 rounded-2xl bg-white/[0.02] border border-[#d4af37]/30 space-y-4">
+        {/* Dynamic Published Policy Content / Visual Blocks from Backend */}
+        {isLivePolicy && (dynamicContent || (blocks && blocks.length > 0)) && (
+          <section className="p-8 rounded-2xl bg-white/[0.02] border border-[#d4af37]/30 space-y-6">
             <div className="flex items-center gap-2 text-xs font-mono text-[#d4af37] uppercase tracking-wider">
               <Sparkles className="w-3.5 h-3.5" /> Điều Khoản Chính Thức Được Xuất Bản Bởi Ban Quản Trị
             </div>
-            <div
-              className="prose prose-invert max-w-none text-sm text-white/80 leading-relaxed space-y-3"
-              dangerouslySetInnerHTML={{ __html: sanitizeHtml(dynamicContent) }}
-            />
+            {blocks && blocks.length > 0 ? (
+              <BlockRenderer blocks={blocks} isEditorMode={false} />
+            ) : dynamicContent ? (
+              <div
+                className="prose prose-invert max-w-none text-sm text-white/80 leading-relaxed space-y-3"
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(dynamicContent) }}
+              />
+            ) : null}
           </section>
         )}
 

@@ -26,6 +26,7 @@
 | **TASK-ADMIN-CHATS-VIEWPORT** | Fix Admin Chats Full-Viewport Layout & Independent Scrolling | `COMPLETED` | HIGH | Senior React/TypeScript & CSS Layout Specialist | [TASK-ADMIN-CHATS-VIEWPORT.md](file:///d:/Project/404Studio/project-management/tasks/completed/TASK-ADMIN-CHATS-VIEWPORT.md) |
 | **TASK-CUSTOMER-LOYALTY** | Customer Loyalty Points & 12-Tier Membership System | `COMPLETED` | CRITICAL | Senior Fullstack / Loyalty Architect & Security Specialist | [TASK-CUSTOMER-LOYALTY.md](file:///d:/Project/404Studio/project-management/tasks/completed/TASK-CUSTOMER-LOYALTY.md) |
 | **TASK-PROMOTIONAL-CAMPAIGNS** | Promotional Campaigns, Sale Popups & Smart Redirects | `COMPLETED` | CRITICAL | Senior Fullstack / Campaign & MarTech Specialist | [TASK-PROMOTIONAL-CAMPAIGNS.md](file:///d:/Project/404Studio/project-management/tasks/completed/TASK-PROMOTIONAL-CAMPAIGNS.md) |
+| **TASK-VISUAL-PAGE-BUILDER** | Admin Visual Page Builder & Dynamic Content Management | `COMPLETED` | CRITICAL | Principal Fullstack / Headless CMS Specialist | [TASK-VISUAL-PAGE-BUILDER.md](file:///d:/Project/404Studio/project-management/tasks/completed/TASK-VISUAL-PAGE-BUILDER.md) |
 
 ---
 
