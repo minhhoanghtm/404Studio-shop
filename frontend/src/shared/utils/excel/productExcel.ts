@@ -567,6 +567,15 @@ export const parseAndValidateProductExcel = async (
       });
     }
 
+    const embeddedImg =
+      embeddedImagesByCell.get(`${r}:${colMap.productImage}`) ||
+      embeddedImagesByCell.get(`${r}:primary`);
+    const embeddedVarImg = embeddedImagesByCell.get(`${r}:${colMap.variantImage}`);
+
+    const finalProductImage =
+      embeddedImg || productImage || 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=800';
+    const finalVariantImage = embeddedVarImg || variantImage || finalProductImage;
+
     // Grouping key: Use productSku if provided, else fallback to trimmed productName
     const groupKey = productSku || productName.toLowerCase();
 
@@ -585,12 +594,12 @@ export const parseAndValidateProductExcel = async (
       newPrice: isNaN(newPriceNum) ? 0 : newPriceNum,
       brand,
       description: desc,
-      productImage: productImage || 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=800',
+      productImage: finalProductImage,
       variantSku,
       color,
       size,
       stock: Number.isInteger(stockNum) && stockNum >= 0 ? stockNum : 0,
-      variantImage: variantImage || productImage || 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=800',
+      variantImage: finalVariantImage,
     });
   }
 
