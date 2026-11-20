@@ -8,3 +8,4 @@ export * from './ToastContainer';
 export * from './ProductCard';
 export * from './Skeleton';
 export * from './ScrollToTop';
+export * from './PromotionalPopup';

@@ -47,6 +47,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
     { label: 'Quản Lý Đơn Hàng', to: '/admin/orders', icon: ShoppingBag },
     { label: 'Hồ Sơ Khách Hàng', to: '/admin/customers', icon: Users },
     { label: 'Khách Hàng Thân Thiết & Điểm', to: '/admin/loyalty', icon: Award },
+    { label: 'Chiến Dịch & Popup Sale', to: '/admin/campaigns', icon: Sparkles },
     { label: 'Mã Giảm Giá & Ưu Đãi', to: '/admin/coupons', icon: Ticket },
     { label: 'Trò Chuyện CSKH', to: '/admin/chats', icon: MessageSquare },
     { label: 'Cấu Hình Hệ Thống', to: '/admin/settings', icon: Settings },

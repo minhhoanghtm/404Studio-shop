@@ -200,6 +200,84 @@ export const lookbooksApi = {
   getSettings: () => api.get<ApiResponse<any>>('/settings'),
 };
 
+export const bannersApi = {
+  getActiveBanners: () => api.get<ApiResponse<any[]>>('/banners/active'),
+  getAllBanners: (params?: { page?: number; limit?: number; keyword?: string; position?: string; status?: boolean }) => {
+    const query = new URLSearchParams();
+    if (params?.page) query.set('page', params.page.toString());
+    if (params?.limit) query.set('limit', params.limit.toString());
+    if (params?.keyword) query.set('keyword', params.keyword);
+    if (params?.position) query.set('position', params.position);
+    if (params?.status !== undefined) query.set('status', params.status.toString());
+    const qs = query.toString();
+    return api.get<ApiResponse<{ items: any[]; pagination: any }>>(`/banners${qs ? `?${qs}` : ''}`);
+  },
+  getBannerById: (id: string) => api.get<ApiResponse<any>>(`/banners/${encodeURIComponent(id)}`),
+  createBanner: (data: any) => api.post<ApiResponse<any>>('/banners', data),
+  updateBanner: (id: string, data: any) => api.put<ApiResponse<any>>(`/banners/${encodeURIComponent(id)}`, data),
+  deleteBanner: (id: string) => api.delete<ApiResponse<any>>(`/banners/${encodeURIComponent(id)}`),
+  trackClick: (id: string) => api.post<ApiResponse<any>>(`/banners/${encodeURIComponent(id)}/click`, {}),
+};
+
+export const campaignsApi = {
+  getActiveCampaigns: () =>
+    api.get<ApiResponse<{ serverTime: string; campaigns: any[] }>>('/campaigns/active'),
+
+  getCampaignBySlug: (slug: string, params?: { page?: number; limit?: number }) => {
+    const query = new URLSearchParams();
+    if (params?.page) query.set('page', params.page.toString());
+    if (params?.limit) query.set('limit', params.limit.toString());
+    const qs = query.toString();
+    return api.get<ApiResponse<any>>(`/campaigns/${encodeURIComponent(slug)}${qs ? `?${qs}` : ''}`);
+  },
+
+  getAdminCampaigns: (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    status?: string;
+    type?: string;
+  }) => {
+    const query = new URLSearchParams();
+    if (params?.page) query.set('page', params.page.toString());
+    if (params?.limit) query.set('limit', params.limit.toString());
+    if (params?.search) query.set('search', params.search);
+    if (params?.status) query.set('status', params.status);
+    if (params?.type) query.set('type', params.type);
+    const qs = query.toString();
+    return api.get<ApiResponse<{ campaigns: any[]; pagination: any }>>(`/admin/campaigns${qs ? `?${qs}` : ''}`);
+  },
+
+  getAdminCampaignDetail: (id: string) =>
+    api.get<ApiResponse<any>>(`/admin/campaigns/${encodeURIComponent(id)}`),
+
+  createCampaign: (data: any) =>
+    api.post<ApiResponse<any>>('/admin/campaigns', data),
+
+  updateCampaign: (id: string, data: any) =>
+    api.put<ApiResponse<any>>(`/admin/campaigns/${encodeURIComponent(id)}`, data),
+
+  deleteCampaign: (id: string) =>
+    api.delete<ApiResponse<any>>(`/admin/campaigns/${encodeURIComponent(id)}`),
+
+  addCampaignProduct: (campaignId: string, payload: {
+    product_id: string;
+    variant_id?: string | null;
+    sale_price: number;
+    quota: number;
+    per_user_limit?: number | null;
+  }) => api.post<ApiResponse<any>>(`/admin/campaigns/${encodeURIComponent(campaignId)}/products`, payload),
+
+  updateCampaignProduct: (campaignId: string, productId: string, payload: {
+    sale_price?: number;
+    quota?: number;
+    per_user_limit?: number | null;
+  }) => api.put<ApiResponse<any>>(`/admin/campaigns/${encodeURIComponent(campaignId)}/products/${encodeURIComponent(productId)}`, payload),
+
+  removeCampaignProduct: (campaignId: string, productId: string) =>
+    api.delete<ApiResponse<any>>(`/admin/campaigns/${encodeURIComponent(campaignId)}/products/${encodeURIComponent(productId)}`),
+};
+
 // ============================================================================
 // SHIPPING APIs
 // ============================================================================

@@ -8,6 +8,7 @@ import {
   QuickSearchModal,
   ToastContainer,
   ScrollToTop,
+  PromotionalPopup,
 } from './shared/components';
 import { AiAssistantModal } from './shared/components/AiAssistantModal';
 import { ConsentProvider } from './shared/consent';
@@ -90,6 +91,12 @@ const AdminTrackingEventsPage = lazy(() => import('./pages/AdminTrackingEvents')
 const AdminTrackingProductsPage = lazy(() => import('./pages/AdminTrackingProducts').then(m => ({ default: m.AdminTrackingProductsPage })));
 const AdminTrackingConsentPage = lazy(() => import('./pages/AdminTrackingConsent').then(m => ({ default: m.AdminTrackingConsentPage })));
 
+// Admin Promotional Campaigns & Sale Popups Pages
+const AdminCampaignsPage = lazy(() => import('./pages/AdminCampaigns').then(m => ({ default: m.AdminCampaignsPage })));
+const AdminCampaignCreatePage = lazy(() => import('./pages/AdminCampaigns').then(m => ({ default: m.AdminCampaignCreatePage })));
+const AdminCampaignEditPage = lazy(() => import('./pages/AdminCampaigns').then(m => ({ default: m.AdminCampaignEditPage })));
+const AdminCampaignDetailPage = lazy(() => import('./pages/AdminCampaigns').then(m => ({ default: m.AdminCampaignDetailPage })));
+
 // High-Fashion Loading Fallback
 const PageLoadingFallback: React.FC = () => (
   <div className="w-full min-h-[60vh] flex flex-col items-center justify-center bg-ivory-50 text-noir-900 dark:bg-noir-950 dark:text-white p-8 transition-colors duration-300">
@@ -118,6 +125,7 @@ const RootLayout: React.FC = () => {
       <QuickSearchModal />
       <ToastContainer />
       <ScrollToTop />
+      <PromotionalPopup />
 
       {/* Stylist AI Assistant Floating Action Button */}
       <button
@@ -331,6 +339,40 @@ export function App() {
             element={
               <Suspense fallback={<PageLoadingFallback />}>
                 <AdminLoyaltySettingsPage />
+              </Suspense>
+            }
+          />
+
+          {/* Admin Promotional Campaigns & Sale Popups Routes */}
+          <Route
+            path="admin/campaigns"
+            element={
+              <Suspense fallback={<PageLoadingFallback />}>
+                <AdminCampaignsPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="admin/campaigns/new"
+            element={
+              <Suspense fallback={<PageLoadingFallback />}>
+                <AdminCampaignCreatePage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="admin/campaigns/:id"
+            element={
+              <Suspense fallback={<PageLoadingFallback />}>
+                <AdminCampaignDetailPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="admin/campaigns/:id/edit"
+            element={
+              <Suspense fallback={<PageLoadingFallback />}>
+                <AdminCampaignEditPage />
               </Suspense>
             }
           />
