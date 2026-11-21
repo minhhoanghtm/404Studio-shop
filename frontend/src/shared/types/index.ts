@@ -141,6 +141,8 @@ export interface User {
   name: string;
   email: string;
   phone?: string;
+  avatar?: string;
+  googleId?: string;
   role?: 'admin' | 'user' | string;
   vipTier: 'Thành viên' | 'Atelier Privé' | 'Haute Circle' | string;
   addresses: ShippingAddress[];

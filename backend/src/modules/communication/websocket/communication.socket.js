@@ -37,7 +37,7 @@ export const registerCommunicationSocket = async (io, socket) => {
   if (actorRole === "admin") {
     socket.join("admins");
     // Broadcast to storefront that a staff member is online
-    io.emit("staff:status", { isStaffOnline: true });
+    io?.emit?.("staff:status", { isStaffOnline: true });
   }
 
   // Handle guest join conversation

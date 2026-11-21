@@ -1,4 +1,5 @@
 @import "@designcodeio/threeui/style.css";
+@import "./admin-theme.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -10,41 +11,55 @@
 :root,
 [data-theme="light"],
 html.light {
-  /* 1. Official Atelier Vérité Light Palette (WCAG AA Compliant) */
-  --bg: #FAF8F3;
-  --bg-alt: #F1EDE4;
-  --surface: #FFFFFF;
-  --text: #1A1A17;
-  --text-muted: #6B675E;
+  /* 1. Atelier Vérité Unified Design Tokens (WCAG AA Compliant >= 4.5:1) */
+  --bg-page: #FAF8F3;
+  --bg-card: #FFFFFF;
+  --bg-overlay: rgba(18, 18, 23, 0.65);
+  --text-primary: #1A1A17;
+  --text-secondary: #555555;
+  --text-muted: #666666;
   --border: #E3DED2;
-  --accent: #B8921F;
-  --accent-contrast: #1A1A17;
+  --accent: #8a6d1a; /* Gold đậm cho Light mode: tỉ lệ tương phản 4.55:1 */
+  --accent-contrast: #FFFFFF;
+  --input-bg: #FFFFFF;
+  --overlay-text: #FFFFFF;
+
+  /* Backward Compatibility Tokens & Aliases */
+  --bg: var(--bg-page);
+  --bg-alt: #F1EDE4;
+  --surface: var(--bg-card);
+  --text: var(--text-primary);
+  --color-bg: var(--bg-page);
+  --color-surface: var(--bg-card);
+  --color-surface-hover: var(--bg-alt);
+  --color-border: var(--border);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-accent: var(--accent);
+  --color-accent-hover: #735914;
+  --color-accent-light: #B8921F;
+  --color-accent-dark: #644d0f;
+  --color-accent-glow: rgba(138, 109, 26, 0.16);
+
+  /* Inverse Tokens */
   --inverse-bg: #1A1A17;
   --inverse-text: #FAF8F3;
 
   /* State Alerts */
-  --status-success: #2F7D4F;
-  --status-error: #B3382C;
-  --status-warning: #B7791F;
-
-  /* Legacy & Theme Compatibility Mapping */
-  --color-bg: var(--bg);
-  --color-surface: var(--surface);
-  --color-surface-hover: var(--bg-alt);
-  --color-border: var(--border);
-  --color-text-primary: var(--text);
-  --color-text-secondary: var(--text-muted);
-  --color-accent: var(--accent);
-  --color-accent-hover: #9E7B15;
-  --color-accent-light: #D4AF37;
-  --color-accent-dark: #8C6D14;
-  --color-accent-glow: rgba(184, 146, 31, 0.16);
+  --status-success: #15803d;
+  --status-error: #b91c1c;
+  --status-warning: #a16207;
 
   /* Form & Interactive Controls */
-  --input-background: #FFFFFF;
-  --input-foreground: var(--text);
+  --input-background: var(--input-bg);
+  --input-foreground: var(--text-primary);
   --input-placeholder: var(--text-muted);
   --input-border: var(--border);
+  --input-focus: var(--accent);
+  --input-disabled-background: #ECE7DB;
+  --input-disabled-foreground: var(--text-muted);
+  --input-error: var(--status-error);
+  --input-selection-background: rgba(138, 109, 26, 0.22);
 
   /* Layering Z-Index Contract */
   --z-base: 0;
@@ -58,18 +73,13 @@ html.light {
   --z-chat: 130;
   --z-toast: 200;
   --z-page-transition: 300;
-  --input-focus: var(--accent);
-  --input-disabled-background: #ECE7DB;
-  --input-disabled-foreground: var(--text-muted);
-  --input-error: var(--status-error);
-  --input-selection-background: rgba(184, 146, 31, 0.22);
 
   /* Skeleton Animation Tokens */
   --skeleton-bg: #ECE7DB;
   --skeleton-shine: #F5F1E8;
 
   /* Shadows & Overlays */
-  --overlay-bg: rgba(26, 26, 23, 0.45);
+  --overlay-bg: var(--bg-overlay);
   --shadow-subtle: 0 8px 24px rgba(0, 0, 0, 0.06);
 
   color-scheme: light;
@@ -77,47 +87,62 @@ html.light {
 
 [data-theme="dark"],
 html.dark {
-  --bg: #121217;
-  --bg-alt: #191920;
-  --surface: #1E1E26;
-  --text: #F5EEEB;
+  /* 1. Atelier Vérité Unified Design Tokens (Dark Mode) */
+  --bg-page: #0D0D12;
+  --bg-card: #181820;
+  --bg-overlay: rgba(0, 0, 0, 0.75);
+  --text-primary: #F5EEEB;
+  --text-secondary: #C5BEBA;
   --text-muted: #A39B95;
   --border: rgba(245, 238, 235, 0.14);
-  --accent: #D4AF37;
+  --accent: #D4AF37; /* Gold sáng cho Dark mode */
   --accent-contrast: #121217;
-  --inverse-bg: #FAF8F3;
-  --inverse-text: #1A1A17;
+  --input-bg: #14141B;
+  --overlay-text: #FFFFFF;
 
-  --status-success: #38A169;
-  --status-error: #E53E3E;
-  --status-warning: #DD6B20;
-
-  --color-bg: var(--bg);
-  --color-surface: var(--surface);
+  /* Backward Compatibility Tokens & Aliases */
+  --bg: var(--bg-page);
+  --bg-alt: #191920;
+  --surface: var(--bg-card);
+  --text: var(--text-primary);
+  --color-bg: var(--bg-page);
+  --color-surface: var(--bg-card);
   --color-surface-hover: #262632;
   --color-border: var(--border);
-  --color-text-primary: var(--text);
-  --color-text-secondary: var(--text-muted);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
   --color-accent: var(--accent);
   --color-accent-hover: #E5C158;
   --color-accent-light: #F0D478;
   --color-accent-dark: #B8921F;
   --color-accent-glow: rgba(212, 175, 55, 0.2);
 
-  --input-background: #191920;
-  --input-foreground: #F5EEEB;
-  --input-placeholder: #A39B95;
-  --input-border: rgba(245, 238, 235, 0.2);
-  --input-focus: #D4AF37;
+  /* Inverse Tokens */
+  --inverse-bg: #FAF8F3;
+  --inverse-text: #1A1A17;
+
+  /* State Alerts */
+  --status-success: #4ade80;
+  --status-error: #f87171;
+  --status-warning: #facc15;
+
+  /* Form & Interactive Controls */
+  --input-background: var(--input-bg);
+  --input-foreground: var(--text-primary);
+  --input-placeholder: var(--text-muted);
+  --input-border: var(--border);
+  --input-focus: var(--accent);
   --input-disabled-background: #2B2428;
   --input-disabled-foreground: #76686B;
   --input-error: #F27A8C;
   --input-selection-background: rgba(212, 175, 55, 0.3);
 
+  /* Skeleton Animation Tokens */
   --skeleton-bg: #1F1E28;
   --skeleton-shine: #2A2A38;
 
-  --overlay-bg: rgba(0, 0, 0, 0.65);
+  /* Shadows & Overlays */
+  --overlay-bg: var(--bg-overlay);
   --shadow-subtle: 0 8px 24px rgba(0, 0, 0, 0.35);
 
   color-scheme: dark;
@@ -862,11 +887,35 @@ html.dark .atelier-skeleton {
     height: 16px;
   }
 
-  .atelier-nav-actions a[href='/account'] {
+  .atelier-nav-actions a[href='/account'],
+  .atelier-nav-actions a[href='/login'],
+  .atelier-nav-actions .atelier-user-action {
     display: none;
   }
 
   .announcement-track span {
     padding: 0 12px;
+  }
+}
+
+/* Compact Product Card Grid Layout (Mobile: 2 cols; Tablet: 3 cols; Desktop: 4 cols) */
+.product-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  width: 100%;
+}
+
+@media (min-width: 640px) {
+  .product-card-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .product-card-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 20px;
   }
 }

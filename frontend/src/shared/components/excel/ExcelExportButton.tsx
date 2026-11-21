@@ -156,13 +156,13 @@ export const ExcelExportButton: React.FC<ExcelExportButtonProps> = ({
         type="button"
         onClick={handleOpenExportModal}
         disabled={loading}
-        className={`px-3 py-2 text-xs font-mono uppercase tracking-wider text-platinum-light hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 rounded-sm transition-all flex items-center gap-1.5 disabled:opacity-50 ${className}`}
+        className={`px-3 py-2 text-xs font-mono uppercase tracking-wider text-[var(--text-primary)] hover:text-[var(--accent)] bg-[var(--bg-card)] hover:bg-[var(--bg-card-muted)] border border-[var(--border)] rounded-sm transition-all flex items-center gap-1.5 disabled:opacity-50 ${className}`}
         title={type === 'category' ? 'Xuất danh mục ra Excel' : 'Xuất danh sách sản phẩm ra Excel kèm ảnh nhúng'}
       >
         {loading ? (
-          <Loader2 className="w-3.5 h-3.5 animate-spin text-champagne" />
+          <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--accent)]" />
         ) : (
-          <FileSpreadsheet className="w-3.5 h-3.5 text-champagne" />
+          <FileSpreadsheet className="w-3.5 h-3.5 text-[var(--accent)]" />
         )}
         <span>{type === 'category' ? 'Xuất Excel Danh Mục' : 'Xuất Excel Sản Phẩm'}</span>
       </button>
@@ -173,25 +173,25 @@ export const ExcelExportButton: React.FC<ExcelExportButtonProps> = ({
           <div
             role="dialog"
             aria-modal="true"
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 pointer-events-auto"
+            className="fixed inset-0 bg-[var(--bg-overlay)] backdrop-blur-sm flex items-center justify-center p-4 pointer-events-auto"
             style={{ zIndex: overlayZIndex }}
             onClick={(e) => {
               if (e.target === e.currentTarget && !loading) setIsModalOpen(false);
             }}
           >
             <div
-              className="bg-noir-900 border border-white/10 rounded-sm w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 max-h-[calc(100dvh-32px)] flex flex-col"
+              className="bg-[var(--bg-card)] border border-[var(--border)] rounded-sm w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 max-h-[calc(100dvh-32px)] flex flex-col text-[var(--text-primary)]"
               style={{ zIndex: contentZIndex }}
             >
               {/* Modal Header */}
-              <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between bg-noir-950 shrink-0">
+              <div className="px-5 py-4 border-b border-[var(--border)] flex items-center justify-between bg-[var(--bg-card-muted)] shrink-0">
                 <div className="flex items-center gap-2.5">
-                  <FileSpreadsheet className="w-5 h-5 text-champagne" />
+                  <FileSpreadsheet className="w-5 h-5 text-[var(--accent)]" />
                   <div>
-                    <h3 className="text-xs font-semibold text-white tracking-wide uppercase font-mono">
+                    <h3 className="text-xs font-semibold text-[var(--text-primary)] tracking-wide uppercase font-mono">
                       Xuất Dữ Liệu Sản Phẩm Ra Excel (.xlsx)
                     </h3>
-                    <p className="text-[11px] text-platinum-dark">
+                    <p className="text-[11px] text-[var(--text-muted)]">
                       Tùy chọn phạm vi xuất và hình thức nhúng hình ảnh
                     </p>
                   </div>
@@ -200,7 +200,7 @@ export const ExcelExportButton: React.FC<ExcelExportButtonProps> = ({
                   type="button"
                   onClick={() => setIsModalOpen(false)}
                   disabled={loading}
-                  className="p-1.5 text-platinum-dark hover:text-white transition-colors rounded-sm"
+                  className="p-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors rounded-sm"
                 >
                   <X className="w-4 h-4" />
                 </button>

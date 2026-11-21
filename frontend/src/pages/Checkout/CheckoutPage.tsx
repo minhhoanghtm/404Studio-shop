@@ -165,21 +165,21 @@ export const CheckoutPage: React.FC = () => {
   };
 
   return (
-    <div className="w-full bg-ivory-50 text-noir-900 dark:bg-noir-950 dark:text-white min-h-screen py-16 px-4 sm:px-6 lg:px-8">
+    <div className="w-full bg-[var(--bg-page)] text-[var(--text-primary)] min-h-screen py-16 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto space-y-10">
-        <div className="flex items-center justify-between border-b border-white/10 pb-6">
+        <div className="flex items-center justify-between border-b border-[var(--border)] pb-6">
           <div>
             <Link
               to="/cart"
-              className="inline-flex items-center gap-2 text-xs uppercase tracking-widest text-champagne hover:underline mb-2"
+              className="inline-flex items-center gap-2 text-xs uppercase tracking-widest text-[var(--accent)] hover:underline mb-2"
             >
               <ArrowLeft className="w-3.5 h-3.5" /> Trở lại túi mua sắm
             </Link>
-            <h1 className="font-display text-3xl sm:text-4xl text-white">
+            <h1 className="font-display text-3xl sm:text-4xl text-[var(--text-primary)]">
               {vi.checkout.title}
             </h1>
           </div>
-          <p className="text-xs text-platinum-dark font-sans hidden sm:block">
+          <p className="text-xs text-[var(--text-muted)] font-sans hidden sm:block">
             {vi.checkout.subtitle}
           </p>
         </div>
@@ -192,8 +192,8 @@ export const CheckoutPage: React.FC = () => {
                 <AlertTriangle className="w-4 h-4 shrink-0" />
                 <span>Phát hiện {invalidItems.length} sản phẩm dữ liệu mẫu chưa có mã Backend</span>
               </div>
-              <p className="text-xs text-white/70">
-                Sản phẩm lỗi: <strong className="text-white">{invalidItems.map((it) => it.name).join(', ')}</strong>. Vui lòng xóa các mục này để tiếp tục thanh toán an toàn.
+              <p className="text-xs text-[var(--text-secondary)]">
+                Sản phẩm lỗi: <strong className="text-[var(--text-primary)]">{invalidItems.map((it) => it.name).join(', ')}</strong>. Vui lòng xóa các mục này để tiếp tục thanh toán an toàn.
               </p>
             </div>
             <button

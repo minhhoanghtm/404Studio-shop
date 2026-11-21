@@ -80,18 +80,18 @@ export const ChangeEmailForm: React.FC<ChangeEmailFormProps> = ({
       className="space-y-5 text-left font-sans"
     >
       <div className="space-y-1">
-        <h3 className="font-serif text-base uppercase tracking-wider text-white font-medium flex items-center gap-2">
-          <Mail className="w-4 h-4 text-[#d4af37]" />
+        <h3 className="font-serif text-base uppercase tracking-wider text-[var(--text-primary)] font-medium flex items-center gap-2">
+          <Mail className="w-4 h-4 text-[var(--accent)]" />
           <span>Thay Đổi Địa Chỉ Email Tài Khoản</span>
         </h3>
-        <p className="text-xs text-white/60 font-light">
+        <p className="text-xs text-[var(--text-muted)] font-light">
           Địa chỉ email mới sẽ được dùng để nhận vé mời sự kiện, hóa đơn và đăng nhập tài khoản Patron.
         </p>
       </div>
 
       {currentEmail && (
-        <div className="p-3 rounded-xl bg-white/[0.02] border border-white/10 text-xs text-white/70">
-          Email hiện tại: <strong className="text-white font-mono">{currentEmail}</strong>
+        <div className="p-3 rounded-xl bg-[var(--bg-page)] border border-[var(--border)] text-xs text-[var(--text-secondary)]">
+          Email hiện tại: <strong className="text-[var(--text-primary)] font-mono">{currentEmail}</strong>
         </div>
       )}
 
@@ -115,8 +115,8 @@ export const ChangeEmailForm: React.FC<ChangeEmailFormProps> = ({
       )}
 
       <div className="space-y-1.5">
-        <label className="block text-xs uppercase tracking-wider font-serif font-medium text-white/80">
-          Địa chỉ email mới <span className="text-[#d4af37]">*</span>
+        <label className="block text-xs uppercase tracking-wider font-serif font-medium text-[var(--text-secondary)]">
+          Địa chỉ email mới <span className="text-[var(--accent)]">*</span>
         </label>
         <input
           type="email"
@@ -124,7 +124,7 @@ export const ChangeEmailForm: React.FC<ChangeEmailFormProps> = ({
           value={newEmail}
           onChange={(e) => setNewEmail(e.target.value)}
           placeholder="email.moi@domain.com"
-          className="w-full bg-[#14141a] border border-white/10 rounded-xl px-4 py-3 text-xs text-white placeholder-white/30 focus:outline-none focus:border-[#d4af37] font-mono"
+          className="w-full bg-[var(--input-bg)] border border-[var(--border)] rounded-xl px-4 py-3 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)]/50 focus:outline-none focus:border-[var(--accent)] font-mono"
         />
       </div>
 
@@ -133,14 +133,14 @@ export const ChangeEmailForm: React.FC<ChangeEmailFormProps> = ({
           type="button"
           onClick={onCancel}
           disabled={isSubmitting}
-          className="px-5 py-3 rounded-xl border border-white/15 text-white/70 hover:text-white text-xs font-semibold uppercase tracking-wider transition-all disabled:opacity-50"
+          className="px-5 py-3 rounded-xl border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-xs font-semibold uppercase tracking-wider transition-all disabled:opacity-50"
         >
           Hủy
         </button>
         <button
           type="submit"
           disabled={isSubmitting || !isValidEmail}
-          className="px-6 py-3 rounded-xl bg-[#d4af37] hover:bg-[#e5c158] text-black text-xs font-semibold uppercase tracking-wider transition-all shadow-lg shadow-[#d4af37]/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          className="px-6 py-3 rounded-xl bg-[var(--accent)] hover:opacity-90 text-[var(--accent-contrast)] text-xs font-semibold uppercase tracking-wider transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
         >
           <ShieldCheck className="w-4 h-4" />
           {isSubmitting ? 'Đang cập nhật...' : 'Xác Nhận Thay Đổi Email'}

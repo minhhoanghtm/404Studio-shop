@@ -95,23 +95,23 @@ export const AdminCouponsPage: React.FC = () => {
     >
       <div className="space-y-6">
         <div className="flex justify-between items-center">
-          <div className="text-xs text-platinum-dark">
-            Mã đang áp dụng: <strong className="text-white font-mono">{coupons.length}</strong>
+          <div className="text-xs text-[var(--text-muted)]">
+            Mã đang áp dụng: <strong className="text-[var(--text-primary)] font-mono">{coupons.length}</strong>
           </div>
           <button
             type="button"
             onClick={() => setIsModalOpen(true)}
-            className="px-4 py-2 bg-champagne text-noir-950 font-semibold text-xs uppercase tracking-wider rounded-sm hover:bg-champagne/90 transition-colors flex items-center gap-2"
+            className="px-4 py-2 bg-[var(--accent)] text-[var(--accent-contrast)] font-semibold text-xs uppercase tracking-wider rounded-sm hover:opacity-90 transition-opacity flex items-center gap-2 shadow-sm"
           >
             <Plus className="w-4 h-4" />
             <span>Tạo Mã Ưu Đãi Mới</span>
           </button>
         </div>
 
-        <div className="bg-noir-900 border border-white/10 rounded-sm overflow-hidden">
+        <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-sm overflow-hidden shadow-sm">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-white/10 text-platinum-dark uppercase tracking-wider bg-white/5">
+              <tr className="border-b border-[var(--border)] text-[var(--text-secondary)] uppercase tracking-wider bg-[var(--bg-card-muted)]">
                 <th className="py-3 px-4">Mã Voucher</th>
                 <th className="py-3 px-4">Tỷ Lệ Giảm</th>
                 <th className="py-3 px-4">Đơn Hàng Tối Thiểu</th>
@@ -120,31 +120,31 @@ export const AdminCouponsPage: React.FC = () => {
                 <th className="py-3 px-4 text-right">Thao Tác</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody className="divide-y divide-[var(--border)]">
               {coupons.map((cp) => (
-                <tr key={cp.id || cp._id} className="hover:bg-white/5 transition-colors">
-                  <td className="py-3.5 px-4 font-mono font-bold text-champagne text-sm">
+                <tr key={cp.id || cp._id} className="hover:bg-[var(--table-row-hover)] transition-colors">
+                  <td className="py-3.5 px-4 font-mono font-bold text-[var(--accent)] text-sm">
                     {cp.code}
                   </td>
                   <td className="py-3.5 px-4 font-mono">
-                    <span className="px-2 py-0.5 bg-champagne/15 text-champagne border border-champagne/30 rounded-sm">
+                    <span className="px-2 py-0.5 bg-[var(--accent)]/15 text-[var(--accent)] border border-[var(--accent)]/30 rounded-sm font-semibold">
                       Giảm {cp.discountPercent || cp.discountValue}%
                     </span>
                   </td>
-                  <td className="py-3.5 px-4 font-mono">
+                  <td className="py-3.5 px-4 font-mono text-[var(--text-primary)]">
                     {cp.minOrderValue && cp.minOrderValue > 0
                       ? formatCurrency(cp.minOrderValue)
                       : 'Không giới hạn'}
                   </td>
-                  <td className="py-3.5 px-4 text-platinum-dark font-mono">
+                  <td className="py-3.5 px-4 text-[var(--text-muted)] font-mono">
                     {cp.expiryDate || '31/12/2026'}
                   </td>
-                  <td className="py-3.5 px-4 font-mono">{cp.usageCount || 0} lượt</td>
+                  <td className="py-3.5 px-4 font-mono text-[var(--text-secondary)]">{cp.usageCount || 0} lượt</td>
                   <td className="py-3.5 px-4 text-right">
                     <button
                       type="button"
                       onClick={() => handleDelete(cp.id || cp._id, cp.code)}
-                      className="p-1.5 text-platinum-dark hover:text-red-400 transition-colors"
+                      className="p-1.5 text-[var(--text-muted)] hover:text-red-500 transition-colors"
                       title="Xóa mã"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -160,7 +160,7 @@ export const AdminCouponsPage: React.FC = () => {
         {isModalOpen && (
           <ModalPortal>
             <div
-              className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 pointer-events-auto"
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 pointer-events-auto"
               style={{ zIndex: overlayZIndex }}
               onClick={(e) => {
                 if (e.target === e.currentTarget) setIsModalOpen(false);
@@ -170,13 +170,13 @@ export const AdminCouponsPage: React.FC = () => {
               aria-label="Khởi Tạo Mã Ưu Đãi"
             >
               <div
-                className="bg-noir-900 border border-white/10 w-full max-w-md p-6 rounded-sm text-white max-h-[calc(100dvh-32px)] overflow-y-auto"
+                className="bg-[var(--bg-card)] border border-[var(--border)] w-full max-w-md p-6 rounded-sm text-[var(--text-primary)] max-h-[calc(100dvh-32px)] overflow-y-auto shadow-2xl"
                 style={{ zIndex: contentZIndex }}
               >
-              <h3 className="font-display text-lg mb-4">Khởi Tạo Mã Ưu Đãi</h3>
+              <h3 className="font-display text-lg mb-4 text-[var(--text-primary)]">Khởi Tạo Mã Ưu Đãi</h3>
               <form onSubmit={handleCreateCoupon} className="space-y-4 text-xs">
                 <div>
-                  <label className="block text-platinum-dark uppercase tracking-wider mb-1">
+                  <label className="block text-[var(--text-muted)] uppercase tracking-wider mb-1">
                     Mã Ưu Đãi (In hoa, không khoảng trắng)
                   </label>
                   <input
@@ -185,12 +185,12 @@ export const AdminCouponsPage: React.FC = () => {
                     value={code}
                     onChange={(e) => setCode(e.target.value.toUpperCase())}
                     placeholder="VÍ DỤ: HAUTE25"
-                    className="w-full px-3 py-2 bg-noir-950 border border-white/15 focus:border-champagne focus:outline-none font-mono uppercase"
+                    className="w-full px-3 py-2 bg-[var(--input-bg)] border border-[var(--border)] focus:border-[var(--accent)] focus:outline-none font-mono uppercase text-[var(--text-primary)] rounded-sm"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-platinum-dark uppercase tracking-wider mb-1">
+                    <label className="block text-[var(--text-muted)] uppercase tracking-wider mb-1">
                       Mức Giảm (%)
                     </label>
                     <input
@@ -200,43 +200,43 @@ export const AdminCouponsPage: React.FC = () => {
                       max={100}
                       value={discountPercent}
                       onChange={(e) => setDiscountPercent(Number(e.target.value))}
-                      className="w-full px-3 py-2 bg-noir-950 border border-white/15 focus:border-champagne focus:outline-none font-mono"
+                      className="w-full px-3 py-2 bg-[var(--input-bg)] border border-[var(--border)] focus:border-[var(--accent)] focus:outline-none font-mono text-[var(--text-primary)] rounded-sm"
                     />
                   </div>
                   <div>
-                    <label className="block text-platinum-dark uppercase tracking-wider mb-1">
+                    <label className="block text-[var(--text-muted)] uppercase tracking-wider mb-1">
                       Chi Tiêu Tối Thiểu (VND)
                     </label>
                     <input
                       type="number"
                       value={minOrder}
                       onChange={(e) => setMinOrder(Number(e.target.value))}
-                      className="w-full px-3 py-2 bg-noir-950 border border-white/15 focus:border-champagne focus:outline-none font-mono"
+                      className="w-full px-3 py-2 bg-[var(--input-bg)] border border-[var(--border)] focus:border-[var(--accent)] focus:outline-none font-mono text-[var(--text-primary)] rounded-sm"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-platinum-dark uppercase tracking-wider mb-1">
+                  <label className="block text-[var(--text-muted)] uppercase tracking-wider mb-1">
                     Ngày Hết Hạn
                   </label>
                   <input
                     type="date"
                     value={expiry}
                     onChange={(e) => setExpiry(e.target.value)}
-                    className="w-full px-3 py-2 bg-noir-950 border border-white/15 focus:border-champagne focus:outline-none"
+                    className="w-full px-3 py-2 bg-[var(--input-bg)] border border-[var(--border)] focus:border-[var(--accent)] focus:outline-none text-[var(--text-primary)] rounded-sm"
                   />
                 </div>
-                <div className="pt-4 flex justify-end gap-3 border-t border-white/10">
+                <div className="pt-4 flex justify-end gap-3 border-t border-[var(--border)]">
                   <button
                     type="button"
                     onClick={() => setIsModalOpen(false)}
-                    className="px-4 py-2 border border-white/15 text-platinum-dark hover:text-white uppercase tracking-wider"
+                    className="px-4 py-2 border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--table-row-hover)] uppercase tracking-wider rounded-sm transition-colors"
                   >
                     Hủy
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 bg-champagne text-noir-950 font-semibold uppercase tracking-wider"
+                    className="px-5 py-2 bg-[var(--accent)] text-[var(--accent-contrast)] font-semibold uppercase tracking-wider rounded-sm hover:opacity-90 shadow-sm"
                   >
                     Kích Hoạt Mã
                   </button>

@@ -1,6 +1,8 @@
 import { ChatMemory } from './ChatMemory.js';
 import { CandidateProduct, ChatMessage, ShoppingMemoryState } from '../types/index.js';
 
+const PRODUCT_QUERY_PATTERN = /(?:áo|ao|quần|quan|váy|vay|đầm|dam|jacket|blazer|polo|shirt|t[- ]?shirt|thể thao|the thao|sportswear|sport|giày|giay|túi|tui|phụ kiện|phu kien)/iu;
+
 export interface AdvisorContext {
   userId?: string | null;
   role?: string;
@@ -34,6 +36,7 @@ export class ShoppingMemoryAdvisor {
     // 0. Reset selection if user asks for a fresh search: "Tìm áo thun", "Gợi ý đầm dạ hội", "Search váy"
     if (
       /^(?:tìm|search|gợi ý|tìm kiếm|xem)/iu.test(lower) ||
+      PRODUCT_QUERY_PATTERN.test(lower) ||
       /tìm.*(giúp|hộ|cho)|gợi ý.*cho/iu.test(lower)
     ) {
       state = await this.memory.updateState(conversationId, {

@@ -107,11 +107,11 @@ export const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
       className="space-y-5 text-left font-sans"
     >
       <div className="space-y-1">
-        <h3 className="font-serif text-base uppercase tracking-wider text-white font-medium flex items-center gap-2">
-          <Lock className="w-4 h-4 text-[#d4af37]" />
+        <h3 className="font-serif text-base uppercase tracking-wider text-[var(--text-primary)] font-medium flex items-center gap-2">
+          <Lock className="w-4 h-4 text-[var(--accent)]" />
           <span>Thiết Lập Mật Khẩu Mới</span>
         </h3>
-        <p className="text-xs text-white/60 font-light">
+        <p className="text-xs text-[var(--text-muted)] font-light">
           Mật khẩu mới được mã hóa bảo vệ bằng thuật toán bcrypt một chiều và không bao giờ được tiết lộ cho AI.
         </p>
       </div>
@@ -126,8 +126,8 @@ export const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
       {/* Current password (only when OTP is not already serving as the verification proof) */}
       {!verifiedOtp && (
         <div className="space-y-1.5">
-          <label className="block text-xs uppercase tracking-wider font-serif font-medium text-white/80">
-            Mật khẩu hiện tại <span className="text-[#d4af37]">*</span>
+          <label className="block text-xs uppercase tracking-wider font-serif font-medium text-[var(--text-secondary)]">
+            Mật khẩu hiện tại <span className="text-[var(--accent)]">*</span>
           </label>
           <div className="relative">
             <input
@@ -136,12 +136,12 @@ export const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
               placeholder="Nhập mật khẩu hiện tại"
-              className="w-full bg-[#14141a] border border-white/10 rounded-xl px-4 py-3 pr-11 text-xs text-white placeholder-white/30 focus:outline-none focus:border-[#d4af37]"
+              className="w-full bg-[var(--input-bg)] border border-[var(--border)] rounded-xl px-4 py-3 pr-11 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)]/50 focus:outline-none focus:border-[var(--accent)]"
             />
             <button
               type="button"
               onClick={() => setShowCurrent(!showCurrent)}
-              className="absolute right-3.5 top-3.5 text-white/40 hover:text-white"
+              className="absolute right-3.5 top-3.5 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
               aria-label={showCurrent ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
             >
               {showCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -152,8 +152,8 @@ export const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
 
       {/* New password */}
       <div className="space-y-1.5">
-        <label className="block text-xs uppercase tracking-wider font-serif font-medium text-white/80">
-          Mật khẩu mới <span className="text-[#d4af37]">*</span>
+        <label className="block text-xs uppercase tracking-wider font-serif font-medium text-[var(--text-secondary)]">
+          Mật khẩu mới <span className="text-[var(--accent)]">*</span>
         </label>
         <div className="relative">
           <input
@@ -162,12 +162,12 @@ export const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             placeholder="Tối thiểu 8 ký tự, có chữ hoa, thường, số và ký tự đặc biệt"
-            className="w-full bg-[#14141a] border border-white/10 rounded-xl px-4 py-3 pr-11 text-xs text-white placeholder-white/30 focus:outline-none focus:border-[#d4af37]"
+            className="w-full bg-[var(--input-bg)] border border-[var(--border)] rounded-xl px-4 py-3 pr-11 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)]/50 focus:outline-none focus:border-[var(--accent)]"
           />
           <button
             type="button"
             onClick={() => setShowNew(!showNew)}
-            className="absolute right-3.5 top-3.5 text-white/40 hover:text-white"
+            className="absolute right-3.5 top-3.5 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
             aria-label={showNew ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
           >
             {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -177,8 +177,8 @@ export const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
 
       {/* Confirm password */}
       <div className="space-y-1.5">
-        <label className="block text-xs uppercase tracking-wider font-serif font-medium text-white/80">
-          Xác nhận mật khẩu mới <span className="text-[#d4af37]">*</span>
+        <label className="block text-xs uppercase tracking-wider font-serif font-medium text-[var(--text-secondary)]">
+          Xác nhận mật khẩu mới <span className="text-[var(--accent)]">*</span>
         </label>
         <div className="relative">
           <input
@@ -187,12 +187,12 @@ export const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             placeholder="Nhập lại mật khẩu mới"
-            className="w-full bg-[#14141a] border border-white/10 rounded-xl px-4 py-3 pr-11 text-xs text-white placeholder-white/30 focus:outline-none focus:border-[#d4af37]"
+            className="w-full bg-[var(--input-bg)] border border-[var(--border)] rounded-xl px-4 py-3 pr-11 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)]/50 focus:outline-none focus:border-[var(--accent)]"
           />
           <button
             type="button"
             onClick={() => setShowConfirm(!showConfirm)}
-            className="absolute right-3.5 top-3.5 text-white/40 hover:text-white"
+            className="absolute right-3.5 top-3.5 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
             aria-label={showConfirm ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
           >
             {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -201,32 +201,32 @@ export const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
       </div>
 
       {/* Password criteria checklist */}
-      <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/10 space-y-2 text-[11px] font-light">
-        <div className="font-medium text-white/80 uppercase font-serif text-[10px] tracking-wider">
+      <div className="p-3.5 rounded-xl bg-[var(--bg-page)] border border-[var(--border)] space-y-2 text-[11px] font-light">
+        <div className="font-medium text-[var(--text-secondary)] uppercase font-serif text-[10px] tracking-wider">
           Tiêu chuẩn an toàn mật khẩu:
         </div>
-        <div className="grid grid-cols-2 gap-2 text-white/60">
-          <div className={`flex items-center gap-1.5 ${hasMinLength ? 'text-emerald-400 font-medium' : ''}`}>
+        <div className="grid grid-cols-2 gap-2 text-[var(--text-muted)]">
+          <div className={`flex items-center gap-1.5 ${hasMinLength ? 'text-emerald-500 dark:text-emerald-400 font-medium' : ''}`}>
             <CheckCircle2 className="w-3.5 h-3.5" />
             <span>Tối thiểu 8 ký tự</span>
           </div>
-          <div className={`flex items-center gap-1.5 ${hasUpper ? 'text-emerald-400 font-medium' : ''}`}>
+          <div className={`flex items-center gap-1.5 ${hasUpper ? 'text-emerald-500 dark:text-emerald-400 font-medium' : ''}`}>
             <CheckCircle2 className="w-3.5 h-3.5" />
             <span>Chứa chữ hoa (A-Z)</span>
           </div>
-          <div className={`flex items-center gap-1.5 ${hasLower ? 'text-emerald-400 font-medium' : ''}`}>
+          <div className={`flex items-center gap-1.5 ${hasLower ? 'text-emerald-500 dark:text-emerald-400 font-medium' : ''}`}>
             <CheckCircle2 className="w-3.5 h-3.5" />
             <span>Chứa chữ thường (a-z)</span>
           </div>
-          <div className={`flex items-center gap-1.5 ${hasNumber ? 'text-emerald-400 font-medium' : ''}`}>
+          <div className={`flex items-center gap-1.5 ${hasNumber ? 'text-emerald-500 dark:text-emerald-400 font-medium' : ''}`}>
             <CheckCircle2 className="w-3.5 h-3.5" />
             <span>Chứa chữ số (0-9)</span>
           </div>
-          <div className={`flex items-center gap-1.5 ${hasSpecial ? 'text-emerald-400 font-medium' : ''}`}>
+          <div className={`flex items-center gap-1.5 ${hasSpecial ? 'text-emerald-500 dark:text-emerald-400 font-medium' : ''}`}>
             <CheckCircle2 className="w-3.5 h-3.5" />
             <span>Ký tự đặc biệt (!@#$)</span>
           </div>
-          <div className={`flex items-center gap-1.5 ${isMatch ? 'text-emerald-400 font-medium' : ''}`}>
+          <div className={`flex items-center gap-1.5 ${isMatch ? 'text-emerald-500 dark:text-emerald-400 font-medium' : ''}`}>
             <CheckCircle2 className="w-3.5 h-3.5" />
             <span>Mật khẩu trùng khớp</span>
           </div>
@@ -239,14 +239,14 @@ export const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
           type="button"
           onClick={onCancel}
           disabled={isSubmitting}
-          className="px-5 py-3 rounded-xl border border-white/15 text-white/70 hover:text-white text-xs font-semibold uppercase tracking-wider transition-all disabled:opacity-50"
+          className="px-5 py-3 rounded-xl border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-xs font-semibold uppercase tracking-wider transition-all disabled:opacity-50"
         >
           Hủy
         </button>
         <button
           type="submit"
           disabled={isSubmitting || !isStrong || !isMatch}
-          className="px-6 py-3 rounded-xl bg-[#d4af37] hover:bg-[#e5c158] text-black text-xs font-semibold uppercase tracking-wider transition-all shadow-lg shadow-[#d4af37]/20 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-6 py-3 rounded-xl bg-[var(--accent)] hover:opacity-90 text-[var(--accent-contrast)] text-xs font-semibold uppercase tracking-wider transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isSubmitting ? 'Đang cập nhật...' : 'Xác Nhận Đổi Mật Khẩu'}
         </button>

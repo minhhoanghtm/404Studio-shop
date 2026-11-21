@@ -169,7 +169,7 @@ export const AdminOrdersPage: React.FC = () => {
           <div className="flex flex-wrap items-center gap-3 flex-1 max-w-xl">
             {/* Search Input */}
             <div className="relative flex-1 min-w-[220px]">
-              <Search className="w-4 h-4 text-platinum-dark absolute left-3 top-1/2 -translate-y-1/2" />
+              <Search className="w-4 h-4 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 value={search}
@@ -178,7 +178,7 @@ export const AdminOrdersPage: React.FC = () => {
                   setPage(1);
                 }}
                 placeholder="Tìm theo mã đơn, tên hoặc số điện thoại..."
-                className="w-full pl-9 pr-3 py-2 text-xs bg-noir-900 border border-white/10 rounded-sm focus:border-champagne focus:outline-none text-white placeholder-platinum-dark"
+                className="w-full pl-9 pr-3 py-2 text-xs bg-[var(--input-bg)] border border-[var(--border)] rounded-sm focus:border-[var(--accent)] focus:outline-none text-[var(--text-primary)] placeholder-[var(--text-muted)]"
               />
             </div>
 
@@ -189,7 +189,7 @@ export const AdminOrdersPage: React.FC = () => {
                 setStatusFilter(e.target.value);
                 setPage(1);
               }}
-              className="py-2 px-3 text-xs bg-noir-900 border border-white/10 rounded-sm focus:border-champagne focus:outline-none text-white font-mono"
+              className="py-2 px-3 text-xs bg-[var(--input-bg)] border border-[var(--border)] rounded-sm focus:border-[var(--accent)] focus:outline-none text-[var(--text-primary)] font-mono"
             >
               <option value="all">Tất cả trạng thái</option>
               <option value="pending">Chờ xử lý (Pending)</option>
@@ -206,23 +206,23 @@ export const AdminOrdersPage: React.FC = () => {
               type="button"
               onClick={fetchOrders}
               disabled={isLoading}
-              className="p-2 text-platinum-dark hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 rounded-sm transition-colors"
+              className="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] bg-[var(--bg-card)] hover:bg-[var(--table-row-hover)] border border-[var(--border)] rounded-sm transition-colors"
               title="Làm mới danh sách"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-champagne' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-[var(--accent)]' : ''}`} />
             </button>
 
             {/* Export Excel Button */}
             <button
               type="button"
               onClick={() => setIsExportModalOpen(true)}
-              className="px-3.5 py-2 text-xs font-mono uppercase tracking-wider text-platinum-light hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 rounded-sm transition-all flex items-center gap-1.5"
+              className="px-3.5 py-2 text-xs font-mono uppercase tracking-wider text-[var(--text-primary)] hover:text-[var(--accent)] bg-[var(--bg-card)] hover:bg-[var(--table-row-hover)] border border-[var(--border)] rounded-sm transition-all flex items-center gap-1.5"
               title="Mở bảng tùy chọn xuất Excel đa phạm vi"
             >
-              <FileSpreadsheet className="w-3.5 h-3.5 text-champagne" />
+              <FileSpreadsheet className="w-3.5 h-3.5 text-[var(--accent)]" />
               <span>Xuất Excel</span>
               {selectedIds.size > 0 && (
-                <span className="px-1.5 py-0.2 bg-champagne text-noir-950 text-[10px] font-bold rounded-full ml-1">
+                <span className="px-1.5 py-0.2 bg-[var(--accent)] text-[var(--accent-contrast)] text-[10px] font-bold rounded-full ml-1">
                   {selectedIds.size}
                 </span>
               )}
@@ -232,14 +232,14 @@ export const AdminOrdersPage: React.FC = () => {
 
         {/* Selected count indicator */}
         {selectedIds.size > 0 && (
-          <div className="p-2.5 bg-champagne/10 border border-champagne/30 rounded-sm flex items-center justify-between text-xs text-platinum-light">
+          <div className="p-2.5 bg-[var(--accent)]/10 border border-[var(--accent)]/30 rounded-sm flex items-center justify-between text-xs text-[var(--text-primary)]">
             <span>
-              Đã chọn <strong className="text-champagne font-mono">{selectedIds.size}</strong> đơn hàng trên trang này.
+              Đã chọn <strong className="text-[var(--accent)] font-mono">{selectedIds.size}</strong> đơn hàng trên trang này.
             </span>
             <button
               type="button"
               onClick={() => setSelectedIds(new Set())}
-              className="text-[11px] text-platinum-dark hover:text-white underline"
+              className="text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] underline"
             >
               Bỏ chọn tất cả
             </button>
@@ -247,24 +247,24 @@ export const AdminOrdersPage: React.FC = () => {
         )}
 
         {/* Orders Table */}
-        <div className="bg-noir-900 border border-white/10 rounded-sm overflow-hidden">
+        <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-sm overflow-hidden shadow-sm">
           {isLoading ? (
             <div className="p-16 text-center space-y-3">
-              <Loader2 className="w-8 h-8 text-champagne animate-spin mx-auto" />
-              <p className="text-xs text-platinum-dark">Đang nạp dữ liệu đơn hàng từ máy chủ MongoDB...</p>
+              <Loader2 className="w-8 h-8 text-[var(--accent)] animate-spin mx-auto" />
+              <p className="text-xs text-[var(--text-muted)]">Đang nạp dữ liệu đơn hàng từ máy chủ MongoDB...</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="border-b border-white/10 text-platinum-dark uppercase tracking-wider bg-white/5 font-mono text-[11px]">
+                  <tr className="border-b border-[var(--border)] text-[var(--text-muted)] uppercase tracking-wider bg-[var(--bg-card-muted)] font-mono text-[11px]">
                     <th className="py-3 px-4 w-10 text-center">
                       <input
                         type="checkbox"
                         checked={orders.length > 0 && orders.every((o) => selectedIds.has(o._id || o.id))}
                         onChange={(e) => handleSelectAll(e.target.checked)}
                         disabled={orders.length === 0}
-                        className="w-3.5 h-3.5 rounded text-champagne focus:ring-champagne border-white/20"
+                        className="w-3.5 h-3.5 rounded text-[var(--accent)] focus:ring-[var(--accent)] border-[var(--border)]"
                         title="Chọn tất cả đơn hàng trên trang"
                       />
                     </th>
@@ -277,13 +277,13 @@ export const AdminOrdersPage: React.FC = () => {
                     <th className="py-3 px-4 text-right">Thao Tác</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5">
+                <tbody className="divide-y divide-[var(--border)]">
                   {orders.length === 0 ? (
                     <tr>
                       <td colSpan={8} className="py-14 text-center">
-                        <Package className="w-9 h-9 text-platinum-dark/40 mx-auto mb-2.5" />
-                        <h4 className="text-xs font-medium text-white mb-1">Không tìm thấy đơn hàng nào</h4>
-                        <p className="text-[11px] text-platinum-dark max-w-sm mx-auto">
+                        <Package className="w-9 h-9 text-[var(--text-muted)]/40 mx-auto mb-2.5" />
+                        <h4 className="text-xs font-medium text-[var(--text-primary)] mb-1">Không tìm thấy đơn hàng nào</h4>
+                        <p className="text-[11px] text-[var(--text-muted)] max-w-sm mx-auto">
                           Quý khách có thể thử tìm với từ khóa khác hoặc xóa bộ lọc để hiển thị tất cả.
                         </p>
                       </td>
@@ -303,7 +303,7 @@ export const AdminOrdersPage: React.FC = () => {
                       <tr
                         key={id}
                         className={`transition-colors ${
-                          isSelected ? 'bg-champagne/5 hover:bg-champagne/10' : 'hover:bg-white/5'
+                          isSelected ? 'bg-[var(--accent)]/10 hover:bg-[var(--accent)]/15' : 'hover:bg-[var(--table-row-hover)]'
                         }`}
                       >
                         <td className="py-3.5 px-4 text-center">
@@ -311,32 +311,32 @@ export const AdminOrdersPage: React.FC = () => {
                             type="checkbox"
                             checked={isSelected}
                             onChange={() => handleToggleSelect(id)}
-                            className="w-3.5 h-3.5 rounded text-champagne focus:ring-champagne border-white/20"
+                            className="w-3.5 h-3.5 rounded text-[var(--accent)] focus:ring-[var(--accent)] border-[var(--border)]"
                           />
                         </td>
-                        <td className="py-3.5 px-4 font-mono font-bold text-champagne">
+                        <td className="py-3.5 px-4 font-mono font-bold text-[var(--accent)]">
                           {code}
                         </td>
                         <td className="py-3.5 px-4">
-                          <div className="font-medium text-white">{customerName}</div>
+                          <div className="font-medium text-[var(--text-primary)]">{customerName}</div>
                           {customerPhone && (
-                            <div className="text-[11px] text-platinum-dark font-mono">{customerPhone}</div>
+                            <div className="text-[11px] text-[var(--text-muted)] font-mono">{customerPhone}</div>
                           )}
                         </td>
-                        <td className="py-3.5 px-4 text-platinum-dark font-mono text-[11px]">
+                        <td className="py-3.5 px-4 text-[var(--text-muted)] font-mono text-[11px]">
                           {formatDate(ord.createdAt)}
                         </td>
-                        <td className="py-3.5 px-4 text-platinum-dark text-[11px]">
+                        <td className="py-3.5 px-4 text-[var(--text-muted)] text-[11px]">
                           <span className="uppercase font-mono">{paymentMethod}</span>
                         </td>
-                        <td className="py-3.5 px-4 font-mono font-bold text-white text-right">
+                        <td className="py-3.5 px-4 font-mono font-bold text-[var(--text-primary)] text-right">
                           {formatCurrency(total)}
                         </td>
                         <td className="py-3.5 px-4">
                           <select
                             value={ord.status || 'pending'}
                             onChange={(e) => handleUpdateStatus(id, e.target.value)}
-                            className="py-1 px-2.5 bg-noir-950 border border-white/15 text-[11px] font-mono rounded-sm focus:border-champagne focus:outline-none text-white"
+                            className="py-1 px-2.5 bg-[var(--input-bg)] border border-[var(--border)] text-[11px] font-mono rounded-sm focus:border-[var(--accent)] focus:outline-none text-[var(--text-primary)]"
                           >
                             <option value="pending">Chờ xử lý</option>
                             <option value="confirmed">Đã xác nhận</option>
@@ -349,7 +349,7 @@ export const AdminOrdersPage: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => handleOpenDetail(ord)}
-                            className="p-1.5 text-platinum-dark hover:text-champagne transition-colors"
+                            className="p-1.5 text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors"
                             title="Xem chi tiết đơn hàng & xuất Excel"
                           >
                             <Eye className="w-4 h-4" />
@@ -365,16 +365,16 @@ export const AdminOrdersPage: React.FC = () => {
 
           {/* Pagination Controls */}
           {totalPages > 1 && (
-            <div className="px-6 py-3 border-t border-white/10 bg-noir-950 flex items-center justify-between text-xs text-platinum-dark">
+            <div className="px-6 py-3 border-t border-[var(--border)] bg-[var(--bg-card-muted)] flex items-center justify-between text-xs text-[var(--text-muted)]">
               <span>
-                Hiển thị trang <strong className="text-white font-mono">{page}</strong> / {totalPages} (Tổng cộng {totalOrders} đơn)
+                Hiển thị trang <strong className="text-[var(--text-primary)] font-mono">{page}</strong> / {totalPages} (Tổng cộng {totalOrders} đơn)
               </span>
               <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page <= 1}
-                  className="px-3 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-sm disabled:opacity-40 transition-colors"
+                  className="px-3 py-1 bg-[var(--bg-card)] hover:bg-[var(--table-row-hover)] border border-[var(--border)] text-[var(--text-primary)] rounded-sm disabled:opacity-40 transition-colors"
                 >
                   Trang Trước
                 </button>
@@ -382,7 +382,7 @@ export const AdminOrdersPage: React.FC = () => {
                   type="button"
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={page >= totalPages}
-                  className="px-3 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-sm disabled:opacity-40 transition-colors"
+                  className="px-3 py-1 bg-[var(--bg-card)] hover:bg-[var(--table-row-hover)] border border-[var(--border)] text-[var(--text-primary)] rounded-sm disabled:opacity-40 transition-colors"
                 >
                   Trang Sau
                 </button>
@@ -395,7 +395,7 @@ export const AdminOrdersPage: React.FC = () => {
         {selectedOrder && (
           <ModalPortal>
             <div
-              className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 pointer-events-auto"
+              className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 pointer-events-auto"
               style={{ zIndex: overlayZIndex }}
               onClick={(e) => {
                 if (e.target === e.currentTarget) setSelectedOrder(null);
@@ -405,20 +405,20 @@ export const AdminOrdersPage: React.FC = () => {
               aria-label={`Chi tiết đơn hàng ${selectedOrder.orderCode || selectedOrder._id}`}
             >
               <div
-                className="bg-noir-900 border border-white/10 w-full max-w-2xl p-6 rounded-sm text-white space-y-5 text-xs shadow-2xl max-h-[calc(100dvh-32px)] overflow-y-auto"
+                className="bg-[var(--bg-card)] border border-[var(--border)] w-full max-w-2xl p-6 rounded-sm text-[var(--text-primary)] space-y-5 text-xs shadow-2xl max-h-[calc(100dvh-32px)] overflow-y-auto"
                 style={{ zIndex: contentZIndex }}
               >
-              <div className="flex justify-between items-start pb-3 border-b border-white/10">
+              <div className="flex justify-between items-start pb-3 border-b border-[var(--border)]">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="font-display text-lg text-champagne font-bold">
+                    <h3 className="font-display text-lg text-[var(--accent)] font-bold">
                       Hóa Đơn {selectedOrder.orderCode || `ORD-${String(selectedOrder._id || selectedOrder.id).slice(-8).toUpperCase()}`}
                     </h3>
-                    <span className="px-2 py-0.5 bg-white/10 text-[10px] font-mono uppercase rounded-sm text-platinum-light">
+                    <span className="px-2 py-0.5 bg-[var(--accent)]/15 text-[var(--accent)] border border-[var(--accent)]/30 text-[10px] font-mono uppercase rounded-sm">
                       {mapOrderStatusLabel(selectedOrder.status)}
                     </span>
                   </div>
-                  <span className="text-platinum-dark text-[11px] block mt-0.5">
+                  <span className="text-[var(--text-muted)] text-[11px] block mt-0.5">
                     Khởi tạo lúc: {formatDate(selectedOrder.createdAt)}
                   </span>
                 </div>
@@ -426,30 +426,30 @@ export const AdminOrdersPage: React.FC = () => {
                   type="button"
                   onClick={() => setSelectedOrder(null)}
                   aria-label="Đóng"
-                  className="text-platinum-dark hover:text-white p-1"
+                  className="text-[var(--text-muted)] hover:text-[var(--text-primary)] p-1 text-base leading-none"
                 >
                   ✕
                 </button>
               </div>
 
               {/* Delivery Info */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-3 bg-noir-950 border border-white/5 rounded-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-3 bg-[var(--bg-card-muted)] border border-[var(--border)] rounded-sm">
                 <div>
-                  <span className="text-platinum-dark uppercase tracking-wider block text-[10px] font-mono">
+                  <span className="text-[var(--text-muted)] uppercase tracking-wider block text-[10px] font-mono">
                     Khách Hàng
                   </span>
-                  <p className="font-medium text-white mt-0.5">
+                  <p className="font-medium text-[var(--text-primary)] mt-0.5">
                     {selectedOrder.shipping_address?.full_name || selectedOrder.customerName || selectedOrder.guest_email || 'Khách Vãng Lai'}
                   </p>
-                  <p className="text-platinum-dark text-[11px] font-mono">
+                  <p className="text-[var(--text-muted)] text-[11px] font-mono">
                     {selectedOrder.shipping_address?.phone || selectedOrder.customerPhone || 'Chưa có SĐT'}
                   </p>
                 </div>
                 <div>
-                  <span className="text-platinum-dark uppercase tracking-wider block text-[10px] font-mono">
+                  <span className="text-[var(--text-muted)] uppercase tracking-wider block text-[10px] font-mono">
                     Địa Chỉ Giao Hàng
                   </span>
-                  <p className="text-platinum-light text-[11px] mt-0.5 leading-relaxed">
+                  <p className="text-[var(--text-secondary)] text-[11px] mt-0.5 leading-relaxed">
                     {[
                       selectedOrder.shipping_address?.address_detail,
                       selectedOrder.shipping_address?.ward,
@@ -464,16 +464,16 @@ export const AdminOrdersPage: React.FC = () => {
 
               {/* Purchased items list */}
               <div>
-                <span className="text-platinum-dark uppercase tracking-wider block mb-2 text-[10px] font-mono">
+                <span className="text-[var(--text-muted)] uppercase tracking-wider block mb-2 text-[10px] font-mono">
                   Chi Tiết Sản Phẩm & Biến Thể Đặt Mua
                 </span>
                 {isLoadingItems ? (
-                  <div className="py-8 text-center text-platinum-dark flex items-center justify-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin text-champagne" />
+                  <div className="py-8 text-center text-[var(--text-muted)] flex items-center justify-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin text-[var(--accent)]" />
                     <span>Đang nạp chi tiết biến thể...</span>
                   </div>
                 ) : selectedOrderItems.length === 0 ? (
-                  <div className="p-4 bg-noir-950 text-center text-platinum-dark text-[11px] rounded-sm">
+                  <div className="p-4 bg-[var(--bg-card-muted)] text-center text-[var(--text-muted)] text-[11px] rounded-sm">
                     Không có thông tin chi tiết từng sản phẩm cho đơn hàng này.
                   </div>
                 ) : (
@@ -488,19 +488,19 @@ export const AdminOrdersPage: React.FC = () => {
                       return (
                         <div
                           key={idx}
-                          className="p-3 bg-noir-950 border border-white/5 rounded-sm flex justify-between items-center"
+                          className="p-3 bg-[var(--bg-card-muted)] border border-[var(--border)] rounded-sm flex justify-between items-center"
                         >
                           <div>
-                            <div className="font-medium text-white">{pName}</div>
-                            <div className="text-[11px] text-platinum-dark flex items-center gap-2 mt-0.5">
-                              {color && <span>Màu: <strong className="text-platinum-light">{color}</strong></span>}
-                              {size && <span>• Size: <strong className="text-platinum-light">{size}</strong></span>}
-                              <span>• SL: <strong className="text-white font-mono">{qty}</strong></span>
+                            <div className="font-medium text-[var(--text-primary)]">{pName}</div>
+                            <div className="text-[11px] text-[var(--text-muted)] flex items-center gap-2 mt-0.5">
+                              {color && <span>Màu: <strong className="text-[var(--text-primary)]">{color}</strong></span>}
+                              {size && <span>• Size: <strong className="text-[var(--text-primary)]">{size}</strong></span>}
+                              <span>• SL: <strong className="text-[var(--text-primary)] font-mono">{qty}</strong></span>
                             </div>
                           </div>
-                          <div className="font-mono text-champagne font-bold text-right">
+                          <div className="font-mono text-[var(--accent)] font-bold text-right">
                             <div>{formatCurrency(price * qty)}</div>
-                            <div className="text-[10px] text-platinum-dark font-normal">
+                            <div className="text-[10px] text-[var(--text-muted)] font-normal">
                               {formatCurrency(price)} / sp
                             </div>
                           </div>
@@ -512,12 +512,12 @@ export const AdminOrdersPage: React.FC = () => {
               </div>
 
               {/* Order total & actions */}
-              <div className="pt-4 border-t border-white/10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <div className="pt-4 border-t border-[var(--border)] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                 <div>
-                  <span className="uppercase text-platinum-dark tracking-wider text-[10px] font-mono block">
+                  <span className="uppercase text-[var(--text-muted)] tracking-wider text-[10px] font-mono block">
                     Tổng Giá Trị Đơn Hàng
                   </span>
-                  <span className="font-mono font-bold text-champagne text-lg">
+                  <span className="font-mono font-bold text-[var(--accent)] text-lg">
                     {formatCurrency(selectedOrder.total_price || selectedOrder.totalAmount || 0)}
                   </span>
                 </div>
@@ -527,7 +527,7 @@ export const AdminOrdersPage: React.FC = () => {
                     type="button"
                     onClick={() => handleExportSingleOrder(selectedOrder)}
                     disabled={isExportingSingle}
-                    className="px-4 py-2 bg-champagne text-noir-950 font-semibold text-xs rounded-sm hover:bg-champagne/90 transition-all shadow-md shadow-champagne/10 flex items-center justify-center gap-1.5 flex-1 sm:flex-initial"
+                    className="px-4 py-2 bg-[var(--accent)] text-[var(--accent-contrast)] font-semibold text-xs rounded-sm hover:opacity-90 transition-all shadow-md shadow-[var(--accent)]/10 flex items-center justify-center gap-1.5 flex-1 sm:flex-initial"
                   >
                     {isExportingSingle ? (
                       <>
@@ -544,7 +544,7 @@ export const AdminOrdersPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setSelectedOrder(null)}
-                    className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-platinum-light text-xs rounded-sm transition-colors"
+                    className="px-4 py-2 bg-[var(--bg-card-muted)] hover:bg-[var(--table-row-hover)] border border-[var(--border)] text-[var(--text-primary)] text-xs rounded-sm transition-colors"
                   >
                     Đóng
                   </button>

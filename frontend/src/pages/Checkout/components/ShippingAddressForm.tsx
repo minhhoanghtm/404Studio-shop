@@ -104,35 +104,35 @@ export const ShippingAddressForm: React.FC<ShippingAddressFormProps> = ({
         </div>
 
         <div>
-          <label className="block text-white/60 mb-1.5">{vi.checkout.state}</label>
+          <label className="block text-[var(--text-muted)] mb-1.5 font-medium">{vi.checkout.state}</label>
           <input
             type="text"
             name="state"
             value={formData.state}
             onChange={onChange}
-            className="w-full px-4 py-3 bg-noir-950 border border-white/15 rounded-lg text-white focus:border-champagne outline-none transition-colors"
+            className="w-full px-4 py-3 bg-[var(--input-bg)] border border-[var(--border)] rounded-lg text-[var(--text-primary)] focus:border-[var(--accent)] outline-none transition-colors"
           />
         </div>
 
         <div>
-          <label className="block text-white/60 mb-1.5">{vi.checkout.postalCode}</label>
+          <label className="block text-[var(--text-muted)] mb-1.5 font-medium">{vi.checkout.postalCode}</label>
           <input
             type="text"
             name="postalCode"
             value={formData.postalCode}
             onChange={onChange}
             required
-            className="w-full px-4 py-3 bg-noir-950 border border-white/15 rounded-lg text-white focus:border-champagne outline-none transition-colors font-mono"
+            className="w-full px-4 py-3 bg-[var(--input-bg)] border border-[var(--border)] rounded-lg text-[var(--text-primary)] focus:border-[var(--accent)] outline-none transition-colors font-mono"
           />
         </div>
 
         <div>
-          <label className="block text-white/60 mb-1.5">{vi.checkout.country}</label>
+          <label className="block text-[var(--text-muted)] mb-1.5 font-medium">{vi.checkout.country}</label>
           <select
             name="country"
             value={formData.country}
             onChange={onChange}
-            className="w-full px-4 py-3 bg-noir-950 border border-white/15 rounded-lg text-white focus:border-champagne outline-none transition-colors"
+            className="w-full px-4 py-3 bg-[var(--input-bg)] border border-[var(--border)] rounded-lg text-[var(--text-primary)] focus:border-[var(--accent)] outline-none transition-colors"
           >
             <option value="Việt Nam">Việt Nam</option>
             <option value="France">Pháp (France)</option>

@@ -69,6 +69,7 @@ interface QuickReply {
 
 interface ChatMessage {
   id: string;
+  clientMessageId?: string;
   role: 'assistant' | 'user' | 'staff' | 'system';
   text: string;
   timestamp: string;
@@ -127,6 +128,23 @@ const textFrom = (data: any) =>
   data?.answer ||
   data?.message ||
   'Hệ thống AI đã tiếp nhận yêu cầu của quý khách.';
+
+const renderSafeMessage = (text: string) =>
+  text.split(/(\*\*[^*]+\*\*)/g).map((part, index) =>
+    part.startsWith('**') && part.endsWith('**') ? (
+      <strong key={index}>{part.slice(2, -2)}</strong>
+    ) : (
+      <React.Fragment key={index}>{part}</React.Fragment>
+    )
+  );
+
+const ProductImage: React.FC<{ src?: string; alt: string }> = ({ src, alt }) => {
+  const [failed, setFailed] = useState(false);
+  if (!src || failed) {
+    return <ShoppingBag className="w-5 h-5 text-[var(--text-muted)]" aria-label="Ảnh sản phẩm không khả dụng" />;
+  }
+  return <img src={src} alt={alt} className="w-full h-full object-cover" loading="lazy" onError={() => setFailed(true)} />;
+};
 
 export const AiAssistantModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
   isOpen,
@@ -267,9 +285,12 @@ export const AiAssistantModal: React.FC<{ isOpen: boolean; onClose: () => void }
       if (isRelevant) {
         const isFromAdmin = message.senderType === 'admin';
         const role = isFromAdmin ? 'staff' : (message.senderType === 'user' ? 'user' : 'user');
+        const incomingId = String(message._id || message.id || `m_${Date.now()}`);
+        const clientMessageId = message.clientMessageId;
 
         const newMsg: ChatMessage = {
-          id: message._id || message.id || `m_${Date.now()}`,
+          id: incomingId,
+          clientMessageId,
           role: role as any,
           text: message.content,
           timestamp: new Date(message.createdAt || Date.now()).toLocaleTimeString('vi-VN', {
@@ -279,7 +300,25 @@ export const AiAssistantModal: React.FC<{ isOpen: boolean; onClose: () => void }
         };
 
         setStaffMessages((prev) => {
-          if (prev.some((m) => m.id === newMsg.id)) return prev;
+          // Reconcile if message already exists (optimistic or duplicate socket event)
+          const existingIndex = prev.findIndex((m) => {
+            if (m.id === incomingId) return true;
+            if (clientMessageId && (m.id === clientMessageId || m.clientMessageId === clientMessageId)) return true;
+            if (m.role === newMsg.role && m.text === newMsg.text && m.id.startsWith('staff_user_')) return true;
+            return false;
+          });
+
+          if (existingIndex >= 0) {
+            const next = [...prev];
+            next[existingIndex] = {
+              ...next[existingIndex],
+              id: incomingId,
+              clientMessageId: clientMessageId || next[existingIndex].clientMessageId,
+              status: 'sent',
+              timestamp: newMsg.timestamp,
+            };
+            return next;
+          }
           return [...prev, newMsg];
         });
 
@@ -588,6 +627,7 @@ export const AiAssistantModal: React.FC<{ isOpen: boolean; onClose: () => void }
       ...prev,
       {
         id: localId,
+        clientMessageId: localId,
         role: 'user',
         text: content,
         timestamp: time,
@@ -604,9 +644,10 @@ export const AiAssistantModal: React.FC<{ isOpen: boolean; onClose: () => void }
     );
 
     try {
+      let res: any;
       if (isAuthenticated) {
         // Authenticated customer send
-        await communicationApi.sendCustomerSupportMessage({
+        res = await communicationApi.sendCustomerSupportMessage({
           conversationId: guestConversationId || undefined,
           content,
           clientMessageId: localId,
@@ -616,7 +657,7 @@ export const AiAssistantModal: React.FC<{ isOpen: boolean; onClose: () => void }
         if (!guestConversationId) {
           throw new Error('Chưa khởi tạo phiên hỗ trợ khách.');
         }
-        await communicationApi.sendGuestMessage({
+        res = await communicationApi.sendGuestMessage({
           conversationId: guestConversationId,
           guestId,
           content,
@@ -624,8 +665,15 @@ export const AiAssistantModal: React.FC<{ isOpen: boolean; onClose: () => void }
         });
       }
 
+      const savedMsg = res?.data?.message || res?.message;
+      const permanentId = savedMsg?._id ? String(savedMsg._id) : null;
+
       setStaffMessages((prev) =>
-        prev.map((m) => (m.id === localId ? { ...m, status: 'sent' } : m))
+        prev.map((m) =>
+          m.id === localId || m.clientMessageId === localId
+            ? { ...m, id: permanentId || m.id, clientMessageId: localId, status: 'sent' }
+            : m
+        )
       );
     } catch (err: any) {
       setNetworkError(err?.message || 'Lỗi gửi tin nhắn tới nhân viên.');
@@ -903,7 +951,7 @@ export const AiAssistantModal: React.FC<{ isOpen: boolean; onClose: () => void }
                   >
                     {/* Content text */}
                     <p className="whitespace-pre-wrap leading-relaxed text-xs">
-                      {message.text}
+                      {renderSafeMessage(message.text)}
                     </p>
 
                     {/* Timestamp & Status */}
@@ -945,8 +993,6 @@ export const AiAssistantModal: React.FC<{ isOpen: boolean; onClose: () => void }
                             const prodKey = prod.id || prod._id || prod.slug || `prod-${pIdx}`;
                             const chosenColor = selectedVariants[prodKey]?.color;
                             const chosenSize = selectedVariants[prodKey]?.size;
-                            const colors = prod.available_colors || ['Đen', 'Trắng'];
-                            const sizes = prod.available_sizes || ['S', 'M', 'L'];
                             const displayPrice =
                               typeof prod.finalPrice === 'number'
                                 ? prod.finalPrice
@@ -964,16 +1010,7 @@ export const AiAssistantModal: React.FC<{ isOpen: boolean; onClose: () => void }
                               >
                                 {/* Left 56px square image */}
                                 <div className="w-14 h-14 shrink-0 rounded bg-[var(--bg-alt)] overflow-hidden border border-[var(--border)] flex items-center justify-center">
-                                  {prod.image ? (
-                                    <img
-                                      src={prod.image}
-                                      alt={prod.name || 'Sản phẩm'}
-                                      className="w-full h-full object-cover"
-                                      loading="lazy"
-                                    />
-                                  ) : (
-                                    <ShoppingBag className="w-5 h-5 text-[var(--text-muted)]" />
-                                  )}
+                                  <ProductImage src={prod.image} alt={prod.name || 'Sản phẩm'} />
                                 </div>
 
                                 {/* Center: Name & Price */}
@@ -988,7 +1025,7 @@ export const AiAssistantModal: React.FC<{ isOpen: boolean; onClose: () => void }
                                   <div className="font-mono text-xs font-semibold text-[var(--accent)] mt-0.5">
                                     {displayPrice !== null
                                       ? formatCurrency(displayPrice)
-                                      : 'Liên hệ tư vấn'}
+                                      : 'Chưa có giá bán'}
                                   </div>
                                 </div>
 
@@ -1004,9 +1041,10 @@ export const AiAssistantModal: React.FC<{ isOpen: boolean; onClose: () => void }
                                   <button
                                     type="button"
                                     onClick={() => handleQuickAddToCart(prod)}
-                                    title="Thêm nhanh vào giỏ"
+                                    disabled={displayPrice === null}
+                                    title={displayPrice === null ? 'Sản phẩm chưa có giá bán' : 'Thêm nhanh vào giỏ'}
                                     aria-label="Thêm nhanh vào giỏ"
-                                    className="p-1.5 bg-[var(--accent)] hover:bg-[#9E7B15] text-[var(--accent-contrast)] rounded transition-colors flex items-center justify-center"
+                                    className="p-1.5 bg-[var(--accent)] hover:bg-[#9E7B15] text-[var(--accent-contrast)] rounded transition-colors flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed"
                                   >
                                     <ShoppingBag className="w-3.5 h-3.5" />
                                   </button>
@@ -1128,7 +1166,7 @@ export const AiAssistantModal: React.FC<{ isOpen: boolean; onClose: () => void }
                       <div className="mt-2 p-2.5 bg-[var(--surface)] border border-[var(--accent)]/50 rounded-lg space-y-2">
                         <div className="flex items-center gap-1.5 text-[11px] font-semibold text-[var(--accent)]">
                           <ShoppingBag className="w-3.5 h-3.5" />
-                          <span>Xác nhận thêm vào giỏ hàng</span>
+                          <span>{message.pendingAction.actionType === 'start_checkout' ? 'Xác nhận phiên thanh toán' : 'Xác nhận thêm vào giỏ hàng'}</span>
                         </div>
                         {message.pendingAction.totalEstimatedPriceFormatted && (
                           <div className="text-[11px] text-[var(--text)]">
@@ -1137,6 +1175,15 @@ export const AiAssistantModal: React.FC<{ isOpen: boolean; onClose: () => void }
                               {message.pendingAction.totalEstimatedPriceFormatted}
                             </span>
                           </div>
+                        )}
+                        {Array.isArray(message.pendingAction.items) && message.pendingAction.items.length > 0 && (
+                          <ul className="space-y-1 text-[11px] text-[var(--text)]">
+                            {message.pendingAction.items.map((item: any, index: number) => (
+                              <li key={`${item.product_id || item.productId || index}-${index}`}>
+                                {item.name || 'Sản phẩm'} · {item.color || 'Tiêu chuẩn'} · {item.size || 'Freesize'} · SL {item.quantity || 1}
+                              </li>
+                            ))}
+                          </ul>
                         )}
                         <div className="flex flex-wrap gap-2 pt-1">
                           <button
@@ -1147,7 +1194,7 @@ export const AiAssistantModal: React.FC<{ isOpen: boolean; onClose: () => void }
                             }
                             className="px-3 py-1 bg-[var(--accent)] text-[var(--accent-contrast)] text-xs font-semibold rounded hover:bg-[#9E7B15] disabled:opacity-50"
                           >
-                            Xác nhận thao tác
+                            {message.pendingAction.actionType === 'start_checkout' ? 'Tiếp tục thanh toán' : 'Xác nhận thao tác'}
                           </button>
                           <button
                             type="button"
@@ -1161,6 +1208,16 @@ export const AiAssistantModal: React.FC<{ isOpen: boolean; onClose: () => void }
                           </button>
                         </div>
                       </div>
+                    )}
+
+                    {message.actionResult?.status === 'EXECUTED' && message.actionResult?.checkoutUrl && (
+                      <Link
+                        to={message.actionResult.checkoutUrl}
+                        onClick={onClose}
+                        className="inline-flex px-3 py-1.5 bg-[var(--accent)] text-[var(--accent-contrast)] text-xs font-semibold rounded hover:bg-[#9E7B15]"
+                      >
+                        Mở trang thanh toán
+                      </Link>
                     )}
 
                     {/* Sensitive Security OTP Button */}

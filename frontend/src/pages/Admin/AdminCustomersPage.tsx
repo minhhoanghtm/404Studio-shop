@@ -117,25 +117,25 @@ export const AdminCustomersPage: React.FC = () => {
       <div className="space-y-6">
         <div className="flex items-center justify-between gap-4">
           <div className="relative flex-1 max-w-md">
-            <Search className="w-4 h-4 text-platinum-dark absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Tìm theo họ tên hoặc email khách quý..."
-              className="w-full pl-9 pr-3 py-2 text-xs bg-noir-900 border border-white/10 rounded-sm focus:border-champagne focus:outline-none"
+              className="w-full pl-9 pr-3 py-2 text-xs bg-[var(--input-bg)] border border-[var(--border)] rounded-sm focus:border-[var(--accent)] focus:outline-none text-[var(--text-primary)] placeholder-[var(--text-muted)]"
             />
           </div>
-          <div className="text-xs text-platinum-dark">
-            Tổng thành viên: <strong className="text-white font-mono">{customers.length}</strong>
+          <div className="text-xs text-[var(--text-muted)]">
+            Tổng thành viên: <strong className="text-[var(--text-primary)] font-mono">{customers.length}</strong>
           </div>
         </div>
 
-        <div className="bg-noir-900 border border-white/10 rounded-sm overflow-hidden">
+        <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-sm overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
-                <tr className="border-b border-white/10 text-platinum-dark uppercase tracking-wider bg-white/5">
+                <tr className="border-b border-[var(--border)] text-[var(--text-muted)] uppercase tracking-wider bg-[var(--bg-card-muted)] font-mono text-[11px]">
                   <th className="py-3 px-4">Khách Quý Patron</th>
                   <th className="py-3 px-4">Liên Hệ</th>
                   <th className="py-3 px-4">Hạng Thành Viên</th>
@@ -145,23 +145,23 @@ export const AdminCustomersPage: React.FC = () => {
                   <th className="py-3 px-4 text-right">Thao Tác</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5">
+              <tbody className="divide-y divide-[var(--border)]">
                 {filtered.map((c) => (
-                  <tr key={c.id || c._id} className="hover:bg-white/5 transition-colors">
+                  <tr key={c.id || c._id} className="hover:bg-[var(--table-row-hover)] transition-colors">
                     <td className="py-3.5 px-4">
-                      <div className="font-serif font-medium text-white text-sm">{c.fullName}</div>
-                      <div className="text-[11px] text-platinum-dark font-mono uppercase">
+                      <div className="font-serif font-medium text-[var(--text-primary)] text-sm">{c.fullName}</div>
+                      <div className="text-[11px] text-[var(--text-muted)] font-mono uppercase">
                         Vai trò: {c.role === 'admin' ? 'Quản Trị Viên' : 'Khách Quý'}
                       </div>
                     </td>
-                    <td className="py-3.5 px-4 space-y-0.5 text-platinum-dark">
+                    <td className="py-3.5 px-4 space-y-0.5 text-[var(--text-muted)]">
                       <div className="flex items-center gap-1.5">
-                        <Mail className="w-3 h-3 text-champagne" />
+                        <Mail className="w-3 h-3 text-[var(--accent)]" />
                         <span>{c.email}</span>
                       </div>
                       {c.phone && (
                         <div className="flex items-center gap-1.5 font-mono">
-                          <Phone className="w-3 h-3 text-champagne" />
+                          <Phone className="w-3 h-3 text-[var(--accent)]" />
                           <span>{c.phone}</span>
                         </div>
                       )}
@@ -175,21 +175,21 @@ export const AdminCustomersPage: React.FC = () => {
                             <span className={`px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider rounded-sm border inline-block ${tier.badgeColor}`}>
                               {tier.nameVi}
                             </span>
-                            <span className="block text-[10px] font-mono text-platinum-dark">
+                            <span className="block text-[10px] font-mono text-[var(--text-muted)]">
                               {calculatedPoints.toLocaleString('vi-VN')} pts
                             </span>
                           </div>
                         );
                       })()}
                     </td>
-                    <td className="py-3.5 px-4 font-mono">{c.ordersCount || 0} đơn</td>
-                    <td className="py-3.5 px-4 text-platinum-dark">{formatDate(c.createdAt)}</td>
+                    <td className="py-3.5 px-4 font-mono text-[var(--text-primary)]">{c.ordersCount || 0} đơn</td>
+                    <td className="py-3.5 px-4 text-[var(--text-muted)]">{formatDate(c.createdAt)}</td>
                     <td className="py-3.5 px-4">
                       <span
                         className={`px-2 py-0.5 text-[10px] uppercase font-mono tracking-wider rounded-sm border ${
                           c.status === 'active'
-                            ? 'bg-emerald-950/60 text-emerald-400 border-emerald-800'
-                            : 'bg-red-950/60 text-red-400 border-red-800'
+                            ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30'
+                            : 'bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/30'
                         }`}
                       >
                         {c.status === 'active' ? 'Đang Hoạt Động' : 'Đã Tạm Khóa'}
@@ -202,8 +202,8 @@ export const AdminCustomersPage: React.FC = () => {
                           onClick={() => handleToggleStatus(c.id || c._id, c.status)}
                           className={`px-3 py-1 text-[11px] uppercase tracking-wider rounded-sm border transition-colors ${
                             c.status === 'active'
-                              ? 'border-red-500/50 text-red-400 hover:bg-red-950/40'
-                              : 'border-emerald-500/50 text-emerald-400 hover:bg-emerald-950/40'
+                              ? 'border-red-500/50 text-red-600 dark:text-red-400 hover:bg-red-500/10'
+                              : 'border-emerald-500/50 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10'
                           }`}
                         >
                           {c.status === 'active' ? 'Khóa Tài Khoản' : 'Mở Khóa'}

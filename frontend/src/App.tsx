@@ -60,8 +60,11 @@ const LookbooksPage = lazy(() => import('./pages/Lookbooks').then(m => ({ defaul
 const CreateReviewPage = lazy(() => import('./pages/Reviews').then(m => ({ default: m.CreateReviewPage })));
 
 // User Account & Auth Pages
+const AuthLayout = lazy(() => import('./shared/layouts/AuthLayout').then(m => ({ default: m.AuthLayout })));
 const LoginPage = lazy(() => import('./pages/Auth').then(m => ({ default: m.LoginPage })));
 const RegisterPage = lazy(() => import('./pages/Auth').then(m => ({ default: m.RegisterPage })));
+const ForgotPasswordPage = lazy(() => import('./pages/Auth').then(m => ({ default: m.ForgotPasswordPage })));
+const ResetPasswordTokenPage = lazy(() => import('./pages/Auth').then(m => ({ default: m.ResetPasswordTokenPage })));
 const AccountDashboardPage = lazy(() => import('./pages/Account').then(m => ({ default: m.AccountDashboardPage })));
 const AccountOrdersPage = lazy(() => import('./pages/Account').then(m => ({ default: m.AccountOrdersPage })));
 const AccountOrderDetailPage = lazy(() => import('./pages/Account').then(m => ({ default: m.AccountOrderDetailPage })));
@@ -131,11 +134,11 @@ const AnimatedOutlet: React.FC = () => {
 
   return (
     <motion.div
-      key={`${location.pathname}${location.search}`}
+      key={location.pathname}
       className="editorial-page min-h-full flex-1"
-      initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+      initial={reduceMotion ? false : { opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={reduceMotion ? { duration: 0 } : { duration: 0.46, ease: 'easeOut' }}
+      transition={reduceMotion ? { duration: 0 } : { duration: 0.28, ease: 'easeOut' }}
       data-page-transition
     >
       <Suspense fallback={<PageLoadingFallback />}>
@@ -193,7 +196,6 @@ const RootLayout: React.FC = () => {
       <CartDrawer />
       <QuickSearchModal />
       <ToastContainer />
-      <ScrollToTop />
       <PromotionalPopup />
 
       {/* Stylist AI Assistant Floating Action Button */}
@@ -258,7 +260,385 @@ const AppInitializer: React.FC<{ children: React.ReactNode }> = ({ children }) =
     };
   }, [hydrateSession]);
 
-  return <>{children}</>;
+  return (
+    <>
+      <ScrollToTop />
+      {children}
+    </>
+  );
+};
+
+const AppRoutes: React.FC = () => {
+  return (
+    <Routes>
+              {/* Standalone Authentication Layout (No Header/Footer) */}
+              <Route
+                element={
+                  <Suspense fallback={<PageLoadingFallback />}>
+                    <AuthLayout />
+                  </Suspense>
+                }
+              >
+                <Route path="login" element={<LoginPage />} />
+                <Route path="register" element={<RegisterPage />} />
+                <Route path="forgot-password" element={<ForgotPasswordPage />} />
+                <Route path="reset-password/:token" element={<ResetPasswordTokenPage />} />
+                <Route path="reset-password" element={<ForgotPasswordPage />} />
+              </Route>
+
+              {/* Main Customer Storefront Layout */}
+              <Route path="/" element={<RootLayout />}>
+                <Route index element={<HomePage />} />
+                <Route path="products" element={<ProductsPage />} />
+                <Route path="products/:slug" element={<ProductDetailPage />} />
+                <Route path="collections" element={<CollectionsPage />} />
+                <Route path="collections/:slug" element={<CollectionDetailPage />} />
+                <Route path="search" element={<SearchPage />} />
+                <Route path="wishlist" element={<WishlistPage />} />
+                <Route path="cart" element={<CartPage />} />
+                <Route path="checkout" element={<CheckoutPage />} />
+                <Route path="order-success" element={<OrderSuccessPage />} />
+                <Route path="about" element={<AboutPage />} />
+                <Route path="journal" element={<JournalPage />} />
+                <Route path="journal/:slug" element={<JournalDetailPage />} />
+                <Route path="contact" element={<ContactPage />} />
+                <Route path="support" element={<SupportPage />} />
+
+                {/* Legal & Privacy Compliance Routes (Phase 11) */}
+                <Route path="privacy-policy" element={<PrivacyPolicyPage />} />
+                <Route path="terms-of-service" element={<TermsOfServicePage />} />
+                <Route path="cookie-policy" element={<CookiePolicyPage />} />
+                <Route path="returns-refunds" element={<ReturnsRefundsPage />} />
+                <Route path="data-privacy" element={<DataPrivacyPage />} />
+                <Route path="data-privacy/request" element={<DataPrivacyRequestPage />} />
+
+                {/* Legal Route Aliases */}
+                <Route path="privacy" element={<Navigate to="/privacy-policy" replace />} />
+                <Route path="terms" element={<Navigate to="/terms-of-service" replace />} />
+                <Route path="cookies" element={<Navigate to="/cookie-policy" replace />} />
+                <Route path="cookie-settings" element={<Navigate to="/data-privacy" replace />} />
+                <Route path="privacy-center" element={<Navigate to="/data-privacy" replace />} />
+
+                {/* Specialized Customer Routes */}
+                <Route path="verify-otp" element={<VerifyOtpPage />} />
+                <Route path="order-lookup" element={<OrderLookupPage />} />
+                <Route path="payment-result" element={<PaymentResultPage />} />
+                <Route path="vouchers" element={<VouchersPage />} />
+                <Route path="lookbooks" element={<LookbooksPage />} />
+                <Route path="reviews/create" element={<CreateReviewPage />} />
+
+                {/* Support Anchor Aliases */}
+                <Route path="faq" element={<Navigate to="/support#faq" replace />} />
+                <Route path="size-guide" element={<Navigate to="/support#size-guide" replace />} />
+                <Route path="shipping" element={<Navigate to="/support#shipping" replace />} />
+                <Route path="returns" element={<Navigate to="/returns-refunds" replace />} />
+
+                {/* Legacy Shop Aliases */}
+                <Route path="shop" element={<Navigate to="/products" replace />} />
+                <Route path="shop/women" element={<Navigate to="/products?category=women" replace />} />
+                <Route path="shop/men" element={<Navigate to="/products?category=men" replace />} />
+                <Route path="shop/accessories" element={<Navigate to="/products?category=accessories" replace />} />
+                <Route path="shop/:category" element={<ProductsPage />} />
+
+                {/* Account Routes (Protected) */}
+                <Route path="account" element={<ProtectedRoute><AccountDashboardPage /></ProtectedRoute>} />
+                <Route path="orders" element={<ProtectedRoute><AccountOrdersPage /></ProtectedRoute>} />
+                <Route path="orders/:id" element={<ProtectedRoute><AccountOrderDetailPage /></ProtectedRoute>} />
+                <Route path="account/orders" element={<ProtectedRoute><AccountOrdersPage /></ProtectedRoute>} />
+                <Route path="account/orders/:id" element={<ProtectedRoute><AccountOrderDetailPage /></ProtectedRoute>} />
+                <Route path="account/addresses" element={<ProtectedRoute><AccountAddressesPage /></ProtectedRoute>} />
+                <Route path="account/settings" element={<ProtectedRoute><AccountSettingsPage /></ProtectedRoute>} />
+                <Route path="account/coupons" element={<ProtectedRoute><MyCouponsPage /></ProtectedRoute>} />
+                <Route path="my-coupons" element={<ProtectedRoute><MyCouponsPage /></ProtectedRoute>} />
+                <Route path="account/loyalty" element={<ProtectedRoute><AccountLoyaltyPage /></ProtectedRoute>} />
+                <Route path="loyalty" element={<ProtectedRoute><AccountLoyaltyPage /></ProtectedRoute>} />
+
+                {/* 403 Forbidden Access */}
+                <Route path="403" element={<ForbiddenPage />} />
+
+                {/* 404 Catch-All */}
+                <Route path="404" element={<NotFoundPage />} />
+                <Route path="*" element={<NotFoundPage />} />
+              </Route>
+
+              {/* Admin Portal Routes (Guarded by ProtectedRoute requireAdmin) */}
+              <Route
+                path="admin"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <AdminPortalRouteWrapper />
+                  </ProtectedRoute>
+                }
+              >
+                <Route
+                  path="roles"
+                  element={
+                    <Suspense fallback={<PageLoadingFallback />}>
+                      <AdminRolesPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  index
+                  element={
+                    <Suspense fallback={<PageLoadingFallback />}>
+                      <AdminDashboardPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="products"
+                  element={
+                    <Suspense fallback={<PageLoadingFallback />}>
+                      <AdminProductsPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="products/new"
+                  element={
+                    <Suspense fallback={<PageLoadingFallback />}>
+                      <AdminProductCreatePage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="products/:id/edit"
+                  element={
+                    <Suspense fallback={<PageLoadingFallback />}>
+                      <AdminProductEditPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="categories"
+                  element={
+                    <Suspense fallback={<PageLoadingFallback />}>
+                      <AdminCategoriesPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="orders"
+                  element={
+                    <Suspense fallback={<PageLoadingFallback />}>
+                      <AdminOrdersPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="customers"
+                  element={
+                    <Suspense fallback={<PageLoadingFallback />}>
+                      <AdminCustomersPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="coupons"
+                  element={
+                    <Suspense fallback={<PageLoadingFallback />}>
+                      <AdminCouponsPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="settings"
+                  element={
+                    <Suspense fallback={<PageLoadingFallback />}>
+                      <AdminSettingsPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="chats"
+                  element={
+                    <Suspense fallback={<PageLoadingFallback />}>
+                      <AdminChatPage />
+                    </Suspense>
+                  }
+                />
+
+                {/* Admin Loyalty & 12-Tier Membership Routes */}
+                <Route
+                  path="loyalty"
+                  element={
+                    <Suspense fallback={<PageLoadingFallback />}>
+                      <AdminLoyaltyPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="loyalty/customers"
+                  element={
+                    <Suspense fallback={<PageLoadingFallback />}>
+                      <AdminLoyaltyCustomersPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="loyalty/transactions"
+                  element={
+                    <Suspense fallback={<PageLoadingFallback />}>
+                      <AdminLoyaltyTransactionsPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="loyalty/settings"
+                  element={
+                    <Suspense fallback={<PageLoadingFallback />}>
+                      <AdminLoyaltySettingsPage />
+                    </Suspense>
+                  }
+                />
+
+                {/* Admin Promotional Campaigns & Sale Popups Routes */}
+                <Route
+                  path="campaigns"
+                  element={
+                    <Suspense fallback={<PageLoadingFallback />}>
+                      <AdminCampaignsPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="campaigns/new"
+                  element={
+                    <Suspense fallback={<PageLoadingFallback />}>
+                      <AdminCampaignCreatePage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="campaigns/:id"
+                  element={
+                    <Suspense fallback={<PageLoadingFallback />}>
+                      <AdminCampaignDetailPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="campaigns/:id/edit"
+                  element={
+                    <Suspense fallback={<PageLoadingFallback />}>
+                      <AdminCampaignEditPage />
+                    </Suspense>
+                  }
+                />
+
+                {/* Admin Visual Page Builder & CMS Routes */}
+                <Route
+                  path="page-builder"
+                  element={
+                    <Suspense fallback={<PageLoadingFallback />}>
+                      <AdminPageBuilderListPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="page-builder/new"
+                  element={
+                    <Suspense fallback={<PageLoadingFallback />}>
+                      <AdminPageBuilderEditorPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="page-builder/:id/edit"
+                  element={
+                    <Suspense fallback={<PageLoadingFallback />}>
+                      <AdminPageBuilderEditorPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="page-builder/:id/preview"
+                  element={
+                    <Suspense fallback={<PageLoadingFallback />}>
+                      <AdminPageBuilderPreviewPage />
+                    </Suspense>
+                  }
+                />
+
+                {/* Admin Policy Management Routes */}
+                <Route
+                  path="policies"
+                  element={
+                    <Suspense fallback={<PageLoadingFallback />}>
+                      <AdminPoliciesPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="policies/new"
+                  element={
+                    <Suspense fallback={<PageLoadingFallback />}>
+                      <AdminPolicyCreatePage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="policies/:id/edit"
+                  element={
+                    <Suspense fallback={<PageLoadingFallback />}>
+                      <AdminPolicyEditPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="policies/:id/history"
+                  element={
+                    <Suspense fallback={<PageLoadingFallback />}>
+                      <AdminPolicyHistoryPage />
+                    </Suspense>
+                  }
+                />
+
+                {/* Admin User Tracking & Behavioral Analytics Routes */}
+                <Route
+                  path="tracking"
+                  element={
+                    <Suspense fallback={<PageLoadingFallback />}>
+                      <AdminTrackingPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="tracking/users"
+                  element={
+                    <Suspense fallback={<PageLoadingFallback />}>
+                      <AdminTrackingUsersPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="tracking/events"
+                  element={
+                    <Suspense fallback={<PageLoadingFallback />}>
+                      <AdminTrackingEventsPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="tracking/products"
+                  element={
+                    <Suspense fallback={<PageLoadingFallback />}>
+                      <AdminTrackingProductsPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="tracking/consent"
+                  element={
+                    <Suspense fallback={<PageLoadingFallback />}>
+                      <AdminTrackingConsentPage />
+                    </Suspense>
+                  }
+                />
+              </Route>
+            </Routes>
+  );
 };
 
 export function App() {
@@ -267,365 +647,8 @@ export function App() {
       <ConsentProvider>
         <ModalProvider>
           <AppInitializer>
-            <Routes>
-            {/* Main Customer Storefront Layout */}
-            <Route path="/" element={<RootLayout />}>
-              <Route index element={<HomePage />} />
-              <Route path="products" element={<ProductsPage />} />
-              <Route path="products/:slug" element={<ProductDetailPage />} />
-              <Route path="collections" element={<CollectionsPage />} />
-              <Route path="collections/:slug" element={<CollectionDetailPage />} />
-              <Route path="search" element={<SearchPage />} />
-              <Route path="wishlist" element={<WishlistPage />} />
-              <Route path="cart" element={<CartPage />} />
-              <Route path="checkout" element={<CheckoutPage />} />
-              <Route path="order-success" element={<OrderSuccessPage />} />
-              <Route path="about" element={<AboutPage />} />
-              <Route path="journal" element={<JournalPage />} />
-              <Route path="journal/:slug" element={<JournalDetailPage />} />
-              <Route path="contact" element={<ContactPage />} />
-              <Route path="support" element={<SupportPage />} />
-
-              {/* Legal & Privacy Compliance Routes (Phase 11) */}
-              <Route path="privacy-policy" element={<PrivacyPolicyPage />} />
-              <Route path="terms-of-service" element={<TermsOfServicePage />} />
-              <Route path="cookie-policy" element={<CookiePolicyPage />} />
-              <Route path="returns-refunds" element={<ReturnsRefundsPage />} />
-              <Route path="data-privacy" element={<DataPrivacyPage />} />
-              <Route path="data-privacy/request" element={<DataPrivacyRequestPage />} />
-
-              {/* Legal Route Aliases */}
-              <Route path="privacy" element={<Navigate to="/privacy-policy" replace />} />
-              <Route path="terms" element={<Navigate to="/terms-of-service" replace />} />
-              <Route path="cookies" element={<Navigate to="/cookie-policy" replace />} />
-              <Route path="cookie-settings" element={<Navigate to="/data-privacy" replace />} />
-              <Route path="privacy-center" element={<Navigate to="/data-privacy" replace />} />
-
-              {/* Specialized Customer Routes */}
-              <Route path="verify-otp" element={<VerifyOtpPage />} />
-              <Route path="reset-password" element={<ResetPasswordPage />} />
-              <Route path="order-lookup" element={<OrderLookupPage />} />
-              <Route path="payment-result" element={<PaymentResultPage />} />
-              <Route path="vouchers" element={<VouchersPage />} />
-              <Route path="lookbooks" element={<LookbooksPage />} />
-              <Route path="reviews/create" element={<CreateReviewPage />} />
-
-              {/* Support Anchor Aliases */}
-              <Route path="faq" element={<Navigate to="/support#faq" replace />} />
-              <Route path="size-guide" element={<Navigate to="/support#size-guide" replace />} />
-              <Route path="shipping" element={<Navigate to="/support#shipping" replace />} />
-              <Route path="returns" element={<Navigate to="/returns-refunds" replace />} />
-
-              {/* Legacy Shop Aliases */}
-              <Route path="shop" element={<Navigate to="/products" replace />} />
-              <Route path="shop/women" element={<Navigate to="/products?category=women" replace />} />
-              <Route path="shop/men" element={<Navigate to="/products?category=men" replace />} />
-              <Route path="shop/accessories" element={<Navigate to="/products?category=accessories" replace />} />
-              <Route path="shop/:category" element={<ProductsPage />} />
-
-              {/* Auth Routes */}
-              <Route path="login" element={<LoginPage />} />
-              <Route path="register" element={<RegisterPage />} />
-
-              {/* Account Routes (Protected) */}
-              <Route path="account" element={<ProtectedRoute><AccountDashboardPage /></ProtectedRoute>} />
-              <Route path="orders" element={<ProtectedRoute><AccountOrdersPage /></ProtectedRoute>} />
-              <Route path="orders/:id" element={<ProtectedRoute><AccountOrderDetailPage /></ProtectedRoute>} />
-              <Route path="account/orders" element={<ProtectedRoute><AccountOrdersPage /></ProtectedRoute>} />
-              <Route path="account/orders/:id" element={<ProtectedRoute><AccountOrderDetailPage /></ProtectedRoute>} />
-              <Route path="account/addresses" element={<ProtectedRoute><AccountAddressesPage /></ProtectedRoute>} />
-              <Route path="account/settings" element={<ProtectedRoute><AccountSettingsPage /></ProtectedRoute>} />
-              <Route path="account/coupons" element={<ProtectedRoute><MyCouponsPage /></ProtectedRoute>} />
-              <Route path="my-coupons" element={<ProtectedRoute><MyCouponsPage /></ProtectedRoute>} />
-              <Route path="account/loyalty" element={<ProtectedRoute><AccountLoyaltyPage /></ProtectedRoute>} />
-              <Route path="loyalty" element={<ProtectedRoute><AccountLoyaltyPage /></ProtectedRoute>} />
-
-              {/* 403 Forbidden Access */}
-              <Route path="403" element={<ForbiddenPage />} />
-
-              {/* 404 Catch-All */}
-              <Route path="404" element={<NotFoundPage />} />
-              <Route path="*" element={<NotFoundPage />} />
-            </Route>
-
-            {/* Admin Portal Routes (Guarded by ProtectedRoute requireAdmin) */}
-            <Route
-              path="admin"
-              element={
-                <ProtectedRoute requireAdmin>
-                  <AdminPortalRouteWrapper />
-                </ProtectedRoute>
-              }
-            >
-              <Route
-                path="roles"
-                element={
-                  <Suspense fallback={<PageLoadingFallback />}>
-                    <AdminRolesPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                index
-                element={
-                  <Suspense fallback={<PageLoadingFallback />}>
-                    <AdminDashboardPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="products"
-                element={
-                  <Suspense fallback={<PageLoadingFallback />}>
-                    <AdminProductsPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="products/new"
-                element={
-                  <Suspense fallback={<PageLoadingFallback />}>
-                    <AdminProductCreatePage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="products/:id/edit"
-                element={
-                  <Suspense fallback={<PageLoadingFallback />}>
-                    <AdminProductEditPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="categories"
-                element={
-                  <Suspense fallback={<PageLoadingFallback />}>
-                    <AdminCategoriesPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="orders"
-                element={
-                  <Suspense fallback={<PageLoadingFallback />}>
-                    <AdminOrdersPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="customers"
-                element={
-                  <Suspense fallback={<PageLoadingFallback />}>
-                    <AdminCustomersPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="coupons"
-                element={
-                  <Suspense fallback={<PageLoadingFallback />}>
-                    <AdminCouponsPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="settings"
-                element={
-                  <Suspense fallback={<PageLoadingFallback />}>
-                    <AdminSettingsPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="chats"
-                element={
-                  <Suspense fallback={<PageLoadingFallback />}>
-                    <AdminChatPage />
-                  </Suspense>
-                }
-              />
-
-              {/* Admin Loyalty & 12-Tier Membership Routes */}
-              <Route
-                path="loyalty"
-                element={
-                  <Suspense fallback={<PageLoadingFallback />}>
-                    <AdminLoyaltyPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="loyalty/customers"
-                element={
-                  <Suspense fallback={<PageLoadingFallback />}>
-                    <AdminLoyaltyCustomersPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="loyalty/transactions"
-                element={
-                  <Suspense fallback={<PageLoadingFallback />}>
-                    <AdminLoyaltyTransactionsPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="loyalty/settings"
-                element={
-                  <Suspense fallback={<PageLoadingFallback />}>
-                    <AdminLoyaltySettingsPage />
-                  </Suspense>
-                }
-              />
-
-              {/* Admin Promotional Campaigns & Sale Popups Routes */}
-              <Route
-                path="campaigns"
-                element={
-                  <Suspense fallback={<PageLoadingFallback />}>
-                    <AdminCampaignsPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="campaigns/new"
-                element={
-                  <Suspense fallback={<PageLoadingFallback />}>
-                    <AdminCampaignCreatePage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="campaigns/:id"
-                element={
-                  <Suspense fallback={<PageLoadingFallback />}>
-                    <AdminCampaignDetailPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="campaigns/:id/edit"
-                element={
-                  <Suspense fallback={<PageLoadingFallback />}>
-                    <AdminCampaignEditPage />
-                  </Suspense>
-                }
-              />
-
-              {/* Admin Visual Page Builder & CMS Routes */}
-              <Route
-                path="page-builder"
-                element={
-                  <Suspense fallback={<PageLoadingFallback />}>
-                    <AdminPageBuilderListPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="page-builder/new"
-                element={
-                  <Suspense fallback={<PageLoadingFallback />}>
-                    <AdminPageBuilderEditorPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="page-builder/:id/edit"
-                element={
-                  <Suspense fallback={<PageLoadingFallback />}>
-                    <AdminPageBuilderEditorPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="page-builder/:id/preview"
-                element={
-                  <Suspense fallback={<PageLoadingFallback />}>
-                    <AdminPageBuilderPreviewPage />
-                  </Suspense>
-                }
-              />
-
-              {/* Admin Policy Management Routes */}
-              <Route
-                path="policies"
-                element={
-                  <Suspense fallback={<PageLoadingFallback />}>
-                    <AdminPoliciesPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="policies/new"
-                element={
-                  <Suspense fallback={<PageLoadingFallback />}>
-                    <AdminPolicyCreatePage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="policies/:id/edit"
-                element={
-                  <Suspense fallback={<PageLoadingFallback />}>
-                    <AdminPolicyEditPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="policies/:id/history"
-                element={
-                  <Suspense fallback={<PageLoadingFallback />}>
-                    <AdminPolicyHistoryPage />
-                  </Suspense>
-                }
-              />
-
-              {/* Admin User Tracking & Behavioral Analytics Routes */}
-              <Route
-                path="tracking"
-                element={
-                  <Suspense fallback={<PageLoadingFallback />}>
-                    <AdminTrackingPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="tracking/users"
-                element={
-                  <Suspense fallback={<PageLoadingFallback />}>
-                    <AdminTrackingUsersPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="tracking/events"
-                element={
-                  <Suspense fallback={<PageLoadingFallback />}>
-                    <AdminTrackingEventsPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="tracking/products"
-                element={
-                  <Suspense fallback={<PageLoadingFallback />}>
-                    <AdminTrackingProductsPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="tracking/consent"
-                element={
-                  <Suspense fallback={<PageLoadingFallback />}>
-                    <AdminTrackingConsentPage />
-                  </Suspense>
-                }
-              />
-            </Route>
-          </Routes>
-        </AppInitializer>
+            <AppRoutes />
+          </AppInitializer>
         </ModalProvider>
       </ConsentProvider>
     </BrowserRouter>

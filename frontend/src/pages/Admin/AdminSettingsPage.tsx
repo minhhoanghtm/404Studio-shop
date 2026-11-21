@@ -59,90 +59,90 @@ export const AdminSettingsPage: React.FC = () => {
       <div className="max-w-3xl">
         <form onSubmit={handleSaveSettings} className="space-y-6">
           {/* General settings */}
-          <div className="bg-noir-900 border border-white/10 p-6 rounded-sm space-y-4">
-            <h3 className="font-display text-base text-white border-b border-white/10 pb-3 flex items-center gap-2">
-              <Building className="w-4 h-4 text-champagne" />
+          <div className="bg-[var(--bg-card)] border border-[var(--border)] p-6 rounded-sm space-y-4 shadow-sm">
+            <h3 className="font-display text-base text-[var(--text-primary)] border-b border-[var(--border)] pb-3 flex items-center gap-2">
+              <Building className="w-4 h-4 text-[var(--accent)]" />
               <span>Thông Tin Thương Hiệu & Salon</span>
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
               <div>
-                <label className="block text-platinum-dark uppercase tracking-wider mb-1">
+                <label className="block text-[var(--text-muted)] uppercase tracking-wider mb-1 font-mono text-[11px]">
                   Tên Thương Hiệu Xưởng May
                 </label>
                 <input
                   type="text"
                   value={storeName}
                   onChange={(e) => setStoreName(e.target.value)}
-                  className="w-full px-3 py-2 bg-noir-950 border border-white/15 focus:border-champagne focus:outline-none text-white font-medium"
+                  className="w-full px-3 py-2 bg-[var(--input-bg)] border border-[var(--border)] focus:border-[var(--accent)] focus:outline-none text-[var(--text-primary)] font-medium rounded-sm"
                 />
               </div>
 
               <div>
-                <label className="block text-platinum-dark uppercase tracking-wider mb-1">
+                <label className="block text-[var(--text-muted)] uppercase tracking-wider mb-1 font-mono text-[11px]">
                   Đường Dây Nóng Concierge
                 </label>
                 <input
                   type="text"
                   value={hotline}
                   onChange={(e) => setHotline(e.target.value)}
-                  className="w-full px-3 py-2 bg-noir-950 border border-white/15 focus:border-champagne focus:outline-none text-white font-mono"
+                  className="w-full px-3 py-2 bg-[var(--input-bg)] border border-[var(--border)] focus:border-[var(--accent)] focus:outline-none text-[var(--text-primary)] font-mono rounded-sm"
                 />
               </div>
             </div>
 
             <div className="text-xs">
-              <label className="block text-platinum-dark uppercase tracking-wider mb-1">
+              <label className="block text-[var(--text-muted)] uppercase tracking-wider mb-1 font-mono text-[11px]">
                 Hòm Thư Điện Tử Quản Trị
               </label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3 py-2 bg-noir-950 border border-white/15 focus:border-champagne focus:outline-none text-white"
+                className="w-full px-3 py-2 bg-[var(--input-bg)] border border-[var(--border)] focus:border-[var(--accent)] focus:outline-none text-[var(--text-primary)] rounded-sm"
               />
             </div>
 
             <div className="text-xs space-y-3 pt-2">
               <div>
-                <label className="block text-platinum-dark uppercase tracking-wider mb-1">
+                <label className="block text-[var(--text-muted)] uppercase tracking-wider mb-1 font-mono text-[11px]">
                   Địa Chỉ Salon Paris
                 </label>
                 <input
                   type="text"
                   value={addressParis}
                   onChange={(e) => setAddressParis(e.target.value)}
-                  className="w-full px-3 py-2 bg-noir-950 border border-white/15 focus:border-champagne focus:outline-none text-white"
+                  className="w-full px-3 py-2 bg-[var(--input-bg)] border border-[var(--border)] focus:border-[var(--accent)] focus:outline-none text-[var(--text-primary)] rounded-sm"
                 />
               </div>
 
               <div>
-                <label className="block text-platinum-dark uppercase tracking-wider mb-1">
+                <label className="block text-[var(--text-muted)] uppercase tracking-wider mb-1 font-mono text-[11px]">
                   Địa Chỉ Salon TP. Hồ Chí Minh
                 </label>
                 <input
                   type="text"
                   value={addressHCMC}
                   onChange={(e) => setAddressHCMC(e.target.value)}
-                  className="w-full px-3 py-2 bg-noir-950 border border-white/15 focus:border-champagne focus:outline-none text-white"
+                  className="w-full px-3 py-2 bg-[var(--input-bg)] border border-[var(--border)] focus:border-[var(--accent)] focus:outline-none text-[var(--text-primary)] rounded-sm"
                 />
               </div>
             </div>
           </div>
 
           {/* Maintenance mode */}
-          <div className="bg-noir-900 border border-white/10 p-6 rounded-sm space-y-4">
-            <h3 className="font-display text-base text-white border-b border-white/10 pb-3 flex items-center gap-2">
-              <ShieldAlert className="w-4 h-4 text-amber-400" />
+          <div className="bg-[var(--bg-card)] border border-[var(--border)] p-6 rounded-sm space-y-4 shadow-sm">
+            <h3 className="font-display text-base text-[var(--text-primary)] border-b border-[var(--border)] pb-3 flex items-center gap-2">
+              <ShieldAlert className="w-4 h-4 text-amber-500" />
               <span>Chế Độ Bảo Trì & Nâng Cấp Kỹ Thuật</span>
             </h3>
 
-            <div className="flex items-center justify-between p-4 bg-noir-950 border border-white/10">
+            <div className="flex items-center justify-between p-4 bg-[var(--bg-card-muted)] border border-[var(--border)] rounded-sm">
               <div>
-                <span className="text-xs font-medium text-white block">
+                <span className="text-xs font-medium text-[var(--text-primary)] block">
                   Kích hoạt chế độ bảo trì xưởng may
                 </span>
-                <span className="text-[11px] text-platinum-dark block mt-0.5">
+                <span className="text-[11px] text-[var(--text-muted)] block mt-0.5">
                   Khi bật, khách vãng lai sẽ thấy màn hình thông báo nâng cấp bảo trì.
                 </span>
               </div>
@@ -153,7 +153,7 @@ export const AdminSettingsPage: React.FC = () => {
                   onChange={(e) => setIsMaintenance(e.target.checked)}
                   className="sr-only peer"
                 />
-                <div className="w-11 h-6 bg-white/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-champagne"></div>
+                <div className="w-11 h-6 bg-[var(--border)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--accent)]"></div>
               </label>
             </div>
           </div>
@@ -162,7 +162,7 @@ export const AdminSettingsPage: React.FC = () => {
           <button
             type="submit"
             disabled={isLoading}
-            className="px-6 py-3 bg-champagne text-noir-950 font-semibold text-xs uppercase tracking-wider rounded-sm hover:bg-champagne/90 transition-colors flex items-center gap-2"
+            className="px-6 py-3 bg-[var(--accent)] text-[var(--accent-contrast)] font-semibold text-xs uppercase tracking-wider rounded-sm hover:opacity-90 transition-opacity flex items-center gap-2 shadow-md"
           >
             <Save className="w-4 h-4" />
             <span>Lưu Toàn Bộ Cấu Hình</span>

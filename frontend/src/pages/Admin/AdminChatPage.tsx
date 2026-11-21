@@ -21,6 +21,7 @@ import { socketService } from '@/shared/services/socketService';
 
 interface MessageItem {
   id: string;
+  clientMessageId?: string;
   sender: 'customer' | 'admin';
   text: string;
   timestamp: string;
@@ -194,6 +195,8 @@ export const AdminChatPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<'all' | 'tailoring' | 'order' | 'general'>('all');
   const [replyText, setReplyText] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const isSendingRef = useRef(false);
   const [mobileView, setMobileView] = useState<'list' | 'messages'>('list');
   const [isNearBottom, setIsNearBottom] = useState(true);
   const [showScrollBottomBtn, setShowScrollBottomBtn] = useState(false);
@@ -229,7 +232,17 @@ export const AdminChatPage: React.FC = () => {
           metadata: c.metadata,
           messages: [],
         }));
-        setConversations(mapped);
+
+        setConversations((prev) =>
+          mapped.map((newConv) => {
+            const existing = prev.find((p) => p.id === newConv.id);
+            return {
+              ...newConv,
+              messages: existing && existing.messages.length > 0 ? existing.messages : newConv.messages,
+            };
+          })
+        );
+
         if (!selectedConvId || !mapped.some((m) => m.id === selectedConvId)) {
           setSelectedConvId(mapped[0].id);
         }
@@ -247,16 +260,26 @@ export const AdminChatPage: React.FC = () => {
       const res: any = await communicationApi.getAdminMessages(convId);
       const rawList = res?.data?.messages || res?.messages || res?.data?.items || res?.data || [];
       if (Array.isArray(rawList)) {
-        const mappedMsgs: MessageItem[] = rawList.map((m: any) => ({
-          id: String(m._id || m.id || m.clientMessageId),
-          sender: (m.senderType === 'admin' ? 'admin' : 'customer') as any,
-          text: m.content || '',
-          timestamp: new Date(m.createdAt || Date.now()).toLocaleTimeString('vi-VN', {
-            hour: '2-digit',
-            minute: '2-digit',
-          }),
-          isHandoffContext: Boolean(m.metadata?.isHandoffContext),
-        }));
+        const seenIds = new Set<string>();
+        const mappedMsgs: MessageItem[] = [];
+
+        for (const m of rawList) {
+          const msgId = String(m._id || m.id || m.clientMessageId);
+          if (seenIds.has(msgId)) continue;
+          seenIds.add(msgId);
+
+          mappedMsgs.push({
+            id: msgId,
+            clientMessageId: m.clientMessageId,
+            sender: (m.senderType === 'admin' ? 'admin' : 'customer') as any,
+            text: m.content || '',
+            timestamp: new Date(m.createdAt || Date.now()).toLocaleTimeString('vi-VN', {
+              hour: '2-digit',
+              minute: '2-digit',
+            }),
+            isHandoffContext: Boolean(m.metadata?.isHandoffContext),
+          });
+        }
 
         setConversations((prev) =>
           prev.map((c) => (c.id === convId ? { ...c, messages: mappedMsgs } : c))
@@ -278,9 +301,12 @@ export const AdminChatPage: React.FC = () => {
     const unsubMsg = socketService.onMessageNew((payload) => {
       const { message } = payload;
       const convId = message.conversationId;
+      const incomingId = String(message._id || message.id || `m_${Date.now()}`);
+      const clientMessageId = message.clientMessageId;
 
       const newMsg: MessageItem = {
-        id: message._id || message.id || `m_${Date.now()}`,
+        id: incomingId,
+        clientMessageId,
         sender: message.senderType === 'admin' ? 'admin' : 'customer',
         text: message.content,
         timestamp: new Date(message.createdAt || Date.now()).toLocaleTimeString('vi-VN', {
@@ -292,13 +318,37 @@ export const AdminChatPage: React.FC = () => {
       setConversations((prev) =>
         prev.map((c) => {
           if (c.id === convId) {
-            const exists = c.messages.some((m) => m.id === newMsg.id);
+            // Find if this message already exists in the conversation:
+            // 1. By exact ID match
+            // 2. By clientMessageId match (optimistic message)
+            // 3. Fallback heuristic: same sender, same text, and existing message is temporary (starts with 'm-')
+            const existingIndex = c.messages.findIndex((m) => {
+              if (m.id === incomingId) return true;
+              if (clientMessageId && (m.id === clientMessageId || m.clientMessageId === clientMessageId)) return true;
+              if (m.sender === newMsg.sender && m.text === newMsg.text && m.id.startsWith('m-')) return true;
+              return false;
+            });
+
+            let nextMessages: MessageItem[];
+            if (existingIndex >= 0) {
+              // Update optimistic message with real permanent ID and server timestamp
+              nextMessages = [...c.messages];
+              nextMessages[existingIndex] = {
+                ...nextMessages[existingIndex],
+                id: incomingId,
+                clientMessageId: clientMessageId || nextMessages[existingIndex].clientMessageId,
+                timestamp: newMsg.timestamp,
+              };
+            } else {
+              nextMessages = [...c.messages, newMsg];
+            }
+
             return {
               ...c,
               lastMessage: newMsg.text,
               updatedAt: newMsg.timestamp,
               unreadCount: c.id === selectedConvId ? 0 : (c.unreadCount || 0) + 1,
-              messages: exists ? c.messages : [...c.messages, newMsg],
+              messages: nextMessages,
             };
           }
           return c;
@@ -409,8 +459,14 @@ export const AdminChatPage: React.FC = () => {
 
   // Handle sending reply
   const handleSendReply = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!replyText.trim()) return;
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (isSendingRef.current || !replyText.trim()) return;
+
+    isSendingRef.current = true;
+    setIsSending(true);
 
     const content = replyText.trim();
     const time = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
@@ -418,6 +474,7 @@ export const AdminChatPage: React.FC = () => {
 
     const newMsg: MessageItem = {
       id: localId,
+      clientMessageId: localId,
       sender: 'admin',
       text: content,
       timestamp: time,
@@ -440,30 +497,54 @@ export const AdminChatPage: React.FC = () => {
     setReplyText('');
     setIsNearBottom(true);
 
-    // Call real Backend API if real conversation ID
-    if (selectedConvId && !selectedConvId.startsWith('conv-')) {
-      try {
-        await communicationApi.sendAdminSupportMessage({
+    try {
+      // Call real Backend API if real conversation ID
+      if (selectedConvId && !selectedConvId.startsWith('conv-')) {
+        const res: any = await communicationApi.sendAdminSupportMessage({
           conversationId: selectedConvId,
           content,
           clientMessageId: localId,
         });
-      } catch (err: any) {
-        addToast(err?.message || 'Lỗi khi gửi phản hồi', 'error');
+
+        // Reconcile optimistic message with permanent database _id
+        const savedMsg = res?.data?.message || res?.message;
+        if (savedMsg?._id) {
+          const permanentId = String(savedMsg._id);
+          setConversations((prev) =>
+            prev.map((c) => {
+              if (c.id === selectedConvId) {
+                return {
+                  ...c,
+                  messages: c.messages.map((m) =>
+                    m.id === localId || m.clientMessageId === localId
+                      ? { ...m, id: permanentId, clientMessageId: localId }
+                      : m
+                  ),
+                };
+              }
+              return c;
+            })
+          );
+        }
       }
+      addToast('Đã gửi phản hồi thành công tới khách quý!', 'success');
+    } catch (err: any) {
+      addToast(err?.message || 'Lỗi khi gửi phản hồi', 'error');
+    } finally {
+      isSendingRef.current = false;
+      setIsSending(false);
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 50);
     }
-
-    addToast('Đã gửi phản hồi thành công tới khách quý!', 'success');
-
-    setTimeout(() => {
-      inputRef.current?.focus();
-    }, 50);
   };
 
   // Handle keyboard shortcut Enter to send
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
+      if ((e.nativeEvent as any)?.isComposing) return;
       e.preventDefault();
+      e.stopPropagation();
       handleSendReply();
     }
   };
@@ -516,31 +597,31 @@ export const AdminChatPage: React.FC = () => {
       fullHeight={true}
     >
       {/* Outer Viewport-Constrained Container */}
-      <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-noir-900 border border-white/10 rounded-sm shadow-2xl">
+      <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[var(--bg-card)] border border-[var(--border)] rounded-sm shadow-2xl">
         {/* Top Chat Global Toolbar */}
-        <div className="shrink-0 px-4 py-2.5 bg-noir-950 border-b border-white/10 flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div className="shrink-0 px-4 py-2.5 bg-[var(--bg-card-muted)] border-b border-[var(--border)] flex flex-wrap items-center justify-between gap-3 text-xs">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="font-mono text-[11px] uppercase tracking-wider text-emerald-400 font-semibold">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="font-mono text-[11px] uppercase tracking-wider text-emerald-600 dark:text-emerald-400 font-semibold">
                 WebSocket Trực Tuyến
               </span>
             </div>
-            <span className="text-white/20 hidden sm:inline">|</span>
-            <span className="text-[11px] text-platinum-dark hidden sm:inline">
+            <span className="text-[var(--border)] hidden sm:inline">|</span>
+            <span className="text-[11px] text-[var(--text-muted)] hidden sm:inline">
               Kênh tư vấn may đo & CSKH cao cấp Atelier Vérité
             </span>
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="flex items-center bg-noir-900 border border-white/10 rounded-sm p-0.5 text-[11px] font-mono">
+            <div className="flex items-center bg-[var(--bg-card)] border border-[var(--border)] rounded-sm p-0.5 text-[11px] font-mono">
               <button
                 type="button"
                 onClick={() => setCategoryFilter('all')}
                 className={`px-2.5 py-1 rounded-sm transition-colors ${
                   categoryFilter === 'all'
-                    ? 'bg-champagne text-noir-950 font-semibold'
-                    : 'text-platinum-dark hover:text-white'
+                    ? 'bg-[var(--accent)] text-[var(--accent-contrast)] font-semibold'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
                 }`}
               >
                 Tất cả
@@ -550,8 +631,8 @@ export const AdminChatPage: React.FC = () => {
                 onClick={() => setCategoryFilter('tailoring')}
                 className={`px-2.5 py-1 rounded-sm transition-colors ${
                   categoryFilter === 'tailoring'
-                    ? 'bg-champagne text-noir-950 font-semibold'
-                    : 'text-platinum-dark hover:text-white'
+                    ? 'bg-[var(--accent)] text-[var(--accent-contrast)] font-semibold'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
                 }`}
               >
                 May đo
@@ -561,8 +642,8 @@ export const AdminChatPage: React.FC = () => {
                 onClick={() => setCategoryFilter('order')}
                 className={`px-2.5 py-1 rounded-sm transition-colors ${
                   categoryFilter === 'order'
-                    ? 'bg-champagne text-noir-950 font-semibold'
-                    : 'text-platinum-dark hover:text-white'
+                    ? 'bg-[var(--accent)] text-[var(--accent-contrast)] font-semibold'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
                 }`}
               >
                 Đơn hàng
@@ -575,7 +656,7 @@ export const AdminChatPage: React.FC = () => {
                 loadConversations();
                 addToast('Đã làm mới danh sách hội thoại!', 'info');
               }}
-              className="p-1.5 text-platinum-dark hover:text-champagne border border-white/10 hover:border-champagne/40 rounded-sm transition-colors"
+              className="p-1.5 text-[var(--text-muted)] hover:text-[var(--accent)] border border-[var(--border)] hover:border-[var(--accent)] rounded-sm transition-colors"
               title="Làm mới danh sách phiên trò chuyện"
             >
               <RefreshCw className="w-3.5 h-3.5" />
@@ -589,16 +670,16 @@ export const AdminChatPage: React.FC = () => {
           {/* LEFT: Conversation List Aside (Independent Scroll) */}
           {/* ========================================================================= */}
           <aside
-            className={`flex min-h-0 min-w-0 flex-col overflow-hidden border-r border-white/10 bg-noir-900/70 ${
+            className={`flex min-h-0 min-w-0 flex-col overflow-hidden border-r border-[var(--border)] bg-[var(--bg-sidebar)] ${
               mobileView === 'list' ? 'flex w-full' : 'hidden md:flex'
             }`}
           >
             {/* Conversation List Header & Search */}
-            <div className="shrink-0 p-3 border-b border-white/10 space-y-2 bg-noir-950/40">
-              <div className="flex items-center justify-between text-xs font-mono uppercase tracking-wider text-platinum-dark">
+            <div className="shrink-0 p-3 border-b border-[var(--border)] space-y-2 bg-[var(--bg-card-muted)]">
+              <div className="flex items-center justify-between text-xs font-mono uppercase tracking-wider text-[var(--text-muted)]">
                 <span>Hội Thoại Mở ({filteredConversations.length})</span>
                 {conversations.some((c) => (c.unreadCount || 0) > 0) && (
-                  <span className="px-1.5 py-0.5 bg-champagne text-noir-950 text-[10px] font-bold rounded-full">
+                  <span className="px-1.5 py-0.5 bg-[var(--accent)] text-[var(--accent-contrast)] text-[10px] font-bold rounded-full">
                     {conversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0)} mới
                   </span>
                 )}
@@ -606,13 +687,13 @@ export const AdminChatPage: React.FC = () => {
 
               {/* Search Bar */}
               <div className="relative">
-                <Search className="w-3.5 h-3.5 text-platinum-dark absolute left-2.5 top-1/2 -translate-y-1/2" />
+                <Search className="w-3.5 h-3.5 text-[var(--text-muted)] absolute left-2.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Tìm khách hàng hoặc tin nhắn..."
-                  className="w-full pl-8 pr-3 py-1.5 text-xs bg-noir-950 border border-white/10 focus:border-champagne focus:outline-none text-white rounded-sm placeholder-platinum-dark"
+                  className="w-full pl-8 pr-3 py-1.5 text-xs bg-[var(--input-bg)] border border-[var(--border)] focus:border-[var(--accent)] focus:outline-none text-[var(--text-primary)] rounded-sm placeholder-[var(--text-muted)]"
                 />
               </div>
             </div>
@@ -620,11 +701,11 @@ export const AdminChatPage: React.FC = () => {
             {/* Conversation List Scroll Area */}
             <div
               data-testid="conversation-list-scroll"
-              className="min-h-0 flex-1 overflow-y-auto overscroll-contain divide-y divide-white/5"
+              className="min-h-0 flex-1 overflow-y-auto overscroll-contain divide-y divide-[var(--border)]"
             >
               {filteredConversations.length === 0 ? (
-                <div className="p-8 text-center text-platinum-dark text-xs space-y-2">
-                  <MessageSquare className="w-8 h-8 text-platinum-dark/30 mx-auto mb-2" />
+                <div className="p-8 text-center text-[var(--text-muted)] text-xs space-y-2">
+                  <MessageSquare className="w-8 h-8 text-[var(--text-muted)]/30 mx-auto mb-2" />
                   <p>Không tìm thấy cuộc trò chuyện phù hợp</p>
                 </div>
               ) : (
@@ -637,32 +718,32 @@ export const AdminChatPage: React.FC = () => {
                       onClick={() => handleSelectConversation(conv)}
                       className={`w-full text-left p-3.5 transition-all flex gap-3 items-start group ${
                         isSelected
-                          ? 'bg-champagne/15 border-l-2 border-champagne text-white'
-                          : 'hover:bg-white/5 text-platinum-light'
+                          ? 'bg-[var(--accent)]/15 border-l-2 border-[var(--accent)] text-[var(--text-primary)]'
+                          : 'hover:bg-[var(--table-row-hover)] text-[var(--text-secondary)]'
                       }`}
                     >
                       {/* Avatar with status indicator */}
                       <div className="relative shrink-0">
-                        <div className="w-9 h-9 rounded-full bg-champagne/20 border border-champagne/40 flex items-center justify-center text-champagne text-xs font-bold font-serif">
+                        <div className="w-9 h-9 rounded-full bg-[var(--accent)]/20 border border-[var(--accent)]/40 flex items-center justify-center text-[var(--accent)] text-xs font-bold font-serif">
                           {conv.customerName.charAt(0)}
                         </div>
                         {conv.isOnline && (
-                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-noir-900 absolute -bottom-0.5 -right-0.5" />
+                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-[var(--bg-card)] absolute -bottom-0.5 -right-0.5" />
                         )}
                       </div>
 
                       {/* Conversation text info */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-1">
-                          <span className="font-serif text-white text-xs truncate group-hover:text-champagne transition-colors">
+                          <span className="font-serif text-[var(--text-primary)] text-xs truncate group-hover:text-[var(--accent)] transition-colors">
                             {conv.customerName}
                           </span>
-                          <span className="font-mono text-[10px] text-platinum-dark shrink-0">
+                          <span className="font-mono text-[10px] text-[var(--text-muted)] shrink-0">
                             {conv.updatedAt}
                           </span>
                         </div>
 
-                        <p className="text-[11px] text-platinum-dark truncate mt-0.5 leading-relaxed">
+                        <p className="text-[11px] text-[var(--text-muted)] truncate mt-0.5 leading-relaxed">
                           {conv.lastMessage}
                         </p>
 
@@ -670,10 +751,10 @@ export const AdminChatPage: React.FC = () => {
                           <span
                             className={`text-[9px] uppercase tracking-wider font-mono px-1.5 py-0.2 rounded-sm border ${
                               conv.category === 'tailoring'
-                                ? 'bg-amber-950/40 border-amber-800 text-amber-300'
+                                ? 'bg-amber-500/15 border-amber-500/30 text-amber-700 dark:text-amber-300'
                                 : conv.category === 'order'
-                                ? 'bg-blue-950/40 border-blue-800 text-blue-300'
-                                : 'bg-white/5 border-white/10 text-platinum-dark'
+                                ? 'bg-blue-500/15 border-blue-500/30 text-blue-700 dark:text-blue-300'
+                                : 'bg-[var(--bg-card-muted)] border-[var(--border)] text-[var(--text-muted)]'
                             }`}
                           >
                             {conv.category === 'tailoring'
@@ -684,13 +765,13 @@ export const AdminChatPage: React.FC = () => {
                           </span>
 
                           {conv.status === 'closed' && (
-                            <span className="text-[9px] font-mono text-neutral-400 border border-white/10 px-1 rounded">
+                            <span className="text-[9px] font-mono text-[var(--text-muted)] border border-[var(--border)] px-1 rounded">
                               Đã đóng
                             </span>
                           )}
 
                           {conv.unreadCount && conv.unreadCount > 0 ? (
-                            <span className="w-2 h-2 rounded-full bg-champagne ml-auto shrink-0" />
+                            <span className="w-2 h-2 rounded-full bg-[var(--accent)] ml-auto shrink-0" />
                           ) : null}
                         </div>
                       </div>
@@ -705,43 +786,43 @@ export const AdminChatPage: React.FC = () => {
           {/* RIGHT: Message Window (Independent Scroll) */}
           {/* ========================================================================= */}
           <section
-            className={`flex min-h-0 min-w-0 flex-col overflow-hidden bg-noir-950 ${
+            className={`flex min-h-0 min-w-0 flex-col overflow-hidden bg-[var(--bg-page)] ${
               mobileView === 'messages' ? 'flex flex-1 w-full' : 'hidden md:flex'
             }`}
           >
             {/* Conversation Header (Pinned) */}
-            <div className="shrink-0 p-3 sm:p-4 border-b border-white/10 flex items-center justify-between bg-noir-900/60 backdrop-blur-md">
+            <div className="shrink-0 p-3 sm:p-4 border-b border-[var(--border)] flex items-center justify-between bg-[var(--bg-card)]">
               <div className="flex items-center gap-3 min-w-0">
                 {/* Back to list button on mobile */}
                 <button
                   type="button"
                   onClick={() => setMobileView('list')}
-                  className="md:hidden p-1.5 text-platinum-dark hover:text-white border border-white/10 rounded-sm shrink-0"
+                  className="md:hidden p-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] border border-[var(--border)] rounded-sm shrink-0"
                   title="Quay lại danh sách hội thoại"
                   aria-label="Quay lại danh sách"
                 >
                   <ArrowLeft className="w-4 h-4" />
                 </button>
 
-                <div className="w-9 h-9 rounded-full bg-champagne/20 border border-champagne/40 flex items-center justify-center text-champagne shrink-0 text-sm font-serif font-bold">
+                <div className="w-9 h-9 rounded-full bg-[var(--accent)]/20 border border-[var(--accent)]/40 flex items-center justify-center text-[var(--accent)] shrink-0 text-sm font-serif font-bold">
                   {selectedConv.customerName.charAt(0)}
                 </div>
 
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="font-serif text-sm text-white font-medium truncate">
+                    <span className="font-serif text-sm text-[var(--text-primary)] font-medium truncate">
                       {selectedConv.customerName}
                     </span>
-                    <span className="px-2 py-0.5 rounded-full bg-champagne/15 text-champagne border border-champagne/30 text-[9px] font-mono uppercase tracking-wider hidden sm:inline-block">
+                    <span className="px-2 py-0.5 rounded-full bg-[var(--accent)]/15 text-[var(--accent)] border border-[var(--accent)]/30 text-[9px] font-mono uppercase tracking-wider hidden sm:inline-block">
                       {selectedConv.assignedAdminName
                         ? `Phụ trách: ${selectedConv.assignedAdminName}`
                         : 'Chưa gán nhân viên'}
                     </span>
                   </div>
-                  <span className="text-[10px] text-emerald-400 font-mono flex items-center gap-1.5 mt-0.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono flex items-center gap-1.5 mt-0.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                     {isCustomerTyping ? (
-                      <span className="text-champagne italic animate-pulse">Khách hàng đang nhập...</span>
+                      <span className="text-[var(--accent)] italic animate-pulse">Khách hàng đang nhập...</span>
                     ) : (
                       'Đang trực tuyến • Sẵn sàng phản hồi'
                     )}
@@ -754,7 +835,7 @@ export const AdminChatPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleAssignToMe}
-                  className="px-2.5 py-1 text-[11px] font-mono bg-white/5 hover:bg-champagne/20 border border-white/10 hover:border-champagne text-platinum-light hover:text-champagne rounded transition-colors flex items-center gap-1"
+                  className="px-2.5 py-1 text-[11px] font-mono bg-[var(--bg-card)] hover:bg-[var(--table-row-hover)] border border-[var(--border)] hover:border-[var(--accent)] text-[var(--text-secondary)] hover:text-[var(--accent)] rounded transition-colors flex items-center gap-1"
                   title="Gán cuộc trò chuyện cho bạn phụ trách"
                 >
                   <UserCheck className="w-3.5 h-3.5" />
@@ -764,7 +845,7 @@ export const AdminChatPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleCloseConversation}
-                  className="px-2.5 py-1 text-[11px] font-mono bg-white/5 hover:bg-red-950/40 border border-white/10 hover:border-red-500 text-platinum-light hover:text-red-400 rounded transition-colors flex items-center gap-1"
+                  className="px-2.5 py-1 text-[11px] font-mono bg-[var(--bg-card)] hover:bg-red-500/10 border border-[var(--border)] hover:border-red-500 text-[var(--text-secondary)] hover:text-red-600 dark:hover:text-red-400 rounded transition-colors flex items-center gap-1"
                   title="Đóng hội thoại"
                 >
                   <CheckCircle2 className="w-3.5 h-3.5" />
@@ -775,7 +856,7 @@ export const AdminChatPage: React.FC = () => {
 
             {/* AI Handoff Context Banner if present */}
             {selectedConv.metadata?.handoffContext && (
-              <div className="shrink-0 px-4 py-2 bg-champagne/10 border-b border-champagne/20 flex items-center gap-2 text-xs text-champagne">
+              <div className="shrink-0 px-4 py-2 bg-[var(--accent)]/10 border-b border-[var(--accent)]/20 flex items-center gap-2 text-xs text-[var(--accent)]">
                 <Sparkles className="w-3.5 h-3.5 shrink-0" />
                 <span className="truncate">
                   Hội thoại được chuyển ngữ cảnh từ Trợ lý AI (kèm lịch sử các câu hỏi gần nhất).
@@ -791,8 +872,8 @@ export const AdminChatPage: React.FC = () => {
               className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 space-y-3.5 text-xs relative"
             >
               {/* Consultation Security Badge */}
-              <div className="p-2.5 mx-auto max-w-md bg-white/5 border border-white/10 rounded-sm text-center text-[11px] text-platinum-dark flex items-center justify-center gap-2">
-                <ShieldCheck className="w-3.5 h-3.5 text-champagne shrink-0" />
+              <div className="p-2.5 mx-auto max-w-md bg-[var(--bg-card-muted)] border border-[var(--border)] rounded-sm text-center text-[11px] text-[var(--text-muted)] flex items-center justify-center gap-2">
+                <ShieldCheck className="w-3.5 h-3.5 text-[var(--accent)] shrink-0" />
                 <span>Kênh tư vấn bảo mật dành riêng cho Thượng Khách Atelier Vérité</span>
               </div>
 
@@ -805,7 +886,7 @@ export const AdminChatPage: React.FC = () => {
                     className={`flex gap-2.5 items-end ${isAdmin ? 'justify-end' : 'justify-start'}`}
                   >
                     {!isAdmin && (
-                      <div className="w-7 h-7 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-white shrink-0 mb-1 text-xs">
+                      <div className="w-7 h-7 rounded-full bg-[var(--border)] flex items-center justify-center text-[var(--text-primary)] shrink-0 mb-1 text-xs">
                         <User className="w-3.5 h-3.5" />
                       </div>
                     )}
@@ -813,12 +894,12 @@ export const AdminChatPage: React.FC = () => {
                     <div
                       className={`max-w-[85%] sm:max-w-[75%] p-3.5 rounded-sm leading-relaxed shadow-md break-words ${
                         isAdmin
-                          ? 'bg-champagne text-noir-950 font-medium'
-                          : 'bg-noir-900 border border-white/10 text-white'
+                          ? 'bg-[var(--accent)] text-[var(--accent-contrast)] font-medium'
+                          : 'bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-primary)]'
                       }`}
                     >
                       {m.isHandoffContext && (
-                        <div className="mb-1 text-[9.5px] font-mono text-champagne flex items-center gap-1">
+                        <div className="mb-1 text-[9.5px] font-mono text-[var(--accent)] flex items-center gap-1">
                           <Sparkles className="w-2.5 h-2.5" />
                           <span>Ngữ cảnh AI:</span>
                         </div>
@@ -826,7 +907,7 @@ export const AdminChatPage: React.FC = () => {
                       <p className="whitespace-pre-wrap">{m.text}</p>
                       <span
                         className={`block text-[9px] mt-1.5 text-right font-mono ${
-                          isAdmin ? 'text-noir-950/70' : 'text-platinum-dark'
+                          isAdmin ? 'opacity-80' : 'text-[var(--text-muted)]'
                         }`}
                       >
                         {m.timestamp}
@@ -844,7 +925,7 @@ export const AdminChatPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => scrollToBottom(true)}
-                  className="sticky bottom-2 left-1/2 -translate-x-1/2 px-3.5 py-1.5 bg-champagne text-noir-950 text-xs font-semibold rounded-full shadow-lg hover:bg-champagne/90 transition-all flex items-center gap-1.5 z-10"
+                  className="sticky bottom-2 left-1/2 -translate-x-1/2 px-3.5 py-1.5 bg-[var(--accent)] text-[var(--accent-contrast)] text-xs font-semibold rounded-full shadow-lg hover:opacity-90 transition-all flex items-center gap-1.5 z-10"
                 >
                   <ChevronDown className="w-3.5 h-3.5" />
                   <span>Xuống tin nhắn mới nhất</span>
@@ -853,16 +934,16 @@ export const AdminChatPage: React.FC = () => {
             </div>
 
             {/* Quick Response Templates (Pinned above composer) */}
-            <div className="shrink-0 px-3 py-1.5 bg-noir-950 border-t border-white/5 flex items-center gap-1.5 overflow-x-auto text-[11px] scrollbar-none">
-              <span className="text-platinum-dark font-mono uppercase tracking-wider text-[10px] shrink-0 mr-1 flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-champagne" /> Mẫu:
+            <div className="shrink-0 px-3 py-1.5 bg-[var(--bg-card-muted)] border-t border-[var(--border)] flex items-center gap-1.5 overflow-x-auto text-[11px] scrollbar-none">
+              <span className="text-[var(--text-muted)] font-mono uppercase tracking-wider text-[10px] shrink-0 mr-1 flex items-center gap-1">
+                <Sparkles className="w-3 h-3 text-[var(--accent)]" /> Mẫu:
               </span>
               {QUICK_RESPONSES.map((tmpl, idx) => (
                 <button
                   key={idx}
                   type="button"
                   onClick={() => setReplyText(tmpl)}
-                  className="px-2.5 py-1 bg-white/5 hover:bg-white/10 hover:text-white border border-white/10 rounded-sm text-platinum-dark truncate max-w-[200px] shrink-0 transition-colors"
+                  className="px-2.5 py-1 bg-[var(--bg-card)] hover:bg-[var(--table-row-hover)] hover:text-[var(--text-primary)] border border-[var(--border)] rounded-sm text-[var(--text-muted)] truncate max-w-[200px] shrink-0 transition-colors"
                   title={tmpl}
                 >
                   {tmpl}
@@ -873,7 +954,7 @@ export const AdminChatPage: React.FC = () => {
             {/* Message Composer Form (Pinned at Bottom) */}
             <form
               onSubmit={handleSendReply}
-              className="shrink-0 p-3 border-t border-white/10 flex items-end gap-2 bg-noir-900"
+              className="shrink-0 p-3 border-t border-[var(--border)] flex items-end gap-2 bg-[var(--bg-card)]"
             >
               <textarea
                 ref={inputRef as React.RefObject<HTMLTextAreaElement>}
@@ -882,16 +963,16 @@ export const AdminChatPage: React.FC = () => {
                 onChange={(e) => setReplyText(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Nhập nội dung tư vấn gửi tới khách quý... (Enter để gửi, Shift+Enter xuống dòng)"
-                className="flex-1 px-3.5 py-2.5 text-xs bg-noir-950 border border-white/15 focus:border-champagne focus:outline-none text-white rounded-sm resize-none max-h-32 min-h-[40px] leading-relaxed"
+                className="flex-1 px-3.5 py-2.5 text-xs bg-[var(--input-bg)] border border-[var(--border)] focus:border-[var(--accent)] focus:outline-none text-[var(--text-primary)] rounded-sm resize-none max-h-32 min-h-[40px] leading-relaxed placeholder-[var(--text-muted)]"
               />
               <button
                 type="submit"
-                disabled={!replyText.trim()}
-                className="px-4 py-2.5 bg-champagne text-noir-950 hover:bg-champagne/90 transition-colors disabled:opacity-40 text-xs font-semibold uppercase tracking-wider rounded-sm flex items-center gap-1.5 shrink-0 shadow-md shadow-champagne/10"
+                disabled={!replyText.trim() || isSending}
+                className="px-4 py-2.5 bg-[var(--accent)] text-[var(--accent-contrast)] hover:opacity-90 transition-opacity disabled:opacity-40 text-xs font-semibold uppercase tracking-wider rounded-sm flex items-center gap-1.5 shrink-0 shadow-md"
                 title="Gửi tin nhắn"
               >
                 <Send className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Gửi</span>
+                <span className="hidden sm:inline">{isSending ? 'Đang gửi...' : 'Gửi'}</span>
               </button>
             </form>
           </section>

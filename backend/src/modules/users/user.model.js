@@ -83,6 +83,26 @@ const userSchema = new mongoose.Schema(
       default:
         "https://cdn.sforum.vn/sforum/wp-content/uploads/2023/10/avatar-trang-4.jpg",
     },
+    avatar: {
+      type: String,
+      default: undefined,
+    },
+    googleId: {
+      type: String,
+      unique: true,
+      sparse: true,
+      trim: true,
+      index: true,
+    },
+    resetPasswordToken: {
+      type: String,
+      default: null,
+      index: true,
+    },
+    resetPasswordExpires: {
+      type: Date,
+      default: null,
+    },
     consent_status: {
       type: String,
       enum: ['granted', 'denied'],

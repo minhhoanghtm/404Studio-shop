@@ -47,7 +47,10 @@ export const ModalProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   }, []);
 
   const unregisterModal = useCallback((id: string) => {
-    setStack((prev) => prev.filter((m) => m.id !== id));
+    setStack((prev) => {
+      if (!prev.some((m) => m.id === id)) return prev;
+      return prev.filter((m) => m.id !== id);
+    });
 
     // Restore focus to previous element when modal is dismissed
     const prevElem = previousActiveElementRef.current.get(id);
@@ -208,17 +211,23 @@ export function useModal({
   priority?: number;
 }) {
   const { registerModal, unregisterModal, getModalZIndex, isTopModal, topModalId } = useModalContext();
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => {
     if (isOpen) {
-      registerModal({ id, onClose, priority });
+      registerModal({
+        id,
+        onClose: () => onCloseRef.current?.(),
+        priority,
+      });
+      return () => {
+        unregisterModal(id);
+      };
     } else {
       unregisterModal(id);
     }
-    return () => {
-      unregisterModal(id);
-    };
-  }, [isOpen, id, onClose, priority, registerModal, unregisterModal]);
+  }, [isOpen, id, priority, registerModal, unregisterModal]);
 
   const zIndices = getModalZIndex(id);
   const isTop = isTopModal(id);

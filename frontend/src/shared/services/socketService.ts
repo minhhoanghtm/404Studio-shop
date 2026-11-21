@@ -24,6 +24,7 @@ export interface MessageNewPayload {
     createdAt?: string;
     guestName?: string;
     metadata?: any;
+    clientMessageId?: string;
   };
   conversation?: any;
 }

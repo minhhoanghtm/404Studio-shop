@@ -1,9 +1,9 @@
 /* ATELIER VÉRITÉ — Editorial Design System */
 .white-editorial {
-  --ink: var(--text, #1A1A17);
-  --paper: var(--bg, #FAF8F3);
-  --dark-bg: var(--bg-alt, #F1EDE4);
-  --gold: var(--accent, #B8921F);
+  --ink: var(--text-primary, #1A1A17);
+  --paper: var(--bg-page, #FAF8F3);
+  --dark-bg: var(--bg-card, #FFFFFF);
+  --gold: var(--accent, #8a6d1a);
   --border-dark: var(--border, #E3DED2);
   --border-light: var(--border, #E3DED2);
   background: var(--paper);
@@ -186,7 +186,8 @@
 }
 
 .we-hero-overlay {
-  background: rgba(0, 0, 0, 0.45);
+  background: var(--bg-overlay, rgba(0, 0, 0, 0.6));
+  backdrop-filter: blur(1px);
 }
 
 .we-hero-content {
@@ -206,6 +207,7 @@
   letter-spacing: 0.15em;
   text-transform: uppercase;
   margin: 0;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.7);
 }
 
 .we-hero h1, .we-heading-row h2 {
@@ -219,6 +221,7 @@
 .we-hero h1 {
   font-size: clamp(70px, 12vw, 182px);
   margin: 22px 0 34px;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.65);
 }
 
 .we-actions {
@@ -236,6 +239,7 @@
   font: 11px ui-monospace, SFMono-Regular, monospace;
   letter-spacing: 0.1em;
   margin: 0;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.7);
 }
 
 .we-slider-progress {
@@ -348,9 +352,9 @@
   top: 12px;
   left: 12px;
   padding: 5px 8px;
-  background: var(--surface, #FFFFFF);
-  color: var(--text, #1A1A17);
-  border: 1px solid var(--border, #E3DED2);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
   font: 10px ui-monospace, SFMono-Regular, monospace;
   letter-spacing: 0.08em;
 }
@@ -696,8 +700,8 @@
 }
 
 .we-look-card {
-  border: 1px solid var(--border, #E3DED2);
-  background: var(--surface, #FFFFFF);
+  border: 1px solid var(--border);
+  background: var(--bg-card);
   display: flex;
   flex-direction: column;
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
@@ -705,7 +709,7 @@
 }
 
 .we-look-card:hover {
-  border-color: var(--accent, #B8921F);
+  border-color: var(--accent);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
 }
 
@@ -713,7 +717,7 @@
   aspect-ratio: 4 / 5;
   position: relative;
   overflow: hidden;
-  background: var(--bg-alt, #F1EDE4);
+  background: var(--bg-page);
 }
 
 .we-look-image img {
@@ -732,13 +736,13 @@
   top: 14px;
   left: 14px;
   padding: 5px 8px;
-  background: var(--surface, #FFFFFF);
-  color: var(--text, #1A1A17);
+  background: var(--bg-card);
+  color: var(--text-primary);
   font: 10px ui-monospace, SFMono-Regular, monospace;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   z-index: 2;
-  border: 1px solid var(--border, #E3DED2);
+  border: 1px solid var(--border);
 }
 
 .we-look-title {
@@ -819,10 +823,10 @@
 }
 
 .we-shop-the-look {
-  border-top: 1px solid var(--border, #E3DED2);
+  border-top: 1px solid var(--border);
   margin-top: auto;
   padding: 14px 18px 16px;
-  background: var(--surface, #FFFFFF);
+  background: var(--bg-card);
 }
 
 .we-shop-header {
@@ -946,10 +950,10 @@
 .we-newsletter-input {
   flex: 1;
   min-height: 52px;
-  background: var(--surface, #FFFFFF) !important;
-  border: 1px solid var(--border, #E3DED2) !important;
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border) !important;
   border-right: none !important;
-  color: var(--text, #1A1A17) !important;
+  color: var(--text-primary) !important;
   font-family: ui-monospace, SFMono-Regular, monospace !important;
   font-size: 13px !important;
   padding: 0 18px !important;
@@ -960,8 +964,8 @@
 }
 
 .we-newsletter-input:focus {
-  border-color: var(--accent, #B8921F) !important;
-  background: var(--surface, #FFFFFF) !important;
+  border-color: var(--accent) !important;
+  background: var(--bg-card) !important;
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent) !important;
 }
 

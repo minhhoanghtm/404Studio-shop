@@ -93,6 +93,7 @@ class AuthService {
         phone: user.phone || null,
         fullName: user.fullName,
         role: user.role,
+        avatar: user.avatar || user.avatar_url || null,
       },
     };
   }
@@ -953,8 +954,141 @@ class AuthService {
     await this.signOutAll(user._id);
   }
 
+  /**
+   * Standard Register (POST /api/auth/register)
+   * Validates input, hashes password with bcrypt, creates user, issues full JWT session.
+   */
+  async register(userData, ip = null, ua = null) {
+    const rawPassword = userData.password || userData.passWord;
+    const rawName = userData.fullName || userData.name;
+    const { email, phone, birthday, sex, marketingAccepted } = userData;
+
+    if (!rawPassword || rawPassword.length < 8) {
+      throw new AppError("Mật khẩu phải có tối thiểu 8 ký tự.", 422);
+    }
+    if (!rawName || !rawName.trim()) {
+      throw new AppError("Họ và tên là bắt buộc.", 400);
+    }
+    if (!email) {
+      throw new AppError("Địa chỉ email là bắt buộc.", 400);
+    }
+
+    const normalizedEmail = normalizeEmail(email);
+    const emailExists = await userRepository.findByEmail(normalizedEmail);
+    if (emailExists) {
+      throw new AppError("Email đã tồn tại trên hệ thống. Vui lòng đăng nhập hoặc sử dụng email khác.", 409);
+    }
+
+    let normPhone = null;
+    if (phone) {
+      if (!isValidVietnamesePhone(phone)) {
+        throw new AppError("Số điện thoại không hợp lệ.", 422);
+      }
+      normPhone = normalizeVietnamesePhone(phone);
+      const phoneExists = await userRepository.findByPhone(normPhone);
+      if (phoneExists) {
+        throw new AppError("Số điện thoại đã tồn tại trên hệ thống.", 409);
+      }
+    }
+
+    const hashedPass = await bcrypt.hash(rawPassword, 10);
+    const newUser = await userRepository.create({
+      passWord: hashedPass,
+      fullName: rawName.trim(),
+      email: normalizedEmail,
+      ...(normPhone ? { phone: normPhone } : {}),
+      ...(birthday && { birthday: new Date(birthday) }),
+      ...(sex && { sex }),
+      legal_consents: {
+        terms_accepted: true,
+        privacy_accepted: true,
+        marketing_accepted: Boolean(marketingAccepted),
+        policy_version: PRIVACY_POLICY_VERSION,
+        recorded_at: new Date(),
+      },
+    });
+
+    return await this.issueAuthSession(newUser, ip, ua);
+  }
+
+  /**
+   * Request password reset token & email (POST /api/auth/forgot-password)
+   * Generates token with 15 minutes expiration and sends reset link via email
+   */
+  async forgotPassword(email, req = null) {
+    if (!email) {
+      throw new AppError("Vui lòng cung cấp địa chỉ email.", 400);
+    }
+
+    const normalizedEmail = normalizeEmail(email);
+    const user = await userRepository.findByEmail(normalizedEmail);
+
+    // If user does not exist, return generic friendly message to prevent email enumeration
+    if (!user) {
+      return {
+        message: "Nếu địa chỉ email tồn tại trong hệ thống, liên kết đặt lại mật khẩu đã được gửi đến hòm thư của bạn.",
+      };
+    }
+
+    if (user.status === "blocked" || user.status === "locked") {
+      throw new AppError("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.", 403);
+    }
+
+    // Token expires in 15 minutes
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+
+    user.resetPasswordToken = resetToken;
+    user.resetPasswordExpires = expiresAt;
+    await user.save();
+
+    const clientOrigin = req?.headers?.origin || process.env.FRONTEND_URL || process.env.CLIENT_URL || "http://localhost:5173";
+    const baseUrl = clientOrigin.trim().replace(/\/$/, "");
+    const resetUrl = `${baseUrl}/reset-password/${resetToken}`;
+
+    const { sendResetPasswordEmail } = await import("../../providers/email.provider.js");
+    await sendResetPasswordEmail(normalizedEmail, resetUrl);
+
+    return {
+      message: "Liên kết đặt lại mật khẩu đã được gửi đến email của bạn (hiệu lực trong 15 phút).",
+    };
+  }
+
+  /**
+   * Reset password with token (POST /api/auth/reset-password/:token)
+   */
+  async resetPasswordWithToken(token, newPassword) {
+    if (!token) {
+      throw new AppError("Mã token khôi phục mật khẩu không hợp lệ.", 400);
+    }
+    if (!newPassword || newPassword.length < 8) {
+      throw new AppError("Mật khẩu mới phải có tối thiểu 8 ký tự.", 422);
+    }
+
+    const user = await userRepository.findByResetToken(token);
+    if (!user) {
+      throw new AppError("Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn (15 phút). Vui lòng yêu cầu lại.", 400);
+    }
+
+    user.passWord = await bcrypt.hash(newPassword, 10);
+    user.resetPasswordToken = null;
+    user.resetPasswordExpires = null;
+    await user.save();
+
+    // Revoke all existing sessions for this user for security
+    await this.signOutAll(user._id);
+
+    return {
+      message: "Đặt lại mật khẩu thành công! Quý khách có thể đăng nhập bằng mật khẩu mới.",
+    };
+  }
+
+  /**
+   * Google OAuth 2.0 Sign In / Sign Up (POST /api/auth/google)
+   * Verifies Google ID Token / credential, creates or links account, issues full JWT session
+   */
   async signInWithGoogle(idToken, ip = null, ua = null) {
-    if (!idToken) throw new AppError("Thiếu idToken Google", 400);
+    if (!idToken) throw new AppError("Thiếu idToken / credential Google", 400);
 
     let payload;
     try {
@@ -976,8 +1110,10 @@ class AuthService {
 
     const fullName = payload.name || `${payload.family_name || ""} ${payload.given_name || ""}`.trim() || "Google User";
     const avatarUrl = payload.picture;
+    const googleId = payload.sub;
     const normalizedEmail = normalizeEmail(email);
-    let user = await userRepository.findByEmail(normalizedEmail);
+
+    let user = (await userRepository.findByGoogleId(googleId)) || (await userRepository.findByEmail(normalizedEmail));
 
     if (!user) {
       const randomPassword = crypto.randomBytes(32).toString("hex");
@@ -986,10 +1122,36 @@ class AuthService {
         passWord: hashedPass,
         fullName,
         email: normalizedEmail,
+        googleId,
+        avatar: avatarUrl,
         avatar_url: avatarUrl,
+        legal_consents: {
+          terms_accepted: true,
+          privacy_accepted: true,
+          policy_version: PRIVACY_POLICY_VERSION,
+          recorded_at: new Date(),
+        },
       });
-    } else if (user.status === "blocked") {
-      throw new AppError("Tài khoản của bạn đã bị khóa.", 403);
+    } else {
+      if (user.status === "blocked" || user.status === "locked") {
+        throw new AppError("Tài khoản của bạn đã bị khóa.", 403);
+      }
+      let modified = false;
+      if (!user.googleId && googleId) {
+        user.googleId = googleId;
+        modified = true;
+      }
+      if (!user.avatar && avatarUrl) {
+        user.avatar = avatarUrl;
+        modified = true;
+      }
+      if (!user.avatar_url && avatarUrl) {
+        user.avatar_url = avatarUrl;
+        modified = true;
+      }
+      if (modified) {
+        await user.save();
+      }
     }
 
     return await this.issueAuthSession(user, ip, ua);

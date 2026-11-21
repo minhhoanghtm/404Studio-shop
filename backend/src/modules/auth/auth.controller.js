@@ -54,10 +54,38 @@ export const signUp = async (req, res, next) => {
   }
 };
 
+export const register = async (req, res, next) => {
+  try {
+    const ip = req.ip || req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+    const ua = req.headers["user-agent"];
+    const { accessToken, refreshToken, user } = await authService.register(req.body, ip, ua);
+
+    const anonymousId = req.body.anonymous_id || req.headers["x-anonymous-id"];
+    if (anonymousId && (user?.id || user?._id)) {
+      trackingService
+        .mergeAnonymousToUser(anonymousId, user.id || user._id)
+        .catch((err) =>
+          console.error("Lỗi khi gộp anonymous profile vào user (register):", err.message)
+        );
+    }
+
+    res.cookie("refreshToken", refreshToken, getCookieOptions(req));
+
+    return successResponse(
+      res,
+      { accessToken, refreshToken, userId: user.id || user._id, user },
+      "Đăng ký tài khoản thành công!",
+      201
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const signIn = async (req, res, next) => {
   try {
     const identifier = req.body.emailOrPhone || req.body.phone || req.body.email;
-    const { passWord } = req.body;
+    const passWord = req.body.passWord || req.body.password;
     const ip = req.ip || req.headers["x-forwarded-for"] || req.socket.remoteAddress;
     const ua = req.headers["user-agent"];
 
@@ -285,9 +313,30 @@ export const resetPassword = async (req, res, next) => {
   }
 };
 
+export const forgotPassword = async (req, res, next) => {
+  try {
+    const result = await authService.forgotPassword(req.body.email, req);
+    return successResponse(res, null, result.message);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const resetPasswordWithToken = async (req, res, next) => {
+  try {
+    const token = req.params.token || req.body.token;
+    const newPassword = req.body.password || req.body.newPassword || req.body.passWord;
+    const result = await authService.resetPasswordWithToken(token, newPassword);
+    res.clearCookie("refreshToken", getClearCookieOptions(req));
+    return successResponse(res, null, result.message);
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const signInWithGoogle = async (req, res, next) => {
   try {
-    const { idToken } = req.body;
+    const idToken = req.body.credential || req.body.idToken;
     const ip = req.ip || req.headers["x-forwarded-for"] || req.socket.remoteAddress;
     const ua = req.headers["user-agent"];
     const { accessToken, refreshToken, user } = await authService.signInWithGoogle(idToken, ip, ua);
@@ -305,7 +354,7 @@ export const signInWithGoogle = async (req, res, next) => {
 
     return successResponse(
       res,
-      { accessToken, userId: user._id || user.id },
+      { accessToken, refreshToken, userId: user._id || user.id, user },
       `User ${user.fullName} đã login bằng Google!, UserId: ${user._id || user.id}`
     );
   } catch (error) {

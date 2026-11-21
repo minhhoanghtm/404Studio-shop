@@ -163,11 +163,49 @@ const resendOtpSchema = z
     path: ["identifier"],
   });
 
+const registerSchema = z
+  .object({
+    email: zodEmail,
+    passWord: z.string().min(8, "Mật khẩu phải có ít nhất 8 ký tự").optional(),
+    password: z.string().min(8, "Mật khẩu phải có ít nhất 8 ký tự").optional(),
+    fullName: z.string().trim().min(2, "Họ và tên phải có ít nhất 2 ký tự").optional(),
+    name: z.string().trim().min(2, "Họ và tên phải có ít nhất 2 ký tự").optional(),
+    phone: z.string().optional(),
+    termsAccepted: z.boolean().optional(),
+    privacyAccepted: z.boolean().optional(),
+    marketingAccepted: z.boolean().optional(),
+  })
+  .refine((data) => data.passWord || data.password, {
+    message: "Mật khẩu là bắt buộc và phải có ít nhất 8 ký tự",
+    path: ["password"],
+  })
+  .refine((data) => data.fullName || data.name, {
+    message: "Vui lòng nhập họ và tên (ít nhất 2 ký tự)",
+    path: ["fullName"],
+  });
+
+const forgotPasswordTokenSchema = z.object({
+  email: zodEmail,
+});
+
+const resetPasswordTokenBodySchema = z
+  .object({
+    password: z.string().min(8, "Mật khẩu mới phải có ít nhất 8 ký tự").optional(),
+    newPassword: z.string().min(8, "Mật khẩu mới phải có ít nhất 8 ký tự").optional(),
+    passWord: z.string().min(8, "Mật khẩu mới phải có ít nhất 8 ký tự").optional(),
+    confirmPassword: z.string().optional(),
+  })
+  .refine((data) => data.password || data.newPassword || data.passWord, {
+    message: "Mật khẩu mới là bắt buộc và phải có ít nhất 8 ký tự",
+    path: ["password"],
+  });
+
 // ---------------------------------------------------------------------------
 // Middleware exports
 // ---------------------------------------------------------------------------
 
 export const validateSignUp = validate(signUpSchema);
+export const validateRegister = validate(registerSchema);
 export const validateSignIn = validate(signInSchema);
 export const validateSendOTP = validate(sendOTPSchema);
 export const validateVerifyOTP = validate(verifyOTPSchema);
@@ -178,5 +216,7 @@ export const validateVerifyRegister = validate(verifyRegisterSchema);
 export const validateSendLoginOtp = validate(sendLoginOtpSchema);
 export const validateVerifyLoginOtp = validate(verifyLoginOtpSchema);
 export const validateForgotPassword = validate(forgotPasswordSchema);
+export const validateForgotPasswordToken = validate(forgotPasswordTokenSchema);
 export const validateResetPasswordWithOtp = validate(resetPasswordWithOtpSchema);
+export const validateResetPasswordToken = validate(resetPasswordTokenBodySchema);
 export const validateResendOtp = validate(resendOtpSchema);

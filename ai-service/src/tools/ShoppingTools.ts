@@ -159,6 +159,14 @@ export class ShoppingTools {
         },
       },
       {
+        name: 'getMyCart',
+        description: 'Lấy giỏ hàng hiện tại của khách hàng đã đăng nhập, bao gồm product_id, variant_id, giá và số lượng do backend xác thực.',
+        parameters: {
+          type: 'object',
+          properties: {},
+        },
+      },
+      {
         name: 'prepareCheckout',
         description: 'Chuẩn bị đơn hàng và giữ hàng trong kho 5 phút (Redis inventory reservation) cho khách hàng.',
         parameters: {
@@ -251,6 +259,7 @@ export class ShoppingTools {
       validateVoucher: 'validate_voucher',
       applyVoucher: 'apply_voucher',
       getMyOrders: 'get_my_orders',
+      getMyCart: 'get_my_cart',
       prepareCheckout: 'prepare_checkout',
       confirmOrder: 'confirm_order',
       getLoyaltyStatus: 'get_loyalty_status',

@@ -152,11 +152,11 @@ export const ProductDetailPage: React.FC = () => {
   if (isLoading) {
     return (
       <div className="w-full bg-[var(--bg)] text-[var(--text)] min-h-screen py-10 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto space-y-12">
+        <div className="max-w-[1200px] mx-auto space-y-12">
           <div className="h-4 atelier-skeleton rounded w-1/4" />
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
-            <div className="lg:col-span-7 aspect-[3/4] atelier-skeleton rounded-sm" />
-            <div className="lg:col-span-5 space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+            <div className="lg:col-span-6 aspect-[4/5] max-w-[520px] atelier-skeleton rounded-xl" />
+            <div className="lg:col-span-6 space-y-6">
               <div className="h-8 atelier-skeleton rounded w-3/4" />
               <div className="h-5 atelier-skeleton rounded w-1/2" />
               <div className="h-10 atelier-skeleton rounded w-1/3" />
@@ -203,7 +203,7 @@ export const ProductDetailPage: React.FC = () => {
 
   return (
     <div className="w-full bg-[var(--bg)] text-[var(--text)] min-h-screen py-10 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto space-y-12">
+      <div className="max-w-[1200px] mx-auto space-y-10 sm:space-y-12">
         {/* Breadcrumb Navigation */}
         <nav className="flex items-center space-x-2 text-[11px] font-sans tracking-widest uppercase text-[var(--text-muted)]">
           <Link to="/" className="hover:text-[var(--text)] transition-colors">{vi.nav.home}</Link>
@@ -220,10 +220,10 @@ export const ProductDetailPage: React.FC = () => {
           <span className="text-[var(--text)] truncate max-w-[200px] font-medium">{product.name}</span>
         </nav>
 
-        {/* Product Stage: Gallery + Information */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start">
-          {/* Gallery Column */}
-          <div className="lg:col-span-7">
+        {/* Product Stage: Gallery + Information (Grid 2 columns: 50% image max 520px | 50% sticky info) */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+          {/* Gallery Column (45–50% width, image max-width 520px) */}
+          <div className="lg:col-span-6 w-full flex justify-center lg:justify-start">
             <ProductGallery
               images={currentGalleryImages}
               productName={product.name}
@@ -231,8 +231,8 @@ export const ProductDetailPage: React.FC = () => {
             />
           </div>
 
-          {/* Details / Action Column */}
-          <div className="lg:col-span-5 space-y-8">
+          {/* Details / Action Column (Balanced & Sticky on Scroll) */}
+          <div className="lg:col-span-6 space-y-6 sm:space-y-8 lg:sticky lg:top-24 self-start">
             <div className="space-y-2 border-b border-[var(--border)] pb-6">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] uppercase font-mono tracking-widest text-[var(--accent)] flex items-center gap-1 font-semibold">

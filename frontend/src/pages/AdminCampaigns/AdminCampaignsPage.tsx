@@ -156,25 +156,25 @@ export const AdminCampaignsPage: React.FC = () => {
         {/* Top Header Actions */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-xl sm:text-2xl font-serif text-white tracking-wide">
+            <h1 className="text-xl sm:text-2xl font-serif text-[var(--text-primary)] tracking-wide">
               Danh Sách Chiến Dịch Quảng Bá
             </h1>
-            <p className="text-xs text-white/50 mt-1">
+            <p className="text-xs text-[var(--text-muted)] mt-1">
               Tổng cộng {total} chiến dịch khuyến mãi được ghi nhận trên hệ thống Atelier Vérité.
             </p>
           </div>
           <div className="flex items-center gap-3">
             <button
               onClick={() => fetchCampaigns()}
-              className="px-3.5 py-2 bg-noir-900 hover:bg-white/10 border border-white/10 text-white text-xs rounded-sm flex items-center gap-2 transition-colors"
+              className="px-3.5 py-2 bg-[var(--bg-card)] hover:bg-[var(--table-row-hover)] border border-[var(--border)] text-[var(--text-primary)] text-xs rounded-sm flex items-center gap-2 transition-colors shadow-sm"
               title="Làm mới dữ liệu"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-[var(--accent)]' : ''}`} />
               <span className="hidden sm:inline">Làm mới</span>
             </button>
             <Link
               to="/admin/campaigns/new"
-              className="px-4 py-2 bg-champagne hover:bg-champagne-light text-noir-950 text-xs font-serif font-semibold tracking-wider uppercase rounded-sm flex items-center gap-2 transition-colors shadow-lg shadow-champagne/20"
+              className="px-4 py-2 bg-[var(--accent)] text-[var(--accent-contrast)] hover:opacity-90 text-xs font-serif font-semibold tracking-wider uppercase rounded-sm flex items-center gap-2 transition-opacity shadow-md"
             >
               <Plus className="w-4 h-4" />
               <span>Tạo Chiến Dịch Mới</span>
@@ -183,9 +183,9 @@ export const AdminCampaignsPage: React.FC = () => {
         </div>
 
         {/* Filter & Search Bar */}
-        <div className="p-4 bg-noir-900 border border-white/10 rounded-sm grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="p-4 bg-[var(--bg-card)] border border-[var(--border)] rounded-sm grid grid-cols-1 sm:grid-cols-3 gap-3 shadow-sm">
           <div className="relative">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
             <input
               type="text"
               placeholder="Tìm kiếm theo tên chiến dịch hoặc slug..."
@@ -194,7 +194,7 @@ export const AdminCampaignsPage: React.FC = () => {
                 setSearch(e.target.value);
                 setPage(1);
               }}
-              className="w-full bg-noir-950 border border-white/10 rounded-sm pl-9 pr-3 py-2 text-xs text-white placeholder-white/30 focus:border-champagne focus:outline-none"
+              className="w-full bg-[var(--input-bg)] border border-[var(--border)] rounded-sm pl-9 pr-3 py-2 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
             />
           </div>
 
@@ -205,7 +205,7 @@ export const AdminCampaignsPage: React.FC = () => {
                 setStatusFilter(e.target.value);
                 setPage(1);
               }}
-              className="w-full bg-noir-950 border border-white/10 rounded-sm px-3 py-2 text-xs text-white focus:border-champagne focus:outline-none"
+              className="w-full bg-[var(--input-bg)] border border-[var(--border)] rounded-sm px-3 py-2 text-xs text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
             >
               <option value="all">Tất Cả Trạng Thái</option>
               <option value="active">Đang Diễn Ra (Active)</option>
@@ -222,7 +222,7 @@ export const AdminCampaignsPage: React.FC = () => {
                 setTypeFilter(e.target.value);
                 setPage(1);
               }}
-              className="w-full bg-noir-950 border border-white/10 rounded-sm px-3 py-2 text-xs text-white focus:border-champagne focus:outline-none"
+              className="w-full bg-[var(--input-bg)] border border-[var(--border)] rounded-sm px-3 py-2 text-xs text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
             >
               <option value="all">Tất Cả Loại Chiến Dịch</option>
               <option value="flash_sale">Flash Sale (Ưu đãi chớp nhoáng)</option>
@@ -232,27 +232,27 @@ export const AdminCampaignsPage: React.FC = () => {
         </div>
 
         {/* Campaign List Table */}
-        <div className="bg-noir-900 border border-white/10 rounded-sm overflow-hidden">
+        <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-sm overflow-hidden shadow-sm">
           {loading ? (
-            <div className="p-12 text-center text-xs text-white/50 flex flex-col items-center justify-center gap-3">
-              <div className="w-7 h-7 rounded-full border border-champagne/40 border-t-champagne animate-spin" />
+            <div className="p-12 text-center text-xs text-[var(--text-muted)] flex flex-col items-center justify-center gap-3">
+              <div className="w-7 h-7 rounded-full border border-[var(--accent)]/40 border-t-[var(--accent)] animate-spin" />
               <span>Đang kết nối API Backend tải danh sách chiến dịch...</span>
             </div>
           ) : error ? (
-            <div className="p-8 text-center text-xs text-rose-400 bg-rose-500/5">
+            <div className="p-8 text-center text-xs text-rose-500 bg-rose-500/5">
               <AlertCircle className="w-5 h-5 mx-auto mb-2" />
               <p>{error}</p>
             </div>
           ) : campaigns.length === 0 ? (
-            <div className="p-12 text-center text-xs text-white/50">
-              <Sparkles className="w-8 h-8 text-champagne/40 mx-auto mb-3" />
-              <p className="text-sm font-medium text-white mb-1">Chưa có chiến dịch nào được tìm thấy</p>
-              <p className="text-white/40 mb-4">
+            <div className="p-12 text-center text-xs text-[var(--text-muted)]">
+              <Sparkles className="w-8 h-8 text-[var(--accent)]/40 mx-auto mb-3" />
+              <p className="text-sm font-medium text-[var(--text-primary)] mb-1">Chưa có chiến dịch nào được tìm thấy</p>
+              <p className="text-[var(--text-muted)] mb-4">
                 Hãy bắt đầu tạo chiến dịch Flash Sale hoặc sự kiện mùa đầu tiên để kích hoạt ưu đãi.
               </p>
               <Link
                 to="/admin/campaigns/new"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-champagne text-noir-950 font-serif text-xs uppercase tracking-wider font-semibold rounded-sm"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--accent)] text-[var(--accent-contrast)] font-serif text-xs uppercase tracking-wider font-semibold rounded-sm"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Tạo Chiến Dịch Ngay</span>
@@ -262,7 +262,7 @@ export const AdminCampaignsPage: React.FC = () => {
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="bg-noir-950/70 border-b border-white/10 text-[11px] font-mono uppercase text-white/60 tracking-wider">
+                  <tr className="bg-[var(--bg-card-muted)] border-b border-[var(--border)] text-[11px] font-mono uppercase text-[var(--text-muted)] tracking-wider">
                     <th className="py-3 px-4">Chiến Dịch</th>
                     <th className="py-3 px-4">Loại</th>
                     <th className="py-3 px-4">Thời Gian Diễn Ra</th>
@@ -271,7 +271,7 @@ export const AdminCampaignsPage: React.FC = () => {
                     <th className="py-3 px-4 text-right">Thao Tác</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5">
+                <tbody className="divide-y divide-[var(--border)]">
                   {campaigns.map((camp) => {
                     const start = new Date(camp.startAt).toLocaleString('vi-VN', {
                       day: '2-digit',
@@ -291,19 +291,19 @@ export const AdminCampaignsPage: React.FC = () => {
                     return (
                       <tr
                         key={camp._id}
-                        className="hover:bg-white/[0.02] transition-colors group"
+                        className="hover:bg-[var(--table-row-hover)] transition-colors group"
                       >
                         <td className="py-3.5 px-4">
                           <Link
                             to={`/admin/campaigns/${camp._id}`}
-                            className="font-medium text-white hover:text-champagne transition-colors block text-sm"
+                            className="font-medium text-[var(--text-primary)] hover:text-[var(--accent)] transition-colors block text-sm"
                           >
                             {camp.name}
                           </Link>
-                          <div className="flex items-center gap-2 text-[10px] font-mono text-white/40 mt-0.5">
+                          <div className="flex items-center gap-2 text-[10px] font-mono text-[var(--text-muted)] mt-0.5">
                             <span>Slug: {camp.slug}</span>
                             {camp.bannerId && (
-                              <span className="text-champagne/80 flex items-center gap-0.5">
+                              <span className="text-[var(--accent)] flex items-center gap-0.5">
                                 • Có Popup Banner
                               </span>
                             )}
@@ -312,23 +312,23 @@ export const AdminCampaignsPage: React.FC = () => {
 
                         <td className="py-3.5 px-4 font-mono">
                           {camp.type === 'flash_sale' ? (
-                            <span className="text-amber-400 bg-amber-400/10 px-2 py-0.5 border border-amber-400/20 rounded-xs text-[10px] uppercase">
+                            <span className="text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 border border-amber-500/20 rounded-xs text-[10px] uppercase">
                               Flash Sale
                             </span>
                           ) : (
-                            <span className="text-purple-400 bg-purple-400/10 px-2 py-0.5 border border-purple-400/20 rounded-xs text-[10px] uppercase">
+                            <span className="text-purple-600 dark:text-purple-400 bg-purple-500/10 px-2 py-0.5 border border-purple-500/20 rounded-xs text-[10px] uppercase">
                               Sự Kiện Mùa
                             </span>
                           )}
                         </td>
 
-                        <td className="py-3.5 px-4 text-[11px] text-white/70 font-mono">
+                        <td className="py-3.5 px-4 text-[11px] text-[var(--text-secondary)] font-mono">
                           <div>{start}</div>
-                          <div className="text-white/40">đến {end}</div>
+                          <div className="text-[var(--text-muted)]">đến {end}</div>
                         </td>
 
                         <td className="py-3.5 px-4 font-mono">
-                          <span className="bg-white/5 text-champagne px-2 py-0.5 rounded-xs border border-white/10 font-bold">
+                          <span className="bg-[var(--bg-card-muted)] text-[var(--accent)] px-2 py-0.5 rounded-xs border border-[var(--border)] font-bold">
                             {camp.priority || 0}
                           </span>
                         </td>
@@ -341,7 +341,7 @@ export const AdminCampaignsPage: React.FC = () => {
                           <div className="flex items-center justify-end gap-1.5">
                             <button
                               onClick={() => handleToggleStatus(camp)}
-                              className="p-1.5 text-white/60 hover:text-champagne hover:bg-white/5 rounded-xs transition-colors"
+                              className="p-1.5 text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--table-row-hover)] rounded-xs transition-colors"
                               title={camp.status === 'active' ? 'Kết thúc chiến dịch' : 'Kích hoạt chiến dịch'}
                             >
                               <Power className="w-3.5 h-3.5" />
@@ -349,7 +349,7 @@ export const AdminCampaignsPage: React.FC = () => {
 
                             <Link
                               to={`/admin/campaigns/${camp._id}`}
-                              className="p-1.5 text-white/60 hover:text-white hover:bg-white/5 rounded-xs transition-colors"
+                              className="p-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--table-row-hover)] rounded-xs transition-colors"
                               title="Xem chi tiết & Thống kê"
                             >
                               <Eye className="w-3.5 h-3.5" />
@@ -357,7 +357,7 @@ export const AdminCampaignsPage: React.FC = () => {
 
                             <Link
                               to={`/admin/campaigns/${camp._id}/edit`}
-                              className="p-1.5 text-white/60 hover:text-white hover:bg-white/5 rounded-xs transition-colors"
+                              className="p-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--table-row-hover)] rounded-xs transition-colors"
                               title="Chỉnh sửa chiến dịch"
                             >
                               <Edit3 className="w-3.5 h-3.5" />
@@ -365,7 +365,7 @@ export const AdminCampaignsPage: React.FC = () => {
 
                             <button
                               onClick={() => setDeletingCampaign(camp)}
-                              className="p-1.5 text-white/60 hover:text-rose-400 hover:bg-rose-500/10 rounded-xs transition-colors"
+                              className="p-1.5 text-[var(--text-muted)] hover:text-rose-500 hover:bg-rose-500/10 rounded-xs transition-colors"
                               title="Xóa chiến dịch"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -382,7 +382,7 @@ export const AdminCampaignsPage: React.FC = () => {
 
           {/* Pagination Controls */}
           {totalPages > 1 && (
-            <div className="p-4 border-t border-white/10 flex items-center justify-between text-xs text-white/60">
+            <div className="p-4 border-t border-[var(--border)] flex items-center justify-between text-xs text-[var(--text-muted)]">
               <div>
                 Trang {page} / {totalPages} (Tổng {total} bản ghi)
               </div>
@@ -390,14 +390,14 @@ export const AdminCampaignsPage: React.FC = () => {
                 <button
                   disabled={page <= 1}
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  className="px-3 py-1 bg-noir-950 border border-white/10 disabled:opacity-40 hover:bg-white/5 text-white rounded-xs"
+                  className="px-3 py-1 bg-[var(--bg-card-muted)] border border-[var(--border)] disabled:opacity-40 hover:bg-[var(--table-row-hover)] text-[var(--text-primary)] rounded-xs transition-colors"
                 >
                   Trước
                 </button>
                 <button
                   disabled={page >= totalPages}
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  className="px-3 py-1 bg-noir-950 border border-white/10 disabled:opacity-40 hover:bg-white/5 text-white rounded-xs"
+                  className="px-3 py-1 bg-[var(--bg-card-muted)] border border-[var(--border)] disabled:opacity-40 hover:bg-[var(--table-row-hover)] text-[var(--text-primary)] rounded-xs transition-colors"
                 >
                   Sau
                 </button>
@@ -413,25 +413,25 @@ export const AdminCampaignsPage: React.FC = () => {
           <div
             role="dialog"
             aria-modal="true"
-            className="fixed inset-0 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm pointer-events-auto"
+            className="fixed inset-0 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm pointer-events-auto"
             style={{ zIndex: deleteOverlayZ }}
             onClick={(e) => {
               if (e.target === e.currentTarget && !isDeleting) setDeletingCampaign(null);
             }}
           >
             <div
-              className="w-full max-w-md bg-noir-900 border border-rose-500/40 p-6 rounded-sm text-white shadow-2xl max-h-[calc(100dvh-32px)] overflow-y-auto"
+              className="w-full max-w-md bg-[var(--bg-card)] border border-rose-500/40 p-6 rounded-sm text-[var(--text-primary)] shadow-2xl max-h-[calc(100dvh-32px)] overflow-y-auto"
               style={{ zIndex: deleteContentZ }}
             >
-              <div className="flex items-center gap-3 text-rose-400 mb-3">
+              <div className="flex items-center gap-3 text-rose-500 mb-3">
                 <AlertCircle className="w-5 h-5 shrink-0" />
                 <h3 className="font-serif text-base uppercase tracking-wider font-medium">
                   Xác Nhận Xóa Chiến Dịch
                 </h3>
               </div>
-              <p className="text-xs text-white/70 leading-relaxed mb-6">
+              <p className="text-xs text-[var(--text-secondary)] leading-relaxed mb-6">
                 Bạn có chắc chắn muốn xóa chiến dịch{' '}
-                <strong className="text-white">"{deletingCampaign.name}"</strong>? Thao tác này sẽ dừng
+                <strong className="text-[var(--text-primary)]">"{deletingCampaign.name}"</strong>? Thao tác này sẽ dừng
                 mọi hiển thị Popup và gỡ bỏ ưu đãi của các sản phẩm liên quan. Lịch sử đơn hàng vẫn
                 được bảo toàn.
               </p>
@@ -440,7 +440,7 @@ export const AdminCampaignsPage: React.FC = () => {
                   type="button"
                   onClick={() => setDeletingCampaign(null)}
                   disabled={isDeleting}
-                  className="px-4 py-2 bg-noir-950 border border-white/10 text-xs text-white/70 hover:text-white rounded-sm"
+                  className="px-4 py-2 bg-[var(--bg-card-muted)] border border-[var(--border)] text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-sm transition-colors"
                 >
                   Hủy bỏ
                 </button>

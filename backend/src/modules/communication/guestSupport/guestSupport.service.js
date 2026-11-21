@@ -152,8 +152,8 @@ class GuestSupportService {
     try {
       const io = getSocketIO();
       if (io) {
-        io.to(`conversation:${conversationId}`).emit("message:new", messagePayload);
-        io.to("admins").emit("message:new", messagePayload);
+        // Chain .to() so Socket.IO deduplicates packets for sockets in both conversation and admins rooms
+        io.to(`conversation:${conversationId}`).to("admins").emit("message:new", messagePayload);
       }
     } catch {
       // Socket not initialized

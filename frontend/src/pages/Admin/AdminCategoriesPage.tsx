@@ -161,8 +161,8 @@ export const AdminCategoriesPage: React.FC = () => {
       <div className="space-y-6">
         {/* Action Header & Toolbar */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-          <div className="text-xs text-platinum-dark">
-            Tổng cộng: <strong className="text-white font-mono">{categories.length}</strong> danh mục
+          <div className="text-xs text-[var(--text-muted)]">
+            Tổng cộng: <strong className="text-[var(--text-primary)] font-mono">{categories.length}</strong> danh mục
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -173,10 +173,10 @@ export const AdminCategoriesPage: React.FC = () => {
             <button
               type="button"
               onClick={() => setIsImportModalOpen(true)}
-              className="px-3 py-2 text-xs font-mono uppercase tracking-wider text-platinum-light hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 rounded-sm transition-all flex items-center gap-1.5"
+              className="px-3 py-2 text-xs font-mono uppercase tracking-wider text-[var(--text-secondary)] hover:text-[var(--text-primary)] bg-[var(--bg-card-muted)] hover:bg-[var(--table-row-hover)] border border-[var(--border)] rounded-sm transition-all flex items-center gap-1.5 shadow-sm"
               title="Nhập danh mục từ tệp Excel"
             >
-              <Upload className="w-3.5 h-3.5 text-champagne" />
+              <Upload className="w-3.5 h-3.5 text-[var(--accent)]" />
               <span>Nhập Excel</span>
             </button>
 
@@ -187,7 +187,7 @@ export const AdminCategoriesPage: React.FC = () => {
             <button
               type="button"
               onClick={handleOpenCreate}
-              className="px-4 py-2 bg-champagne text-noir-950 font-semibold text-xs uppercase tracking-wider rounded-sm hover:bg-champagne/90 transition-colors flex items-center gap-1.5 shrink-0"
+              className="px-4 py-2 bg-[var(--accent)] text-[var(--accent-contrast)] font-semibold text-xs uppercase tracking-wider rounded-sm hover:opacity-90 transition-opacity flex items-center gap-1.5 shrink-0 shadow-sm"
             >
               <Plus className="w-4 h-4" />
               <span>Thêm Danh Mục Mới</span>
@@ -196,23 +196,23 @@ export const AdminCategoriesPage: React.FC = () => {
         </div>
 
         {/* Categories Table */}
-        <div className="bg-noir-900 border border-white/10 rounded-sm overflow-hidden">
+        <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-sm overflow-hidden shadow-sm">
           {isLoading ? (
             <div className="p-16 text-center space-y-3">
-              <Loader2 className="w-8 h-8 text-champagne animate-spin mx-auto" />
-              <p className="text-xs text-platinum-dark">Đang nạp dữ liệu danh mục thời trang từ máy chủ...</p>
+              <Loader2 className="w-8 h-8 text-[var(--accent)] animate-spin mx-auto" />
+              <p className="text-xs text-[var(--text-muted)]">Đang nạp dữ liệu danh mục thời trang từ máy chủ...</p>
             </div>
           ) : categories.length === 0 ? (
             <div className="p-16 text-center space-y-3">
-              <FolderTree className="w-10 h-10 text-platinum-dark/40 mx-auto" />
-              <h4 className="text-xs font-medium text-white">Chưa có danh mục nào</h4>
-              <p className="text-[11px] text-platinum-dark max-w-sm mx-auto">
+              <FolderTree className="w-10 h-10 text-[var(--text-muted)]/40 mx-auto" />
+              <h4 className="text-xs font-medium text-[var(--text-primary)]">Chưa có danh mục nào</h4>
+              <p className="text-[11px] text-[var(--text-muted)] max-w-sm mx-auto">
                 Quý khách có thể thêm danh mục đầu tiên hoặc nhập hàng loạt từ tệp Excel.
               </p>
               <button
                 type="button"
                 onClick={handleOpenCreate}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-champagne text-noir-950 text-xs font-semibold rounded-sm mt-2"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[var(--accent)] text-[var(--accent-contrast)] text-xs font-semibold rounded-sm mt-2 shadow-sm"
               >
                 <Plus className="w-3.5 h-3.5" /> Tạo Danh Mục Đầu Tiên
               </button>
@@ -256,15 +256,15 @@ export const AdminCategoriesPage: React.FC = () => {
                         )}
                       </td>
 
-                      <td className="py-3.5 px-4 font-serif font-medium text-white text-sm">
+                      <td className="py-3.5 px-4 font-serif font-medium text-[var(--text-primary)] text-sm">
                         {cat.name}
                       </td>
-                      <td className="py-3.5 px-4 font-mono text-champagne">{cat.slug}</td>
-                      <td className="py-3.5 px-4 text-platinum-dark max-w-xs truncate">
+                      <td className="py-3.5 px-4 font-mono text-[var(--accent)]">{cat.slug}</td>
+                      <td className="py-3.5 px-4 text-[var(--text-muted)] max-w-xs truncate">
                         {cat.description || 'Danh mục thời trang cao cấp'}
                       </td>
                       <td className="py-3.5 px-4 font-mono">
-                        <span className="px-2 py-0.5 bg-white/5 border border-white/10 rounded-sm text-platinum-light">
+                        <span className="px-2 py-0.5 bg-[var(--bg-card-muted)] border border-[var(--border)] rounded-sm text-[var(--text-secondary)]">
                           {count} sản phẩm
                         </span>
                       </td>
@@ -272,7 +272,7 @@ export const AdminCategoriesPage: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => handleOpenEdit(cat)}
-                          className="p-1.5 text-platinum-dark hover:text-champagne transition-colors"
+                          className="p-1.5 text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors"
                           title="Chỉnh sửa danh mục"
                         >
                           <Edit3 className="w-4 h-4" />
@@ -281,7 +281,7 @@ export const AdminCategoriesPage: React.FC = () => {
                           type="button"
                           disabled={deletingId === id}
                           onClick={() => handleDelete(id, cat.name)}
-                          className="p-1.5 text-platinum-dark hover:text-red-400 transition-colors disabled:opacity-50"
+                          className="p-1.5 text-[var(--text-muted)] hover:text-red-500 transition-colors disabled:opacity-50"
                           title="Xóa danh mục"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -299,7 +299,7 @@ export const AdminCategoriesPage: React.FC = () => {
         {isModalOpen && (
           <ModalPortal>
             <div
-              className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 pointer-events-auto"
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 pointer-events-auto"
               style={{ zIndex: overlayZIndex }}
               onClick={(e) => {
                 if (e.target === e.currentTarget && !isSaving) setIsModalOpen(false);
@@ -309,17 +309,17 @@ export const AdminCategoriesPage: React.FC = () => {
               aria-label={editingCat ? 'Chỉnh Sửa Danh Mục' : 'Tạo Danh Mục Mới'}
             >
               <div
-                className="bg-noir-900 border border-white/10 w-full max-w-md p-6 rounded-sm text-white space-y-4 max-h-[calc(100dvh-32px)] overflow-y-auto"
+                className="bg-[var(--bg-card)] border border-[var(--border)] w-full max-w-md p-6 rounded-sm text-[var(--text-primary)] space-y-4 max-h-[calc(100dvh-32px)] overflow-y-auto shadow-2xl"
                 style={{ zIndex: contentZIndex }}
               >
-                <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                  <h3 className="font-display text-base font-semibold text-white">
+                <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
+                  <h3 className="font-display text-base font-semibold text-[var(--text-primary)]">
                     {editingCat ? 'Chỉnh Sửa Danh Mục Thời Trang' : 'Tạo Danh Mục Thời Trang Mới'}
                   </h3>
                   <button
                     type="button"
                     onClick={() => setIsModalOpen(false)}
-                    className="p-1 text-platinum-dark hover:text-white"
+                    className="p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -328,8 +328,8 @@ export const AdminCategoriesPage: React.FC = () => {
               <form onSubmit={handleSave} className="space-y-4 text-xs">
                 {/* Category Name */}
                 <div>
-                  <label className="block text-platinum-dark uppercase tracking-wider mb-1">
-                    Tên Danh Mục <span className="text-red-400">*</span>
+                  <label className="block text-[var(--text-muted)] uppercase tracking-wider mb-1">
+                    Tên Danh Mục <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -337,7 +337,7 @@ export const AdminCategoriesPage: React.FC = () => {
                     value={formName}
                     onChange={(e) => setFormName(e.target.value)}
                     placeholder="Ví dụ: Đầm Dạ Tiệc"
-                    className="w-full px-3 py-2 bg-noir-950 border border-white/15 focus:border-champagne focus:outline-none text-white rounded-sm"
+                    className="w-full px-3 py-2 bg-[var(--input-bg)] border border-[var(--border)] focus:border-[var(--accent)] focus:outline-none text-[var(--text-primary)] rounded-sm"
                   />
                 </div>
 
@@ -350,7 +350,7 @@ export const AdminCategoriesPage: React.FC = () => {
 
                 {/* Slug */}
                 <div>
-                  <label className="block text-platinum-dark uppercase tracking-wider mb-1">
+                  <label className="block text-[var(--text-muted)] uppercase tracking-wider mb-1">
                     Đường Dẫn Slug (Tùy chọn)
                   </label>
                   <input
@@ -358,13 +358,13 @@ export const AdminCategoriesPage: React.FC = () => {
                     value={formSlug}
                     onChange={(e) => setFormSlug(e.target.value)}
                     placeholder="Tuỳ chọn (hệ thống tự động sinh từ tên nếu để trống)"
-                    className="w-full px-3 py-2 bg-noir-950 border border-white/15 focus:border-champagne focus:outline-none font-mono text-white rounded-sm"
+                    className="w-full px-3 py-2 bg-[var(--input-bg)] border border-[var(--border)] focus:border-[var(--accent)] focus:outline-none font-mono text-[var(--text-primary)] rounded-sm"
                   />
                 </div>
 
                 {/* Description */}
                 <div>
-                  <label className="block text-platinum-dark uppercase tracking-wider mb-1">
+                  <label className="block text-[var(--text-muted)] uppercase tracking-wider mb-1">
                     Mô Tả Định Hướng
                   </label>
                   <textarea
@@ -372,17 +372,17 @@ export const AdminCategoriesPage: React.FC = () => {
                     value={formDescription}
                     onChange={(e) => setFormDescription(e.target.value)}
                     placeholder="Mô tả phong cách, kiểu dáng hoặc chất liệu..."
-                    className="w-full px-3 py-2 bg-noir-950 border border-white/15 focus:border-champagne focus:outline-none text-white rounded-sm"
+                    className="w-full px-3 py-2 bg-[var(--input-bg)] border border-[var(--border)] focus:border-[var(--accent)] focus:outline-none text-[var(--text-primary)] rounded-sm"
                   />
                 </div>
 
                 {/* Action buttons */}
-                <div className="pt-4 flex justify-end gap-3 border-t border-white/10">
+                <div className="pt-4 flex justify-end gap-3 border-t border-[var(--border)]">
                   <button
                     type="button"
                     onClick={() => setIsModalOpen(false)}
                     disabled={isSaving}
-                    className="px-4 py-2 border border-white/15 text-platinum-dark hover:text-white uppercase tracking-wider rounded-sm"
+                    className="px-4 py-2 border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--table-row-hover)] uppercase tracking-wider rounded-sm transition-colors"
                   >
                     Hủy
                   </button>

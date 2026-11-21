@@ -6,6 +6,9 @@ import {
   signIn,
   signOut,
   signUp,
+  register,
+  forgotPassword,
+  resetPasswordWithToken,
   verifyOTP,
   refreshAccessToken,
   signOutAllDevices,
@@ -23,6 +26,7 @@ import { protectedRoute, optionalProtectedRoute } from "../../middlewares/auth.m
 import { authenticate } from "../../middlewares/rbac.middleware.js";
 import {
   validateSignUp,
+  validateRegister,
   validateSignIn,
   validateSendOTP,
   validateVerifyOTP,
@@ -32,7 +36,9 @@ import {
   validateSendLoginOtp,
   validateVerifyLoginOtp,
   validateForgotPassword,
+  validateForgotPasswordToken,
   validateResetPasswordWithOtp,
+  validateResetPasswordToken,
   validateResendOtp,
 } from "./auth.validator.js";
 import {
@@ -47,11 +53,16 @@ import { ConsoleSmsProvider } from "../sms/providers/console.provider.js";
 
 const router = express.Router();
 
+// ── Core Authentication Routes ──────────────────────────────────────────────
+router.post("/register", signUpLimiter, validateRegister, register);
+router.post("/login", signInLimiter, validateSignIn, signIn);
+router.post("/forgot-password", sendOtpLimiter, validateForgotPasswordToken, forgotPassword);
+router.post("/reset-password/:token", resetPasswordLimiter, validateResetPasswordToken, resetPasswordWithToken);
+
 // ── SMS & Modern Auth Routes ────────────────────────────────────────────────
 router.post("/register/send-otp", sendOtpLimiter, validateSendRegisterOtp, sendRegisterOtpController);
 router.post("/register/verify", signUpLimiter, validateVerifyRegister, verifyRegisterController);
 
-router.post("/login", signInLimiter, validateSignIn, signIn);
 router.post("/login/otp/send", sendOtpLimiter, validateSendLoginOtp, sendLoginOtpController);
 router.post("/login/otp/verify", signInLimiter, validateVerifyLoginOtp, verifyLoginOtpController);
 

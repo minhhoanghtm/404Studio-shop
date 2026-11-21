@@ -105,18 +105,18 @@ export const ChangePhoneForm: React.FC<ChangePhoneFormProps> = ({
   return (
     <div data-testid="change-phone-form" className="space-y-5 text-left font-sans">
       <div className="space-y-1">
-        <h3 className="font-serif text-base uppercase tracking-wider text-white font-medium flex items-center gap-2">
-          <Phone className="w-4 h-4 text-[#d4af37]" />
+        <h3 className="font-serif text-base uppercase tracking-wider text-[var(--text-primary)] font-medium flex items-center gap-2">
+          <Phone className="w-4 h-4 text-[var(--accent)]" />
           <span>Thay Đổi Số Điện Thoại Tài Khoản</span>
         </h3>
-        <p className="text-xs text-white/60 font-light">
+        <p className="text-xs text-[var(--text-muted)] font-light">
           Số điện thoại mới bắt buộc phải được xác minh quyền sở hữu thông qua mã OTP SMS trước khi ghi nhận.
         </p>
       </div>
 
       {currentPhone && (
-        <div className="p-3 rounded-xl bg-white/[0.02] border border-white/10 text-xs text-white/70">
-          Số điện thoại hiện tại: <strong className="text-white font-mono">{currentPhone}</strong>
+        <div className="p-3 rounded-xl bg-[var(--bg-page)] border border-[var(--border)] text-xs text-[var(--text-secondary)]">
+          Số điện thoại hiện tại: <strong className="text-[var(--text-primary)] font-mono">{currentPhone}</strong>
         </div>
       )}
 
@@ -129,8 +129,8 @@ export const ChangePhoneForm: React.FC<ChangePhoneFormProps> = ({
       {step === 'input_phone' ? (
         <form onSubmit={handleSendOtp} className="space-y-4">
           <div className="space-y-1.5">
-            <label className="block text-xs uppercase tracking-wider font-serif font-medium text-white/80">
-              Số điện thoại mới <span className="text-[#d4af37]">*</span>
+            <label className="block text-xs uppercase tracking-wider font-serif font-medium text-[var(--text-secondary)]">
+              Số điện thoại mới <span className="text-[var(--accent)]">*</span>
             </label>
             <input
               type="tel"
@@ -138,7 +138,7 @@ export const ChangePhoneForm: React.FC<ChangePhoneFormProps> = ({
               value={newPhone}
               onChange={(e) => setNewPhone(e.target.value)}
               placeholder="Ví dụ: 0912 345 678"
-              className="w-full bg-[#14141a] border border-white/10 rounded-xl px-4 py-3 text-xs text-white placeholder-white/30 focus:outline-none focus:border-[#d4af37] font-mono"
+              className="w-full bg-[var(--input-bg)] border border-[var(--border)] rounded-xl px-4 py-3 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)]/50 focus:outline-none focus:border-[var(--accent)] font-mono"
             />
           </div>
 
@@ -147,14 +147,14 @@ export const ChangePhoneForm: React.FC<ChangePhoneFormProps> = ({
               type="button"
               onClick={onCancel}
               disabled={isSending}
-              className="px-5 py-3 rounded-xl border border-white/15 text-white/70 hover:text-white text-xs font-semibold uppercase tracking-wider transition-all disabled:opacity-50"
+              className="px-5 py-3 rounded-xl border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-xs font-semibold uppercase tracking-wider transition-all disabled:opacity-50"
             >
               Hủy
             </button>
             <button
               type="submit"
               disabled={isSending || !isValidPhone}
-              className="px-6 py-3 rounded-xl bg-[#d4af37] hover:bg-[#e5c158] text-black text-xs font-semibold uppercase tracking-wider transition-all shadow-lg shadow-[#d4af37]/20 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-6 py-3 rounded-xl bg-[var(--accent)] hover:opacity-90 text-[var(--accent-contrast)] text-xs font-semibold uppercase tracking-wider transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSending ? 'Đang gửi mã...' : 'Gửi Mã OTP Xác Thực'}
             </button>
@@ -163,8 +163,8 @@ export const ChangePhoneForm: React.FC<ChangePhoneFormProps> = ({
       ) : (
         <form onSubmit={handleVerifyOtp} className="space-y-5">
           <div className="text-center space-y-1">
-            <p className="text-xs text-white/70">
-              Mã OTP 6 chữ số đã được gửi tới số <strong className="text-white font-mono">{newPhone}</strong>
+            <p className="text-xs text-[var(--text-secondary)]">
+              Mã OTP 6 chữ số đã được gửi tới số <strong className="text-[var(--text-primary)] font-mono">{newPhone}</strong>
             </p>
           </div>
 
@@ -175,13 +175,13 @@ export const ChangePhoneForm: React.FC<ChangePhoneFormProps> = ({
             hasError={Boolean(errorMessage)}
           />
 
-          <div className="flex items-center justify-between text-xs text-white/60 pt-1">
+          <div className="flex items-center justify-between text-xs text-[var(--text-muted)] pt-1">
             <span>Không nhận được mã?</span>
             <button
               type="button"
               disabled={countdown > 0 || isSending}
               onClick={handleSendOtp}
-              className="text-[#d4af37] hover:underline disabled:opacity-40 disabled:no-underline font-medium inline-flex items-center gap-1"
+              className="text-[var(--accent)] hover:underline disabled:opacity-40 disabled:no-underline font-medium inline-flex items-center gap-1"
             >
               <RotateCcw className="w-3 h-3" />
               {countdown > 0 ? `Gửi lại sau ${countdown}s` : 'Gửi lại mã OTP'}
@@ -193,14 +193,14 @@ export const ChangePhoneForm: React.FC<ChangePhoneFormProps> = ({
               type="button"
               onClick={() => setStep('input_phone')}
               disabled={isVerifying}
-              className="px-5 py-3 rounded-xl border border-white/15 text-white/70 hover:text-white text-xs font-semibold uppercase tracking-wider transition-all disabled:opacity-50"
+              className="px-5 py-3 rounded-xl border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-xs font-semibold uppercase tracking-wider transition-all disabled:opacity-50"
             >
               Quay Lại
             </button>
             <button
               type="submit"
               disabled={isVerifying || otp.length !== 6}
-              className="px-6 py-3 rounded-xl bg-[#d4af37] hover:bg-[#e5c158] text-black text-xs font-semibold uppercase tracking-wider transition-all shadow-lg shadow-[#d4af37]/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="px-6 py-3 rounded-xl bg-[var(--accent)] hover:opacity-90 text-[var(--accent-contrast)] text-xs font-semibold uppercase tracking-wider transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               <ShieldCheck className="w-4 h-4" />
               {isVerifying ? 'Đang xác thực...' : 'Xác Nhận Cập Nhật Số Điện Thoại'}

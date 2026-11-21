@@ -29,6 +29,19 @@ class UserRepository {
     return await User.findOne({ email });
   }
 
+  async findByGoogleId(googleId) {
+    if (!googleId) return null;
+    return await User.findOne({ googleId });
+  }
+
+  async findByResetToken(token) {
+    if (!token) return null;
+    return await User.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: new Date() },
+    });
+  }
+
   async findAll() {
     return await User.find().lean();
   }

@@ -110,7 +110,7 @@ export const AnalyticsExportButton: React.FC<AnalyticsExportButtonProps> = ({
       type="button"
       onClick={handleExport}
       disabled={isExporting}
-      className={`px-3.5 py-2 text-xs font-mono uppercase tracking-wider text-platinum-light hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 rounded-sm transition-all flex items-center gap-1.5 disabled:opacity-50 ${className}`}
+      className={`px-3.5 py-2 text-xs font-mono uppercase tracking-wider text-[var(--text-primary)] hover:text-[var(--accent)] bg-[var(--bg-card)] hover:bg-[var(--bg-card-muted)] border border-[var(--border)] rounded-sm transition-all flex items-center gap-1.5 disabled:opacity-50 ${className}`}
       title="Xuất báo cáo thống kê đa chiều ra tệp Excel (.xlsx)"
     >
       {isExporting ? (

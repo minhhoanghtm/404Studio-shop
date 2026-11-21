@@ -20,8 +20,11 @@ import {
   Palette,
   Menu,
   X,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { useAuthStore } from '@/shared/stores/useAuthStore';
+import { useThemeStore } from '@/shared/stores/useThemeStore';
 import { motion, useReducedMotion } from 'motion/react';
 import { Z_INDEX } from '@/shared/config/zIndex';
 import { PERMISSIONS } from '@/shared/config/routePermissions';
@@ -40,6 +43,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
   fullHeight = false,
 }) => {
   const { user, permissions, logout } = useAuthStore();
+  const { theme, toggleTheme } = useThemeStore();
   const navigate = useNavigate();
   const location = useLocation();
   const prefersReducedMotion = useReducedMotion();
@@ -151,7 +155,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
 
       {/* Sidebar Navigation (Desktop: Fixed 260px in-flow; Mobile: Slide-out Drawer <= 1024px) */}
       <aside
-        className={`fixed inset-y-0 left-0 w-[260px] max-w-[85vw] h-full bg-[var(--surface)] border-r border-[var(--border)] flex flex-col justify-between shrink-0 overscroll-contain transition-transform duration-300 ease-in-out lg:static lg:z-auto lg:h-full lg:max-w-none lg:translate-x-0 lg:shadow-none lg:transition-none ${isMobileMenuOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'
+        className={`fixed inset-y-0 left-0 w-[260px] max-w-[85vw] h-full bg-[var(--bg-sidebar)] border-r border-[var(--border)] flex flex-col justify-between shrink-0 overscroll-contain transition-transform duration-300 ease-in-out lg:static lg:z-auto lg:h-full lg:max-w-none lg:translate-x-0 lg:shadow-none lg:transition-none ${isMobileMenuOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'
           }`}
         style={{
           overscrollBehavior: 'contain',
@@ -160,7 +164,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
         aria-label="Menu quản trị"
       >
         {/* Sidebar Header: Brand & Logo (Fixed at top) */}
-        <div className="p-5 border-b border-[var(--border)] flex items-center justify-between shrink-0 bg-[var(--surface)]">
+        <div className="p-5 border-b border-[var(--border)] flex items-center justify-between shrink-0 bg-[var(--bg-sidebar)]">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-sm bg-[var(--accent)]/15 border border-[var(--accent)]/40 flex items-center justify-center text-[var(--accent)] font-display text-xl font-bold">
               V
@@ -219,7 +223,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
         </nav>
 
         {/* Sidebar Footer: User Info & Actions (Fixed at bottom) */}
-        <div className="p-4 border-t border-[var(--border)] space-y-3 shrink-0 bg-[var(--surface)]">
+        <div className="p-4 border-t border-[var(--border)] space-y-3 shrink-0 bg-[var(--bg-sidebar)]">
           <Link
             to="/"
             className="w-full py-2.5 px-3 border border-[var(--border)] hover:border-[var(--accent)] hover:text-[var(--accent)] text-[var(--text)] text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-2 rounded-sm"
@@ -239,32 +243,44 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
                   {user?.role === 'admin'
                     ? 'Tổng Quản Trị'
                     : user?.role === 'manager'
-                    ? 'Quản Lý Vận Hành'
-                    : user?.role === 'staff'
-                    ? 'Nhân Viên CSKH'
-                    : 'Thành Viên'}
+                      ? 'Quản Lý Vận Hành'
+                      : user?.role === 'staff'
+                        ? 'Nhân Viên CSKH'
+                        : 'Thành Viên'}
                 </span>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                logout();
-                navigate('/login');
-              }}
-              className="text-[var(--text-muted)] hover:text-red-500 p-1 rounded-sm"
-              title="Đăng xuất"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-            </button>
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                type="button"
+                onClick={toggleTheme}
+                className="text-[var(--text-muted)] hover:text-[var(--accent)] p-1.5 rounded-sm transition-colors"
+                title={theme === 'dark' ? 'Chuyển sang Chế độ Sáng' : 'Chuyển sang Chế độ Tối'}
+                aria-label="Đổi giao diện sáng tối"
+              >
+                {theme === 'dark' ? <Sun className="w-3.5 h-3.5 text-[var(--accent)]" /> : <Moon className="w-3.5 h-3.5 text-[var(--accent)]" />}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  logout();
+                  navigate('/login');
+                }}
+                className="text-[var(--text-muted)] hover:text-red-500 p-1.5 rounded-sm transition-colors"
+                title="Đăng xuất"
+                aria-label="Đăng xuất"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
         </div>
       </aside>
 
       {/* Main Content Area Column (Flex-1, min-w-0, height 100%, independent scroll) */}
-      <main className="flex-1 flex flex-col min-w-0 min-h-0 h-full bg-[var(--bg)] overflow-hidden relative">
+      <main className="flex-1 flex flex-col min-w-0 min-h-0 h-full bg-[var(--bg-page)] overflow-hidden relative">
         {/* Topbar: Fixed at top of column */}
-        <header className="px-4 lg:px-6 py-3.5 lg:py-4 border-b border-[var(--border)] flex flex-col sm:flex-row sm:items-center justify-between gap-3 lg:gap-4 bg-[var(--surface)]/90 backdrop-blur-md shrink-0 z-10">
+        <header className="px-4 lg:px-6 py-3.5 lg:py-4 border-b border-[var(--border)] flex flex-col sm:flex-row sm:items-center justify-between gap-3 lg:gap-4 bg-[var(--bg-card)]/90 backdrop-blur-md shrink-0 z-10">
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -281,6 +297,20 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
             </div>
           </div>
           <div className="flex items-center gap-3">
+            {/* Theme Toggle Button */}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="px-2.5 py-1.5 border border-[var(--border)] hover:border-[var(--accent)] text-[var(--text)] hover:text-[var(--accent)] bg-[var(--bg-card)] rounded-sm transition-colors flex items-center gap-2 text-xs font-mono uppercase shadow-sm"
+              aria-label={theme === 'dark' ? 'Chuyển sang chế độ sáng' : 'Chuyển sang chế độ tối'}
+              title={theme === 'dark' ? 'Chế độ Sáng' : 'Chế độ Tối'}
+            >
+              {theme === 'dark' ? <Sun className="w-4 h-4 text-[var(--accent)]" /> : <Moon className="w-4 h-4 text-[var(--accent)]" />}
+              <span className="hidden sm:inline text-[10px] font-mono font-semibold tracking-wider">
+                {theme === 'dark' ? 'CHẾ ĐỘ SÁNG' : 'CHẾ ĐỘ TỐI'}
+              </span>
+            </button>
+
             <span className="px-3 py-1 rounded-full bg-[var(--accent)]/15 border border-[var(--accent)]/30 text-[var(--accent)] text-[11px] font-mono uppercase tracking-widest flex items-center gap-1.5 font-semibold">
               <Sparkles className="w-3 h-3" /> Phiên Bản Hệ Thống 2.0
             </span>

@@ -9,7 +9,19 @@ export const authApi = {
   login: (credentials: { email: string; passWord: string }) =>
     api.post<ApiResponse<{ user: any; accessToken: string; refreshToken?: string }>>('/auth/login', credentials),
 
-  register: (payload: { email: string; passWord: string; fullName: string; phone?: string; termsAccepted: true; privacyAccepted: true; marketingAccepted?: boolean; policyVersion: string }) =>
+  register: (payload: { email: string; passWord?: string; password?: string; fullName?: string; name?: string; phone?: string; termsAccepted?: boolean; privacyAccepted?: boolean; marketingAccepted?: boolean; policyVersion?: string }) =>
+    api.post<ApiResponse<{ message: string; user?: any; accessToken?: string; refreshToken?: string }>>('/auth/register', payload),
+
+  forgotPassword: (payload: { email?: string; phone?: string }) =>
+    api.post<ApiResponse<{ message: string }>>('/auth/forgot-password', payload),
+
+  resetPasswordWithToken: (token: string, payload: { password: string }) =>
+    api.post<ApiResponse<{ message: string }>>(`/auth/reset-password/${encodeURIComponent(token)}`, payload),
+
+  loginWithGoogle: (credential: string) =>
+    api.post<ApiResponse<{ user: any; accessToken: string; refreshToken?: string }>>('/auth/google', { credential }),
+
+  signUp: (payload: { email: string; passWord: string; fullName: string; phone?: string; termsAccepted: true; privacyAccepted: true; marketingAccepted?: boolean; policyVersion: string }) =>
     api.post<ApiResponse<{ message: string; user?: any; accessToken?: string; refreshToken?: string }>>('/auth/signUp', payload),
 
   refresh: (refreshToken?: string) =>
@@ -30,7 +42,7 @@ export const authApi = {
       ...payload,
     }),
 
-  forgotPassword: (payload: { email?: string; phone?: string }) =>
+  forgotPasswordOtp: (payload: { email?: string; phone?: string }) =>
     api.post<ApiResponse<{ message: string }>>('/auth/password/forgot', payload),
 
   resetPassword: (payload: { email?: string; phone?: string; otp: string; newPassword: string }) =>

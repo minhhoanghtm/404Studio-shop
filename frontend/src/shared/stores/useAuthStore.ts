@@ -15,6 +15,7 @@ const toUser = (value: any): User => ({
   name: value?.fullName || value?.name || '',
   email: value?.email || '',
   phone: value?.phone,
+  avatar: value?.avatar || value?.avatar_url,
   role: value?.role || (value?.vipTier === 'admin' ? 'admin' : 'customer'),
   vipTier: value?.vipTier || value?.tier || (value?.role === 'admin' ? 'admin' : 'Thành viên'),
   addresses: Array.isArray(value?.addresses) ? value.addresses : [],
@@ -50,6 +51,7 @@ interface AuthState {
   isPermissionsLoaded: boolean;
   orders: Order[];
   login: (email: string, password?: string) => Promise<boolean>;
+  loginWithGoogle: (credential: string) => Promise<boolean>;
   register: (name: string, email: string, password?: string) => Promise<boolean>;
   logout: () => void;
   updateProfile: (profile: Partial<User>) => Promise<boolean>;
@@ -154,6 +156,31 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ isAuthenticated: true, user: u, orders: [] });
 
       // Fetch permissions right after login
+      try {
+        const permRes = await authApi.getPermissions();
+        const perms = Array.isArray(permRes.data?.permissions) ? permRes.data.permissions : [];
+        set({ permissions: perms, isPermissionsLoaded: true });
+        localStorage.setItem('atelier_user_permissions', JSON.stringify(perms));
+      } catch {
+        set({ permissions: [], isPermissionsLoaded: true });
+      }
+
+      return true;
+    } catch {
+      return false;
+    }
+  },
+
+  loginWithGoogle: async (credential: string) => {
+    try {
+      const response = await authApi.loginWithGoogle(credential);
+      const data = response.data;
+      if (!data?.accessToken || !data?.user) return false;
+
+      setAuthTokens(data.accessToken, data.refreshToken);
+      const u = toUser(data.user);
+      set({ isAuthenticated: true, user: u, orders: [] });
+
       try {
         const permRes = await authApi.getPermissions();
         const perms = Array.isArray(permRes.data?.permissions) ? permRes.data.permissions : [];
