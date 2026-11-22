@@ -14,6 +14,12 @@ import {
 } from './ConsentStorage';
 import { TrackingRegistry } from '../tracking/TrackingRegistry';
 
+let pendingConsentSync: Promise<Response | void> | undefined;
+
+export function waitForConsentSync() {
+  return pendingConsentSync;
+}
+
 interface ConsentState {
   consentRecord: ConsentRecord | null;
   isBannerOpen: boolean;
@@ -223,7 +229,7 @@ export const useConsentStore = create<ConsentState>((set, get) => ({
         anonymous_token: record.anonymousToken,
       };
 
-      await fetch('/api/privacy/consent', {
+      const request = fetch('/api/privacy/consent', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -234,6 +240,12 @@ export const useConsentStore = create<ConsentState>((set, get) => ({
       }).catch(() => {
         // Safe silent failover if backend is running in offline mock mode
       });
+      pendingConsentSync = request;
+      try {
+        await request;
+      } finally {
+        if (pendingConsentSync === request) pendingConsentSync = undefined;
+      }
     } catch {}
   },
 }));

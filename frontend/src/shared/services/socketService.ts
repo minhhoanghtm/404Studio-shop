@@ -33,33 +33,26 @@ class SocketService {
   private socket: Socket | null = null;
   private currentConversationId: string | null = null;
 
-  private getSocketUrl(): string {
-    const backendEnv = import.meta.env.VITE_BACKEND_URL;
-    if (backendEnv) return backendEnv;
-
-    if (typeof window !== 'undefined') {
-      const hostname = window.location.hostname;
-      const port = window.location.port;
-      if (port === '5173') {
-        return `http://${hostname}:5000`;
-      }
-      return window.location.origin;
-    }
-    return 'http://localhost:5000';
+  private getSocketUrl(): string | undefined {
+    if (import.meta.env.DEV) return undefined;
+    return import.meta.env.VITE_BACKEND_URL || undefined;
   }
 
   public connect(): Socket {
-    if (this.socket && this.socket.connected) {
+    if (this.socket) {
+      if (!this.socket.active) this.socket.connect();
       return this.socket;
     }
 
-    const token = getAccessToken();
     const url = this.getSocketUrl();
 
     this.socket = io(url, {
       autoConnect: true,
-      transports: ['websocket', 'polling'],
-      auth: token ? { token } : {},
+      transports: ['websocket'],
+      auth: (callback) => {
+        const token = getAccessToken();
+        callback(token ? { token } : {});
+      },
       reconnectionAttempts: 10,
       reconnectionDelay: 1000,
       timeout: 10000,

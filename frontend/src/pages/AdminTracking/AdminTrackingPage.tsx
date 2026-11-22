@@ -181,6 +181,33 @@ export const AdminTrackingPage: React.FC = () => {
           </div>
         </div>
 
+        <section className="rounded-sm border border-[var(--border)] bg-[var(--bg-card)] p-6 shadow-sm">
+          <h2 className="text-sm font-semibold text-[var(--text-primary)]">Nguồn truy cập website</h2>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">Tối đa 10 nguồn có nhiều phiên truy cập nhất trong khoảng thời gian đã chọn.</p>
+          {loading ? (
+            <p className="mt-4 text-xs text-[var(--text-muted)]">Đang tải nguồn truy cập…</p>
+          ) : overview?.trafficSources?.length ? (
+            <table className="mt-4 w-full text-left text-sm">
+              <thead className="text-xs text-[var(--text-muted)]">
+                <tr>
+                  <th scope="col" className="py-2 font-medium">Nền tảng hoặc tên miền giới thiệu</th>
+                  <th scope="col" className="py-2 text-right font-medium">Số phiên</th>
+                </tr>
+              </thead>
+              <tbody>
+                {overview.trafficSources.map(({ source, count }) => (
+                  <tr key={source} className="border-t border-[var(--border)]">
+                    <th scope="row" className="break-all py-2 pr-4 font-medium text-[var(--text-primary)]">{source}</th>
+                    <td className="py-2 text-right tabular-nums text-[var(--text-primary)]">{count.toLocaleString('vi-VN')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p className="mt-4 text-xs text-[var(--text-muted)]">Chưa có dữ liệu nguồn truy cập trong khoảng thời gian này.</p>
+          )}
+        </section>
+
         {/* Error Notification */}
         {error && (
           <div className="p-4 rounded-sm bg-red-500/10 border border-red-500/40 text-xs text-red-600 dark:text-red-200 flex items-center justify-between">

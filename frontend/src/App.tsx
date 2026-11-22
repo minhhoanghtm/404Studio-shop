@@ -100,7 +100,6 @@ const AdminTrackingPage = lazy(() => import('./pages/AdminTracking').then(m => (
 const AdminTrackingUsersPage = lazy(() => import('./pages/AdminTrackingUsers').then(m => ({ default: m.AdminTrackingUsersPage })));
 const AdminTrackingEventsPage = lazy(() => import('./pages/AdminTrackingEvents').then(m => ({ default: m.AdminTrackingEventsPage })));
 const AdminTrackingProductsPage = lazy(() => import('./pages/AdminTrackingProducts').then(m => ({ default: m.AdminTrackingProductsPage })));
-const AdminTrackingConsentPage = lazy(() => import('./pages/AdminTrackingConsent').then(m => ({ default: m.AdminTrackingConsentPage })));
 
 // Admin Promotional Campaigns & Sale Popups Pages
 const AdminCampaignsPage = lazy(() => import('./pages/AdminCampaigns').then(m => ({ default: m.AdminCampaignsPage })));
@@ -625,14 +624,6 @@ const AppRoutes: React.FC = () => {
                   element={
                     <Suspense fallback={<PageLoadingFallback />}>
                       <AdminTrackingProductsPage />
-                    </Suspense>
-                  }
-                />
-                <Route
-                  path="tracking/consent"
-                  element={
-                    <Suspense fallback={<PageLoadingFallback />}>
-                      <AdminTrackingConsentPage />
                     </Suspense>
                   }
                 />

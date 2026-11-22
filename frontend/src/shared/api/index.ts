@@ -433,7 +433,7 @@ export const recommendationsApi = {
 
 export const trackingApi = {
   trackEvent: (eventPayload: Record<string, unknown>) =>
-    api.post<ApiResponse<{ processed: number }>>('/events', eventPayload, {
+    api.post<ApiResponse<{ processed: number }> & { accepted?: boolean }>('/events', eventPayload, {
       headers: eventPayload.anonymous_id ? { 'X-Anonymous-ID': String(eventPayload.anonymous_id) } : undefined,
     }),
 
@@ -737,6 +737,7 @@ export const pageSectionsApi = {
 // ADMIN TRACKING & BEHAVIORAL ANALYTICS APIs
 // ============================================================================
 export interface TrackingOverviewMetrics {
+  trafficSources?: Array<{ source: string; count: number }>;
   totalEvents: number;
   activeUsersCount: number;
   activeSessionsCount: number;
