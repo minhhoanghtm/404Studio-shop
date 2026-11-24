@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Sparkles, ArrowRight, Eye, ShoppingBag, X } from 'lucide-react';
 import { lookbooksApi } from '@/shared/api';
 import { formatCurrency } from '@/shared/utils/formatters';
+import { useModal, ModalPortal } from '@/shared/context/ModalContext';
 
 interface LookbookItem {
   id: string;
@@ -104,6 +105,12 @@ export const LookbooksPage: React.FC = () => {
   const [lookbooks, setLookbooks] = useState<LookbookItem[]>(FALLBACK_LOOKBOOKS);
   const [activeLookbook, setActiveLookbook] = useState<LookbookItem | null>(null);
 
+  const { overlayZIndex, contentZIndex } = useModal({
+    id: 'lookbook-hotspots-modal',
+    isOpen: Boolean(activeLookbook),
+    onClose: () => setActiveLookbook(null),
+  });
+
   useEffect(() => {
     const fetchLookbooks = async () => {
       try {
@@ -119,17 +126,17 @@ export const LookbooksPage: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-screen pt-32 pb-24 px-4 sm:px-6 lg:px-8 bg-surface text-primary">
+    <div className="min-h-screen pt-32 pb-24 px-4 sm:px-6 lg:px-8 bg-[var(--bg)] text-[var(--text)]">
       <div className="max-w-7xl mx-auto">
         {/* Editorial Heading */}
         <div className="text-center max-w-2xl mx-auto mb-16">
-          <span className="text-xs uppercase tracking-[0.3em] text-accent block mb-2">
+          <span className="text-xs uppercase tracking-[0.3em] text-[var(--accent)] block mb-2">
             Thị Giác Sàn Diễn & Nghệ Thuật
           </span>
-          <h1 className="font-serif text-3xl sm:text-5xl tracking-wide mb-4">
+          <h1 className="font-serif text-3xl sm:text-5xl tracking-wide mb-4 text-[var(--text)]">
             Lookbook Nghệ Thuật
           </h1>
-          <p className="text-xs sm:text-sm text-secondary leading-relaxed">
+          <p className="text-xs sm:text-sm text-[var(--text-muted)] leading-relaxed">
             Những thước phim tĩnh ghi lại hơi thở của hình khối và chất liệu. Trải nghiệm nghệ thuật phối đồ Haute Couture qua các chuyên khảo thị giác độc quyền.
           </p>
         </div>
@@ -144,17 +151,17 @@ export const LookbooksPage: React.FC = () => {
               } gap-8 lg:gap-16 items-center`}
             >
               {/* Image with overlay action */}
-              <div className="w-full lg:w-3/5 relative group overflow-hidden border border-theme">
+              <div className="w-full lg:w-3/5 relative group overflow-hidden border border-[var(--border)] rounded-2xl shadow-xl bg-[var(--bg-alt)]">
                 <img
                   src={lb.coverImage}
                   alt={lb.title}
                   className="w-full aspect-[16/10] sm:aspect-[16/9] object-cover transition-transform duration-700 group-hover:scale-105"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-80 group-hover:opacity-60 transition-opacity" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent opacity-80 group-hover:opacity-60 transition-opacity" />
 
                 <div className="absolute bottom-6 left-6 right-6 flex items-end justify-between">
                   <div className="text-white">
-                    <span className="text-[11px] font-mono uppercase tracking-widest text-accent block mb-1">
+                    <span className="text-[11px] font-mono uppercase tracking-widest text-[#d4af37] block mb-1">
                       {lb.season} • {lb.year}
                     </span>
                     <span className="text-xs text-white/80 block">
@@ -165,7 +172,7 @@ export const LookbooksPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setActiveLookbook(lb)}
-                    className="px-4 py-2 bg-white/20 backdrop-blur-md hover:bg-accent hover:text-black text-white text-xs uppercase tracking-wider transition-all flex items-center gap-1.5"
+                    className="px-4 py-2 bg-[var(--surface)]/90 backdrop-blur-md hover:bg-[var(--accent)] hover:text-[var(--accent-contrast)] text-[var(--text)] text-xs uppercase tracking-wider transition-all flex items-center gap-1.5 rounded-lg border border-[var(--border)] shadow-md"
                   >
                     <Eye className="w-3.5 h-3.5" />
                     <span>Xem Sản Phẩm</span>
@@ -175,23 +182,23 @@ export const LookbooksPage: React.FC = () => {
 
               {/* Text Description */}
               <div className="w-full lg:w-2/5 space-y-4">
-                <span className="text-xs uppercase tracking-[0.25em] text-accent block">
+                <span className="text-xs uppercase tracking-[0.25em] text-[var(--accent)] block">
                   Chuyên khảo #{index + 1}
                 </span>
-                <h2 className="font-serif text-2xl sm:text-3xl tracking-wide leading-tight">
+                <h2 className="font-serif text-2xl sm:text-3xl tracking-wide leading-tight text-[var(--text)]">
                   {lb.title}
                 </h2>
                 {lb.subtitle && (
-                  <p className="text-xs uppercase tracking-wider text-secondary font-medium">
+                  <p className="text-xs uppercase tracking-wider text-[var(--text-muted)] font-medium">
                     {lb.subtitle}
                   </p>
                 )}
-                <p className="text-xs sm:text-sm text-secondary leading-relaxed pt-2">
+                <p className="text-xs sm:text-sm text-[var(--text-muted)] leading-relaxed pt-2">
                   {lb.description}
                 </p>
 
                 {lb.photographer && (
-                  <div className="pt-2 text-xs text-secondary/80 font-mono">
+                  <div className="pt-2 text-xs text-[var(--text-muted)] font-mono">
                     Nhiếp ảnh gia: {lb.photographer}
                   </div>
                 )}
@@ -200,7 +207,7 @@ export const LookbooksPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setActiveLookbook(lb)}
-                    className="px-6 py-3 bg-primary text-secondary hover:bg-accent hover:text-black uppercase text-xs tracking-[0.2em] font-medium transition-all duration-300 flex items-center gap-2"
+                    className="px-6 py-3.5 bg-[var(--accent)] hover:bg-[#9E7B15] text-[var(--accent-contrast)] uppercase text-xs tracking-[0.2em] font-medium transition-all duration-300 flex items-center gap-2 rounded-lg shadow-md"
                   >
                     <span>Khám Phá Chi Tiết</span>
                     <ArrowRight className="w-4 h-4" />
@@ -213,47 +220,61 @@ export const LookbooksPage: React.FC = () => {
 
         {/* Modal Shoppable Hotspots */}
         {activeLookbook && (
-          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-surface border border-theme max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6 sm:p-8 rounded-sm relative animate-fade-in text-primary">
-              <button
-                type="button"
-                onClick={() => setActiveLookbook(null)}
-                className="absolute top-5 right-5 p-2 text-secondary hover:text-primary transition-colors"
-                aria-label="Đóng"
+          <ModalPortal>
+            <div
+              className="fixed inset-0 flex items-center justify-center p-4 bg-[rgba(26,26,23,0.45)] backdrop-blur-sm pointer-events-auto"
+              style={{ zIndex: overlayZIndex }}
+              onClick={(e) => {
+                if (e.target === e.currentTarget) setActiveLookbook(null);
+              }}
+              role="dialog"
+              aria-modal="true"
+              aria-label={activeLookbook.title}
+            >
+              <div
+                className="bg-[var(--surface)] border border-[var(--border)] max-w-3xl w-full max-h-[calc(100dvh-32px)] overflow-y-auto p-6 sm:p-8 rounded-2xl relative animate-fade-in text-[var(--text)] shadow-2xl flex flex-col"
+                style={{ zIndex: contentZIndex }}
               >
-                <X className="w-5 h-5" />
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveLookbook(null)}
+                  className="absolute top-5 right-5 p-2 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
+                  aria-label="Đóng"
+                >
+                  <X className="w-5 h-5" />
+                </button>
 
-              <div className="mb-6">
-                <span className="text-[11px] uppercase tracking-widest text-accent block">
-                  Điểm Chạm Mua Sắm Lookbook
-                </span>
-                <h3 className="font-serif text-2xl tracking-wide mt-1">{activeLookbook.title}</h3>
-                <p className="text-xs text-secondary mt-1">{activeLookbook.description}</p>
-              </div>
+                <div className="mb-6 shrink-0">
+                  <span className="text-[11px] uppercase tracking-widest text-[var(--accent)] block">
+                    Điểm Chạm Mua Sắm Lookbook
+                  </span>
+                  <h3 className="font-serif text-2xl tracking-wide mt-1 text-[var(--text)]">{activeLookbook.title}</h3>
+                  <p className="text-xs text-[var(--text-muted)] mt-1">{activeLookbook.description}</p>
+                </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {activeLookbook.featuredProducts?.map((prod) => (
-                  <div key={prod.id} className="p-4 border border-theme bg-surface-subtle/50 flex gap-4 items-center">
-                    <img src={prod.image} alt={prod.name} className="w-20 h-24 object-cover border border-theme" />
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-serif text-xs truncate mb-1">{prod.name}</h4>
-                      <p className="text-xs font-mono font-bold text-accent mb-2">
-                        {formatCurrency(prod.price)}
-                      </p>
-                      <Link
-                        to={`/products/${prod.slug}`}
-                        className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-primary hover:text-accent font-medium transition-colors"
-                      >
-                        <ShoppingBag className="w-3 h-3" />
-                        <span>Xem Sản Phẩm</span>
-                      </Link>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1 overflow-y-auto">
+                  {activeLookbook.featuredProducts?.map((prod) => (
+                    <div key={prod.id} className="p-4 border border-[var(--border)] bg-[var(--bg-alt)] rounded-xl flex gap-4 items-center">
+                      <img src={prod.image} alt={prod.name} className="w-20 h-24 object-cover border border-[var(--border)] rounded-lg bg-[var(--surface)]" />
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-serif text-xs truncate mb-1 text-[var(--text)]">{prod.name}</h4>
+                        <p className="text-xs font-mono font-bold text-[var(--accent)] mb-2">
+                          {formatCurrency(prod.price)}
+                        </p>
+                        <Link
+                          to={`/products/${prod.slug}`}
+                          className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-[var(--text)] hover:text-[var(--accent)] font-medium transition-colors"
+                        >
+                          <ShoppingBag className="w-3 h-3" />
+                          <span>Xem Sản Phẩm</span>
+                        </Link>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
+          </ModalPortal>
         )}
       </div>
     </div>

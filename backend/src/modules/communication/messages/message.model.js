@@ -10,13 +10,18 @@ const MessageSchema = new mongoose.Schema(
     },
     senderType: {
       type: String,
-      enum: ["user", "admin", "ai", "system"],
+      enum: ["user", "admin", "ai", "system", "guest"],
       required: true,
       index: true,
     },
     senderId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
+      default: null,
+      index: true,
+    },
+    senderGuestId: {
+      type: String,
       default: null,
       index: true,
     },

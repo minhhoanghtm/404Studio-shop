@@ -6,9 +6,11 @@ const emitSupportMessage = async (data, { notifyAdmins = false } = {}) => {
     const { getSocketIO } = await import("../../../sockets/index.js");
     const io = getSocketIO();
     const payload = { message: data.message, conversation: data.conversation };
-    io.to(`conversation:${data.conversationId}`).emit("message:new", payload);
     if (notifyAdmins) {
-      io.to("admins").emit("message:new", payload);
+      // Chain .to() rooms so Socket.IO deduplicates recipients if a client is in both rooms
+      io.to(`conversation:${data.conversationId}`).to("admins").emit("message:new", payload);
+    } else {
+      io.to(`conversation:${data.conversationId}`).emit("message:new", payload);
     }
   } catch (error) {
     console.error("Failed to emit support chat message:", error.message);

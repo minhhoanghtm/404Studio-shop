@@ -92,19 +92,19 @@ export const VerifyOtpPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen pt-28 pb-16 flex items-center justify-center px-4 bg-surface text-primary">
-      <div className="w-full max-w-md bg-surface-subtle/80 backdrop-blur-md border border-theme p-8 rounded-sm shadow-2xl">
+    <div className="min-h-screen pt-28 pb-16 flex items-center justify-center px-4 bg-[var(--bg)] text-[var(--text)]">
+      <div className="w-full max-w-md bg-[var(--surface)] border border-[var(--border)] p-8 rounded-2xl shadow-xl">
         <div className="text-center mb-8">
-          <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-accent/10 border border-accent/30 flex items-center justify-center text-accent">
+          <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-[var(--accent)]/10 border border-[var(--accent)]/30 flex items-center justify-center text-[var(--accent)]">
             <ShieldCheck className="w-7 h-7" />
           </div>
-          <span className="text-xs uppercase tracking-[0.3em] text-accent block mb-1">
+          <span className="text-xs uppercase tracking-[0.3em] text-[var(--accent)] block mb-1 font-semibold">
             Bảo Mật Atelier Vérité
           </span>
-          <h1 className="font-serif text-2xl tracking-wide">Xác Thực Mã OTP</h1>
-          <p className="text-xs text-secondary mt-2">
+          <h1 className="font-serif text-2xl tracking-wide text-[var(--text)]">Xác Thực Mã OTP</h1>
+          <p className="text-xs text-[var(--text-muted)] mt-2">
             Mã 6 chữ số vừa được gửi tới{' '}
-            <strong className="text-primary font-medium">{emailParam || phoneParam || 'quý khách'}</strong>
+            <strong className="text-[var(--text)] font-medium">{emailParam || phoneParam || 'quý khách'}</strong>
           </p>
         </div>
 
@@ -120,7 +120,7 @@ export const VerifyOtpPage: React.FC = () => {
                 value={digit}
                 onChange={(e) => handleOtpChange(idx, e.target.value)}
                 onKeyDown={(e) => handleKeyDown(idx, e)}
-                className="w-12 h-14 text-center text-xl font-mono border border-theme bg-surface focus:border-accent focus:outline-none transition-colors rounded-none"
+                className="w-12 h-14 text-center text-xl font-mono border border-[var(--border)] bg-[var(--bg-alt)] text-[var(--text)] focus:border-[var(--accent)] focus:outline-none transition-colors rounded-lg"
               />
             ))}
           </div>
@@ -128,7 +128,7 @@ export const VerifyOtpPage: React.FC = () => {
           <button
             type="submit"
             disabled={isLoading || otp.join('').length !== 6}
-            className="w-full py-3.5 bg-primary text-secondary hover:bg-accent hover:text-black uppercase text-xs tracking-[0.2em] font-medium transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3.5 bg-[var(--accent)] hover:bg-[#9E7B15] text-[var(--accent-contrast)] uppercase text-xs tracking-[0.2em] font-medium transition-all duration-300 flex items-center justify-center gap-2 rounded-lg shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? (
               <RotateCw className="w-4 h-4 animate-spin" />
@@ -141,25 +141,25 @@ export const VerifyOtpPage: React.FC = () => {
           </button>
         </form>
 
-        <div className="mt-6 text-center text-xs text-secondary space-y-3">
+        <div className="mt-6 text-center text-xs text-[var(--text-muted)] space-y-3">
           <div>
             {canResend ? (
               <button
                 type="button"
                 onClick={handleResend}
-                className="text-accent underline hover:opacity-80 transition-opacity font-medium"
+                className="text-[var(--accent)] underline hover:opacity-80 transition-opacity font-medium"
               >
                 Gửi lại mã xác thực OTP
               </button>
             ) : (
-              <span>Gửi lại mã sau <strong className="text-primary">{countdown}s</strong></span>
+              <span>Gửi lại mã sau <strong className="text-[var(--text)]">{countdown}s</strong></span>
             )}
           </div>
 
           <div>
             <Link
               to="/login"
-              className="inline-flex items-center gap-1.5 text-xs text-secondary hover:text-primary transition-colors"
+              className="inline-flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Quay lại trang Đăng nhập</span>

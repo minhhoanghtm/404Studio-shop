@@ -59,12 +59,22 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["user", "admin"],
-      default: "user",
+      enum: ["customer", "user", "staff", "manager", "admin"],
+      default: "customer",
+      index: true,
+    },
+    roleId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Role",
+      default: null,
+    },
+    permissionOverrides: {
+      allow: [{ type: String, trim: true }],
+      deny: [{ type: String, trim: true }],
     },
     status: {
       type: String,
-      enum: ["active", "blocked", "deleted"],
+      enum: ["active", "blocked", "locked", "deleted"],
       default: "active",
       index: true,
     },
@@ -72,6 +82,26 @@ const userSchema = new mongoose.Schema(
       type: String,
       default:
         "https://cdn.sforum.vn/sforum/wp-content/uploads/2023/10/avatar-trang-4.jpg",
+    },
+    avatar: {
+      type: String,
+      default: undefined,
+    },
+    googleId: {
+      type: String,
+      unique: true,
+      sparse: true,
+      trim: true,
+      index: true,
+    },
+    resetPasswordToken: {
+      type: String,
+      default: null,
+      index: true,
+    },
+    resetPasswordExpires: {
+      type: Date,
+      default: null,
     },
     consent_status: {
       type: String,
@@ -97,9 +127,6 @@ const userSchema = new mongoose.Schema(
 
 // Compare password helper (if needed)
 userSchema.methods.comparePassword = async function (enteredPassword) {
-  // It was previously called as user.comparePassword(currentPassword) but wasn't implemented. We'll implement it here using bcrypt!
-  // To avoid issues, let's use dynamic import of bcrypt inside method or keep it simple.
-  // Actually, importing bcrypt directly:
   const bcrypt = await import("bcrypt");
   return await bcrypt.default.compare(enteredPassword, this.passWord);
 };

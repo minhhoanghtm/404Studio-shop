@@ -7,10 +7,28 @@ export * from './client';
 // ============================================================================
 export const authApi = {
   login: (credentials: { email: string; passWord: string }) =>
-    api.post<ApiResponse<{ user: any; accessToken: string }>>('/auth/login', credentials),
+    api.post<ApiResponse<{ user: any; accessToken: string; refreshToken?: string }>>('/auth/login', credentials),
 
-  register: (payload: { email: string; passWord: string; fullName: string; phone?: string; termsAccepted: true; privacyAccepted: true; marketingAccepted?: boolean; policyVersion: string }) =>
-    api.post<ApiResponse<{ message: string; user?: any; accessToken?: string }>>('/auth/signUp', payload),
+  register: (payload: { email: string; passWord?: string; password?: string; fullName?: string; name?: string; phone?: string; termsAccepted?: boolean; privacyAccepted?: boolean; marketingAccepted?: boolean; policyVersion?: string }) =>
+    api.post<ApiResponse<{ message: string; user?: any; accessToken?: string; refreshToken?: string }>>('/auth/register', payload),
+
+  forgotPassword: (payload: { email?: string; phone?: string }) =>
+    api.post<ApiResponse<{ message: string }>>('/auth/forgot-password', payload),
+
+  resetPasswordWithToken: (token: string, payload: { password: string }) =>
+    api.post<ApiResponse<{ message: string }>>(`/auth/reset-password/${encodeURIComponent(token)}`, payload),
+
+  loginWithGoogle: (credential: string) =>
+    api.post<ApiResponse<{ user: any; accessToken: string; refreshToken?: string }>>('/auth/google', { credential }),
+
+  signUp: (payload: { email: string; passWord: string; fullName: string; phone?: string; termsAccepted: true; privacyAccepted: true; marketingAccepted?: boolean; policyVersion: string }) =>
+    api.post<ApiResponse<{ message: string; user?: any; accessToken?: string; refreshToken?: string }>>('/auth/signUp', payload),
+
+  refresh: (refreshToken?: string) =>
+    api.post<ApiResponse<{ accessToken: string; refreshToken: string; user: any }>>(
+      '/auth/refresh',
+      refreshToken ? { refreshToken } : {}
+    ),
 
   sendOtp: (payload: { email?: string; phone?: string; purpose?: string }) =>
     api.post<ApiResponse<{ message: string }>>('/auth/register/send-otp', {
@@ -24,7 +42,7 @@ export const authApi = {
       ...payload,
     }),
 
-  forgotPassword: (payload: { email?: string; phone?: string }) =>
+  forgotPasswordOtp: (payload: { email?: string; phone?: string }) =>
     api.post<ApiResponse<{ message: string }>>('/auth/password/forgot', payload),
 
   resetPassword: (payload: { email?: string; phone?: string; otp: string; newPassword: string }) =>
@@ -46,11 +64,112 @@ export const authApi = {
 
   getMe: () => api.get<ApiResponse<any>>('/user/me'),
 
+  getPermissions: () =>
+    api.get<
+      ApiResponse<{
+        role: string;
+        permissions: string[];
+        overrides: { allow: string[]; deny: string[] };
+      }>
+    >('/auth/me/permissions'),
+
   updateProfile: (data: { fullName?: string; phone?: string; avatar_url?: string }) =>
     api.put<ApiResponse<any>>('/user/updateProfile', data),
 
   addAddress: (addressData: any) =>
     api.post<ApiResponse<any>>('/user/addresses', addressData),
+};
+
+// ============================================================================
+// ROLES & RBAC MANAGEMENT APIs
+// ============================================================================
+export const rolesApi = {
+  getRoles: () => api.get<ApiResponse<any[]>>('/admin/roles'),
+
+  createRole: (data: {
+    name: string;
+    displayName: string;
+    description?: string;
+    permissions: string[];
+  }) => api.post<ApiResponse<any>>('/admin/roles', data),
+
+  updateRole: (
+    id: string,
+    data: {
+      displayName?: string;
+      description?: string;
+      permissions?: string[];
+    }
+  ) => api.put<ApiResponse<any>>(`/admin/roles/${id}`, data),
+
+  deleteRole: (id: string) => api.delete<ApiResponse<any>>(`/admin/roles/${id}`),
+
+  getStandardPermissions: () =>
+    api.get<
+      ApiResponse<{
+        groups: { group: string; items: { key: string; label: string; description?: string }[] }[];
+        allPermissions: string[];
+      }>
+    >('/admin/permissions'),
+
+  getRbacUsers: (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    role?: string;
+    status?: string;
+  }) => {
+    const query = new URLSearchParams();
+    if (params?.page) query.set('page', params.page.toString());
+    if (params?.limit) query.set('limit', params.limit.toString());
+    if (params?.search) query.set('search', params.search);
+    if (params?.role) query.set('role', params.role);
+    if (params?.status) query.set('status', params.status);
+    const qs = query.toString();
+    return api.get<
+      ApiResponse<{
+        users: any[];
+        total: number;
+        page: number;
+        totalPages: number;
+      }>
+    >(`/admin/rbac/users${qs ? `?${qs}` : ''}`);
+  },
+
+  getUsers: (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    role?: string;
+    status?: string;
+  }) => rolesApi.getRbacUsers(params),
+
+  updateUserRoleAndOverrides: (
+    userId: string,
+    data: {
+      role?: string;
+      allow?: string[];
+      deny?: string[];
+    }
+  ) => api.put<ApiResponse<any>>(`/admin/rbac/users/${userId}/role`, data),
+
+  updateUserStatus: (userId: string, status: 'active' | 'locked' | 'blocked') =>
+    api.put<ApiResponse<any>>(`/admin/rbac/users/${userId}/status`, { status }),
+
+  getAuditLogs: (params?: { page?: number; limit?: number }) => {
+    const query = new URLSearchParams();
+    if (params?.page) query.set('page', params.page.toString());
+    if (params?.limit) query.set('limit', params.limit.toString());
+    const qs = query.toString();
+    return api.get<
+      ApiResponse<{
+        logs: any[];
+        total: number;
+        page: number;
+        totalPages: number;
+      }>
+    >(`/admin/rbac/audit-logs${qs ? `?${qs}` : ''}`);
+  },
 };
 
 // ============================================================================
@@ -76,11 +195,11 @@ export const productsApi = {
     if (params?.search) query.set('q', params.search);
     
     const qs = query.toString();
-    return api.get<ApiResponse<any[]>>(`/products${qs ? `?${qs}` : ''}`);
+    return api.get<ApiResponse<any[]>>(`/products/catalog${qs ? `?${qs}` : ''}`);
   },
 
   searchProducts: (queryText: string, limit: number = 8) =>
-    api.get<ApiResponse<any[]>>(`/products/search?q=${encodeURIComponent(queryText)}&limit=${limit}`),
+    api.get<ApiResponse<any[]>>(`/products/search?search=${encodeURIComponent(queryText)}&limit=${limit}`),
 
   getProductBySlug: (slug: string) =>
     api.get<ApiResponse<any>>(`/products/${slug}`),
@@ -314,7 +433,7 @@ export const recommendationsApi = {
 
 export const trackingApi = {
   trackEvent: (eventPayload: Record<string, unknown>) =>
-    api.post<ApiResponse<{ processed: number }>>('/events', eventPayload, {
+    api.post<ApiResponse<{ processed: number }> & { accepted?: boolean }>('/events', eventPayload, {
       headers: eventPayload.anonymous_id ? { 'X-Anonymous-ID': String(eventPayload.anonymous_id) } : undefined,
     }),
 
@@ -376,6 +495,8 @@ export const adminApi = {
   getMessages: (conversationId: string) => api.get<ApiResponse<any[]>>(`/admin/messages/${conversationId}`),
   createProduct: (data: any) => api.post<ApiResponse<any>>('/products', data),
   updateProduct: (id: string, data: any) => api.put<ApiResponse<any>>(`/products/${id}`, data),
+  createAdminFormProduct: (data: any) => api.post<ApiResponse<any>>('/products/admin-form', data),
+  updateAdminFormProduct: (id: string, data: any) => api.put<ApiResponse<any>>(`/products/admin-form/${id}`, data),
   deleteProduct: (id: string) => api.delete<ApiResponse<any>>(`/products/${id}`),
   createProductVariant: (data: any) => api.post<ApiResponse<any>>('/product_variants', data),
   updateProductVariant: (id: string, data: any) => api.put<ApiResponse<any>>(`/product_variants/${id}`, data),
@@ -387,6 +508,65 @@ export const adminApi = {
   updateVoucher: (id: string, data: any) => api.put<ApiResponse<any>>(`/vouchers/${id}`, data),
   deleteVoucher: (id: string) => api.delete<ApiResponse<any>>(`/vouchers/${id}`),
   updateSettings: (data: any) => api.put<ApiResponse<any>>('/settings', data),
+
+  // Product Excel with Embedded Images
+  downloadProductTemplate: async () => {
+    const res = await fetch('/api/products/excel/template', {
+      method: 'GET',
+      credentials: 'include',
+    });
+    if (!res.ok) throw new Error('Không thể tải tệp mẫu Excel');
+    return await res.blob();
+  },
+
+  exportProductsExcel: async (options: {
+    scope?: 'all' | 'filtered' | 'selected';
+    ids?: string[];
+    category?: string;
+    search?: string;
+    includeImages?: boolean;
+    maxItems?: number;
+  }) => {
+    const { getAccessToken } = await import('./client');
+    const token = getAccessToken();
+    const res = await fetch('/api/products/excel/export', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      credentials: 'include',
+      body: JSON.stringify(options),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      throw new Error(data?.message || 'Lỗi khi xuất tệp Excel');
+    }
+    return await res.blob();
+  },
+
+  previewProductsExcel: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post<ApiResponse<any>>('/products/excel/preview', formData);
+  },
+
+  confirmProductsExcel: (previewId: string) =>
+    api.post<ApiResponse<any>>('/products/excel/confirm', { previewId }),
+
+  downloadErrorReport: async (previewId: string) => {
+    const { getAccessToken } = await import('./client');
+    const token = getAccessToken();
+    const res = await fetch(`/api/products/excel/error-report/${encodeURIComponent(previewId)}`, {
+      method: 'GET',
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      credentials: 'include',
+    });
+    if (!res.ok) throw new Error('Không thể tải tệp báo cáo lỗi');
+    return await res.blob();
+  },
 };
 
 // ============================================================================
@@ -557,6 +737,7 @@ export const pageSectionsApi = {
 // ADMIN TRACKING & BEHAVIORAL ANALYTICS APIs
 // ============================================================================
 export interface TrackingOverviewMetrics {
+  trafficSources?: Array<{ source: string; count: number }>;
   totalEvents: number;
   activeUsersCount: number;
   activeSessionsCount: number;
@@ -709,3 +890,6 @@ export const loyaltyApi = {
   },
   updateTierSettings: (data: any) => api.put<ApiResponse<any>>('/loyalty/admin/tiers', data),
 };
+
+export * from './communicationApi';
+

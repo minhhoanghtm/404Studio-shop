@@ -6,6 +6,7 @@ import { useConsentStore } from '../../../shared/consent';
 import { getOrCreateAnonymousId } from '../../../shared/consent/ConsentStorage';
 import { getLocalBehaviorSignals, clearLocalBehaviorSignals } from '../../../shared/tracking/useBehaviorTracking';
 import { useAuthStore } from '../../../shared/stores/useAuthStore';
+import { adaptBackendProduct } from '../../../shared/utils/productAdapter';
 
 export type RecommendationTab = 'for-you' | 'trending' | 'new-arrivals' | 'best-sellers';
 
@@ -30,93 +31,7 @@ interface CacheEntry {
 const recommendationCache = new Map<string, CacheEntry>();
 const CACHE_TTL_MS = 3 * 60 * 1000;
 
-// Transform backend product payload into full frontend Product type
-export function adaptBackendProduct(raw: any): Product {
-  const id = String(raw.id || raw._id || `p_${Math.random().toString(36).substring(2, 9)}`);
-  const name = String(raw.name || 'Sản phẩm Haute Couture Atelier');
-  const slug = String(raw.slug || id);
-  const price = Number(raw.price || raw.new_price || 15000000);
-  const originalPrice = raw.old_price || raw.oldPrice ? Number(raw.old_price || raw.oldPrice) : undefined;
-
-  const displayImages: string[] = Array.isArray(raw.displayProduct) && raw.displayProduct.length > 0
-    ? raw.displayProduct
-    : raw.image
-    ? [raw.image]
-    : [
-        'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=1200&q=85',
-        'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1200&q=85',
-      ];
-
-  // Variants normalization
-  let variants: ProductVariant[] = [];
-  if (Array.isArray(raw.variants) && raw.variants.length > 0) {
-    variants = raw.variants.map((v: any, vIdx: number) => ({
-      id: String(v._id || v.id || `var_${id}_${vIdx}`),
-      colorName: String(v.colorName || v.color || 'Đen Mã Não (Onyx)'),
-      colorHex: String(v.colorHex || '#141416'),
-      sizes: Array.isArray(v.sizes)
-        ? v.sizes.map((s: any) => ({
-            size: String(s.size || s),
-            inStock: s.inStock !== false && (s.stockCount === undefined || s.stockCount > 0),
-            stockCount: typeof s.stockCount === 'number' ? s.stockCount : 5,
-          }))
-        : [
-            { size: '36 FR (S)', inStock: true, stockCount: 4 },
-            { size: '38 FR (M)', inStock: true, stockCount: 6 },
-            { size: '40 FR (L)', inStock: true, stockCount: 2 },
-          ],
-      images: Array.isArray(v.images) && v.images.length > 0 ? v.images : displayImages,
-    }));
-  } else {
-    // Default fallback variant
-    variants = [
-      {
-        id: `var_${id}_def`,
-        colorName: 'Đen Mã Não (Onyx)',
-        colorHex: '#121215',
-        sizes: [
-          { size: '36 FR (S)', inStock: true, stockCount: 4 },
-          { size: '38 FR (M)', inStock: true, stockCount: 6 },
-          { size: '40 FR (L)', inStock: true, stockCount: 3 },
-        ],
-        images: displayImages,
-      },
-    ];
-  }
-
-  // Derive category
-  const rawCat = String(raw.category || raw.category_id?.name || '').toLowerCase();
-  let category: Product['category'] = 'women';
-  if (rawCat.includes('men') || rawCat.includes('nam')) category = 'men';
-  else if (rawCat.includes('access') || rawCat.includes('phụ kiện') || rawCat.includes('da')) category = 'accessories';
-  else if (rawCat.includes('couture') || rawCat.includes('dạ')) category = 'couture';
-
-  return {
-    id,
-    slug,
-    name,
-    subtitle: raw.subtitle || 'Thiết kế độc quyền từ Maison Vérité Paris',
-    price,
-    originalPrice,
-    category,
-    subCategory: raw.subCategory || 'Ấn bản cao cấp',
-    badge: raw.badge || (raw.sold && raw.sold > 20 ? 'Bán chạy nhất' : raw.isNewArrival ? 'Mùa mới' : 'Runway FW26'),
-    description: raw.description || 'Chế tác từ chất liệu thượng hạng với các đường cắt kiến trúc tỉ mỉ.',
-    details: Array.isArray(raw.details) ? raw.details : ['Đường cắt xéo tinh tế', 'Chất liệu lụa hoặc len nguyên chất', 'Gia công thủ công'],
-    composition: raw.composition || '100% Sợi cao cấp tự nhiên',
-    origin: raw.origin || 'Chế tác thủ công tại Paris, Pháp',
-    careInstructions: raw.careInstructions || ['Chỉ giặt khô chuyên biệt'],
-    variants,
-    featuredImage: displayImages[0],
-    galleryImages: displayImages,
-    isFeatured: Boolean(raw.isFeatured || raw.is_featured),
-    isNewArrival: Boolean(raw.isNewArrival),
-    isTrending: Boolean(raw.isTrending || (raw.sold && raw.sold > 15)),
-    inStock: raw.stock !== undefined ? raw.stock > 0 : true,
-    rating: typeof raw.rating === 'number' ? raw.rating : 5,
-    reviewCount: typeof raw.reviewCount === 'number' ? raw.reviewCount : (typeof raw.reviewsCount === 'number' ? raw.reviewsCount : 0),
-  };
-}
+export { adaptBackendProduct } from '../../../shared/utils/productAdapter';
 
 // Client-side Hybrid Ranking algorithm with configurable weights
 export function rankProductsWithSignals(

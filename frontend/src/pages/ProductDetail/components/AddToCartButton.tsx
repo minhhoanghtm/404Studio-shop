@@ -25,18 +25,18 @@ export const AddToCartButton: React.FC<AddToCartButtonProps> = ({
     <div className="space-y-4 pt-4">
       <div className="flex gap-4 items-stretch">
         {/* Quantity Controls */}
-        <div className="flex items-center border border-white/15 rounded-xl bg-noir-900 px-2">
+        <div className="flex items-center border border-[var(--border)] rounded-xl bg-[var(--bg-alt)] px-2 text-[var(--text)]">
           <button
             onClick={() => onQuantityChange(Math.max(1, quantity - 1))}
-            className="p-2 text-white/60 hover:text-white transition-colors"
+            className="p-2 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
             aria-label="Giảm số lượng"
           >
             <Minus className="w-3.5 h-3.5" />
           </button>
-          <span className="w-8 text-center text-xs font-mono">{quantity}</span>
+          <span className="w-8 text-center text-xs font-mono font-medium">{quantity}</span>
           <button
             onClick={() => onQuantityChange(quantity + 1)}
-            className="p-2 text-white/60 hover:text-white transition-colors"
+            className="p-2 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
             aria-label="Tăng số lượng"
           >
             <Plus className="w-3.5 h-3.5" />
@@ -49,8 +49,8 @@ export const AddToCartButton: React.FC<AddToCartButtonProps> = ({
           disabled={!isAvailable}
           className={`flex-1 py-4 px-6 rounded-xl text-xs font-semibold uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-xl ${
             isAvailable
-              ? 'bg-champagne hover:bg-champagne-hover text-noir-950 scale-100 hover:scale-[1.01]'
-              : 'bg-white/10 text-white/30 cursor-not-allowed'
+              ? 'bg-[var(--accent)] hover:bg-[#9E7B15] text-[var(--accent-contrast)] scale-100 hover:scale-[1.01]'
+              : 'bg-[var(--bg-alt)] text-[var(--text-muted)] border border-[var(--border)] cursor-not-allowed'
           }`}
         >
           <ShoppingBag className="w-4 h-4" />
@@ -63,8 +63,8 @@ export const AddToCartButton: React.FC<AddToCartButtonProps> = ({
           aria-label={isWishlisted ? 'Bỏ khỏi yêu thích' : 'Lưu vào yêu thích'}
           className={`p-4 rounded-xl border transition-colors flex items-center justify-center ${
             isWishlisted
-              ? 'bg-champagne text-noir-950 border-champagne'
-              : 'border-white/15 bg-white/5 hover:bg-white/10 text-white'
+              ? 'bg-[var(--accent)] text-[var(--accent-contrast)] border-[var(--accent)] shadow-md'
+              : 'border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--bg-alt)] text-[var(--text)]'
           }`}
         >
           <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-current' : ''}`} />
@@ -74,7 +74,7 @@ export const AddToCartButton: React.FC<AddToCartButtonProps> = ({
         <button
           onClick={onShare}
           aria-label={vi.catalog.share}
-          className="p-4 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 text-white transition-colors flex items-center justify-center"
+          className="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--bg-alt)] text-[var(--text)] transition-colors flex items-center justify-center"
         >
           <Share2 className="w-4 h-4" />
         </button>

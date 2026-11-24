@@ -4,10 +4,12 @@ import { useConsentStore } from './useConsentStore';
 import { ConsentBanner } from './ConsentBanner';
 import { ConsentPreferencesModal } from './ConsentPreferencesModal';
 import { TrackingRegistry } from '../tracking/TrackingRegistry';
+import { useTrafficAttribution } from '../tracking/useTrafficAttribution';
 
 export const ConsentProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const initializeConsent = useConsentStore((state) => state.initializeConsent);
   const location = useLocation();
+  useTrafficAttribution(location.pathname);
 
   // Initialize consent on mount
   useEffect(() => {

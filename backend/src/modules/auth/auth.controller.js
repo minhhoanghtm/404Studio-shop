@@ -4,6 +4,37 @@ import trackingService from "../tracking/tracking.service.js";
 
 const REFRESH_TOKEN_TTL = 14 * 24 * 60 * 60 * 1000;
 
+export const getCookieOptions = (req) => {
+  const isSecure = Boolean(
+    req?.secure ||
+    req?.headers?.["x-forwarded-proto"] === "https" ||
+    process.env.COOKIE_SECURE === "true" ||
+    (process.env.NODE_ENV === "production" && !req?.hostname?.includes("localhost") && !req?.hostname?.includes("127.0.0.1"))
+  );
+  return {
+    httpOnly: true,
+    secure: isSecure,
+    sameSite: isSecure ? "none" : "lax",
+    maxAge: REFRESH_TOKEN_TTL,
+    path: "/",
+  };
+};
+
+export const getClearCookieOptions = (req) => {
+  const isSecure = Boolean(
+    req?.secure ||
+    req?.headers?.["x-forwarded-proto"] === "https" ||
+    process.env.COOKIE_SECURE === "true" ||
+    (process.env.NODE_ENV === "production" && !req?.hostname?.includes("localhost") && !req?.hostname?.includes("127.0.0.1"))
+  );
+  return {
+    httpOnly: true,
+    secure: isSecure,
+    sameSite: isSecure ? "none" : "lax",
+    path: "/",
+  };
+};
+
 export const signUp = async (req, res, next) => {
   try {
     const user = await authService.signUp(req.body);
@@ -23,10 +54,38 @@ export const signUp = async (req, res, next) => {
   }
 };
 
+export const register = async (req, res, next) => {
+  try {
+    const ip = req.ip || req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+    const ua = req.headers["user-agent"];
+    const { accessToken, refreshToken, user } = await authService.register(req.body, ip, ua);
+
+    const anonymousId = req.body.anonymous_id || req.headers["x-anonymous-id"];
+    if (anonymousId && (user?.id || user?._id)) {
+      trackingService
+        .mergeAnonymousToUser(anonymousId, user.id || user._id)
+        .catch((err) =>
+          console.error("Lỗi khi gộp anonymous profile vào user (register):", err.message)
+        );
+    }
+
+    res.cookie("refreshToken", refreshToken, getCookieOptions(req));
+
+    return successResponse(
+      res,
+      { accessToken, refreshToken, userId: user.id || user._id, user },
+      "Đăng ký tài khoản thành công!",
+      201
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const signIn = async (req, res, next) => {
   try {
     const identifier = req.body.emailOrPhone || req.body.phone || req.body.email;
-    const { passWord } = req.body;
+    const passWord = req.body.passWord || req.body.password;
     const ip = req.ip || req.headers["x-forwarded-for"] || req.socket.remoteAddress;
     const ua = req.headers["user-agent"];
 
@@ -42,12 +101,7 @@ export const signIn = async (req, res, next) => {
     }
 
     // Set refresh token in httpOnly cookie
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "none",
-      maxAge: REFRESH_TOKEN_TTL,
-    });
+    res.cookie("refreshToken", refreshToken, getCookieOptions(req));
 
     return successResponse(
       res,
@@ -89,12 +143,7 @@ export const verifyRegisterController = async (req, res, next) => {
         );
     }
 
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "none",
-      maxAge: REFRESH_TOKEN_TTL,
-    });
+    res.cookie("refreshToken", refreshToken, getCookieOptions(req));
 
     return successResponse(
       res,
@@ -125,12 +174,7 @@ export const verifyLoginOtpController = async (req, res, next) => {
     const ua = req.headers["user-agent"];
     const { accessToken, refreshToken, user } = await authService.verifyLoginOtp(phone, otp, ip, ua);
 
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "none",
-      maxAge: REFRESH_TOKEN_TTL,
-    });
+    res.cookie("refreshToken", refreshToken, getCookieOptions(req));
 
     return successResponse(
       res,
@@ -159,7 +203,7 @@ export const resetPasswordWithOtpController = async (req, res, next) => {
     const identifier = req.body.identifier || req.body.phone || req.body.email;
     const { otp, newPassword } = req.body;
     const result = await authService.resetPasswordWithOtp(identifier, otp, newPassword);
-    res.clearCookie("refreshToken");
+    res.clearCookie("refreshToken", getClearCookieOptions(req));
     return successResponse(res, null, result.message);
   } catch (error) {
     next(error);
@@ -180,11 +224,11 @@ export const resendOtpController = async (req, res, next) => {
 
 export const signOut = async (req, res, next) => {
   try {
-    const token = req.cookies?.refreshToken;
+    const token = req.cookies?.refreshToken || req.body?.refreshToken || req.headers["x-refresh-token"];
     const jti = req.user?.jti;
     await authService.signOut(token, jti);
 
-    res.clearCookie("refreshToken");
+    res.clearCookie("refreshToken", getClearCookieOptions(req));
     return res.status(204).json({
       success: true,
       message: "Đăng xuất thành công",
@@ -202,12 +246,7 @@ export const refreshAccessToken = async (req, res, next) => {
 
     const { accessToken, refreshToken, user } = await authService.refreshAccessToken(token, ip, ua);
 
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "none",
-      maxAge: REFRESH_TOKEN_TTL,
-    });
+    res.cookie("refreshToken", refreshToken, getCookieOptions(req));
 
     return successResponse(res, { accessToken, refreshToken, user }, `Refresh token thành công cho user ${user.fullName}`);
   } catch (error) {
@@ -227,7 +266,7 @@ export const signOutAllDevices = async (req, res, next) => {
 
     await authService.signOutAll(userId);
 
-    res.clearCookie("refreshToken");
+    res.clearCookie("refreshToken", getClearCookieOptions(req));
     return successResponse(res, null, "Đăng xuất khỏi tất cả các thiết bị thành công");
   } catch (error) {
     next(error);
@@ -274,9 +313,30 @@ export const resetPassword = async (req, res, next) => {
   }
 };
 
+export const forgotPassword = async (req, res, next) => {
+  try {
+    const result = await authService.forgotPassword(req.body.email, req);
+    return successResponse(res, null, result.message);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const resetPasswordWithToken = async (req, res, next) => {
+  try {
+    const token = req.params.token || req.body.token;
+    const newPassword = req.body.password || req.body.newPassword || req.body.passWord;
+    const result = await authService.resetPasswordWithToken(token, newPassword);
+    res.clearCookie("refreshToken", getClearCookieOptions(req));
+    return successResponse(res, null, result.message);
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const signInWithGoogle = async (req, res, next) => {
   try {
-    const { idToken } = req.body;
+    const idToken = req.body.credential || req.body.idToken;
     const ip = req.ip || req.headers["x-forwarded-for"] || req.socket.remoteAddress;
     const ua = req.headers["user-agent"];
     const { accessToken, refreshToken, user } = await authService.signInWithGoogle(idToken, ip, ua);
@@ -290,17 +350,31 @@ export const signInWithGoogle = async (req, res, next) => {
         );
     }
 
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "none",
-      maxAge: REFRESH_TOKEN_TTL,
-    });
+    res.cookie("refreshToken", refreshToken, getCookieOptions(req));
 
     return successResponse(
       res,
-      { accessToken, userId: user._id || user.id },
+      { accessToken, refreshToken, userId: user._id || user.id, user },
       `User ${user.fullName} đã login bằng Google!, UserId: ${user._id || user.id}`
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getMyPermissions = async (req, res, next) => {
+  try {
+    const { getEffectivePermissions } = await import("../../middlewares/rbac.middleware.js");
+    const user = req.user;
+    const effectivePermissions = await getEffectivePermissions(user);
+    return successResponse(
+      res,
+      {
+        role: user.role,
+        permissions: effectivePermissions,
+        overrides: user.permissionOverrides || { allow: [], deny: [] },
+      },
+      "Lấy danh sách quyền hiệu lực thành công"
     );
   } catch (error) {
     next(error);

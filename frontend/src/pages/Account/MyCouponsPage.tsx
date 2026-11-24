@@ -43,24 +43,24 @@ export const MyCouponsPage: React.FC = () => {
     <AccountLayout activeTab="coupons">
       <div className="space-y-6">
         <div>
-          <h2 className="font-serif text-2xl tracking-wide mb-1">Ví Phiếu Ưu Đãi Của Tôi</h2>
-          <p className="text-xs text-secondary">
+          <h2 className="font-serif text-2xl tracking-wide mb-1 text-[var(--text)]">Ví Phiếu Ưu Đãi Của Tôi</h2>
+          <p className="text-xs text-[var(--text-muted)]">
             Danh sách các mã đặc quyền đã lưu vào tài khoản. Nhập mã khi thanh toán để hưởng chiết khấu.
           </p>
         </div>
 
         {isLoading ? (
-          <div className="py-12 text-center text-xs text-secondary">Đang tải ví ưu đãi...</div>
+          <div className="py-12 text-center text-xs text-[var(--text-muted)]">Đang tải ví ưu đãi...</div>
         ) : coupons.length === 0 ? (
-          <div className="py-16 text-center border border-dashed border-theme p-8 bg-surface-subtle/20">
-            <Tag className="w-10 h-10 text-secondary/40 mx-auto mb-3" />
-            <h3 className="font-serif text-lg mb-1">Ví Ưu Đãi Chưa Có Mã Nào</h3>
-            <p className="text-xs text-secondary mb-4">
+          <div className="py-16 text-center border border-dashed border-[var(--border)] p-8 bg-[var(--surface)] rounded-xl shadow-sm">
+            <Tag className="w-10 h-10 text-[var(--text-muted)] mx-auto mb-3" />
+            <h3 className="font-serif text-lg mb-1 text-[var(--text)]">Ví Ưu Đãi Chưa Có Mã Nào</h3>
+            <p className="text-xs text-[var(--text-muted)] mb-4">
               Quý khách có thể truy cập trang Phiếu Ưu Đãi để nhận các mã đặc quyền mới nhất.
             </p>
             <a
               href="/vouchers"
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-secondary text-xs uppercase tracking-widest hover:bg-accent hover:text-black transition-colors"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-[var(--accent)] text-[var(--accent-contrast)] text-xs uppercase tracking-widest hover:bg-[#9E7B15] transition-colors rounded-lg font-semibold shadow-md"
             >
               <Sparkles className="w-3.5 h-3.5" />
               <span>Khám Phá Phiếu Ưu Đãi</span>
@@ -71,38 +71,38 @@ export const MyCouponsPage: React.FC = () => {
             {coupons.map((coupon, idx) => (
               <div
                 key={coupon.id || idx}
-                className="p-5 border border-theme bg-surface-subtle/60 relative group hover:border-accent/60 transition-colors"
+                className="p-5 border border-[var(--border)] bg-[var(--surface)] rounded-xl relative group hover:border-[var(--accent)] transition-colors shadow-sm"
               >
                 <div className="flex items-center justify-between mb-3">
-                  <span className="px-2.5 py-0.5 bg-accent/10 border border-accent/30 text-accent font-mono text-xs">
+                  <span className="px-2.5 py-0.5 bg-[var(--accent)]/10 border border-[var(--accent)]/30 text-[var(--accent)] font-mono text-xs font-semibold rounded">
                     {coupon.discount || `Giảm ${coupon.discountPercent || 15}%`}
                   </span>
-                  <span className="text-[11px] text-secondary flex items-center gap-1 font-mono">
-                    <Clock className="w-3 h-3 text-accent" />
+                  <span className="text-[11px] text-[var(--text-muted)] flex items-center gap-1 font-mono">
+                    <Clock className="w-3 h-3 text-[var(--accent)]" />
                     <span>HSD: {coupon.expiry || coupon.expiryDate || '31/12/2026'}</span>
                   </span>
                 </div>
 
-                <h4 className="font-serif text-base mb-1">{coupon.title || coupon.code}</h4>
-                <p className="text-[11px] text-secondary mb-4">
+                <h4 className="font-serif text-base mb-1 text-[var(--text)]">{coupon.title || coupon.code}</h4>
+                <p className="text-[11px] text-[var(--text-muted)] mb-4">
                   {coupon.minSpend && coupon.minSpend > 0
                     ? `Đơn hàng tối thiểu: ${formatCurrency(coupon.minSpend)}`
                     : 'Áp dụng cho mọi giá trị đơn hàng'}
                 </p>
 
-                <div className="flex items-center justify-between pt-3 border-t border-theme/60">
-                  <span className="font-mono text-xs font-bold text-accent tracking-widest">
+                <div className="flex items-center justify-between pt-3 border-t border-[var(--border)]">
+                  <span className="font-mono text-xs font-bold text-[var(--accent)] tracking-widest">
                     {coupon.code}
                   </span>
                   <button
                     type="button"
                     onClick={() => handleCopy(coupon.code)}
-                    className="px-3 py-1.5 border border-theme hover:border-accent hover:text-accent text-[11px] uppercase tracking-wider transition-colors flex items-center gap-1.5"
+                    className="px-3 py-1.5 border border-[var(--border)] hover:border-[var(--accent)] hover:text-[var(--accent)] text-[11px] uppercase tracking-wider transition-colors flex items-center gap-1.5 rounded bg-[var(--bg-alt)] text-[var(--text)]"
                   >
                     {copiedCode === coupon.code ? (
                       <>
-                        <Check className="w-3 h-3 text-emerald-400" />
-                        <span className="text-emerald-400">Đã Chép</span>
+                        <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                        <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Đã Chép</span>
                       </>
                     ) : (
                       <>

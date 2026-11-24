@@ -1,11 +1,41 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { ProductCard } from '../../../shared/components/ProductCard';
-import { PRODUCTS } from '../../../shared/data/products';
+import { productsApi } from '../../../shared/api';
+import { adaptBackendProduct } from '../../../shared/utils/productAdapter';
+import { Product } from '../../../shared/types';
 
 export const TrendingSilhouettesSection: React.FC = () => {
-  const trendingProducts = PRODUCTS.filter((p) => p.isTrending).slice(0, 4);
+  const [products, setProducts] = useState<Product[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadTrending() {
+      try {
+        const res = await productsApi.getProducts({ sort: 'rating', limit: 4 });
+        if (cancelled) return;
+        const rawList = Array.isArray(res.data)
+          ? res.data
+          : Array.isArray((res.data as any)?.products)
+          ? (res.data as any).products
+          : Array.isArray(res)
+          ? res
+          : [];
+        if (rawList.length > 0) {
+          setProducts(rawList.map(adaptBackendProduct).slice(0, 4));
+        }
+      } catch {
+        // Safe fail
+      }
+    }
+    void loadTrending();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (products.length === 0) return null;
 
   return (
     <section className="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-b border-white/10">
@@ -27,8 +57,8 @@ export const TrendingSilhouettesSection: React.FC = () => {
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
-        {trendingProducts.map((product) => (
+      <div className="product-card-grid grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
+        {products.map((product) => (
           <ProductCard key={product.id} product={product} />
         ))}
       </div>

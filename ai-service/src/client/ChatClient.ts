@@ -11,6 +11,43 @@ import { ToolRegistry } from '../tools/ToolRegistry.js';
 import { SafetyGuardrails } from '../security/SafetyGuardrails.js';
 import { BackendAuthContext } from '../tools/NodeBackendClient.js';
 
+// Product nouns are valid search requests in Vietnamese even when the customer
+// does not prefix them with "tìm". Keep this deterministic so a provider
+// outage can never turn a catalogue request into a generic greeting.
+const PRODUCT_QUERY_PATTERN = /(?:áo|ao|quần|quan|váy|vay|đầm|dam|jacket|blazer|polo|shirt|t[- ]?shirt|thể thao|the thao|sportswear|sport|giày|giay|túi|tui|phụ kiện|phu kien)/iu;
+const EXPLICIT_SEARCH_PATTERN = /^(?:tìm|search|gợi ý|tìm kiếm|xem)\b/iu;
+
+function extractSearchItems(result: unknown): CandidateProduct[] {
+  const value = result as any;
+  const rawList = Array.isArray(value)
+    ? value
+    : Array.isArray(value?.results)
+      ? value.results
+      : Array.isArray(value?.data?.results)
+        ? value.data.results
+        : Array.isArray(value?.data)
+          ? value.data
+          : [];
+
+  return rawList
+    .map((item: any) => {
+      const product = item?.product || item?.metadata || item;
+      const id = product?._id || product?.id || item?.sourceId;
+      if (!id) return null;
+      const price = product?.price ?? product?.price_number ?? product?.new_price;
+      const numericPrice = typeof price === 'number' ? price : Number(String(price).replace(/[^\d]/g, ''));
+      return {
+        id: String(id),
+        name: String(product?.name || product?.title || 'Sản phẩm Atelier'),
+        slug: product?.slug,
+        price: Number.isFinite(numericPrice) ? numericPrice : undefined,
+        finalPrice: Number.isFinite(numericPrice) ? numericPrice : undefined,
+        image: product?.image || product?.displayProduct?.[0] || '',
+      } satisfies CandidateProduct;
+    })
+    .filter((product: CandidateProduct | null): product is CandidateProduct => product !== null);
+}
+
 export interface ChatClientOptions {
   defaultSystemPrompt?: string;
   memoryAdvisor?: ShoppingMemoryAdvisor;
@@ -195,10 +232,20 @@ export class ChatClient {
       const toolToRun = (params.confirmAction.actionType as string) || 'addToCart';
       const items = params.confirmAction.items as any[];
       const firstItem = items?.[0];
-
-      const execResult = await this.options.toolRegistry.executeTool(
-        toolToRun,
-        firstItem
+      const isCheckoutConfirmation = toolToRun === 'start_checkout' || toolToRun === 'prepareCheckout' || toolToRun === 'prepare_checkout';
+      const confirmationArgs = isCheckoutConfirmation
+        ? {
+            items: (items || []).map((item) => ({
+              product_id: item.product_id || item.productId,
+              variant_id: item.variant_id || item.variantId || null,
+              color: item.color,
+              size: item.size,
+              quantity: item.quantity || 1,
+            })),
+            reservation_id: params.confirmAction.reservationId,
+            confirmed: true,
+          }
+        : firstItem
           ? {
               product_id: firstItem.product_id || firstItem.productId,
               variant_id: firstItem.variant_id || firstItem.variantId,
@@ -207,12 +254,18 @@ export class ChatClient {
               quantity: firstItem.quantity || 1,
               confirmed: true,
             }
-          : params.confirmAction,
+          : { ...params.confirmAction, confirmed: true };
+
+      const execResult = await this.options.toolRegistry.executeTool(
+        toolToRun,
+        confirmationArgs,
         authContext
       );
 
       const reply = execResult.success
-        ? `Đã thêm sản phẩm vào giỏ hàng thành công! Quý khách có muốn tiến hành thanh toán hay tiếp tục chọn đồ ạ?`
+        ? isCheckoutConfirmation
+          ? execResult.message || 'Phiên thanh toán đã sẵn sàng.'
+          : `Đã thêm sản phẩm vào giỏ hàng thành công! Quý khách có muốn tiến hành thanh toán hay tiếp tục chọn đồ ạ?`
         : `Không thể hoàn tất thao tác: ${execResult.message || 'Lỗi hệ thống'}`;
 
       if (this.options.memoryAdvisor) {
@@ -301,10 +354,159 @@ export class ChatClient {
       };
     }
 
+    const isHandoffIntent =
+      /(?:gặp|chuyển|nói\s*chuyện|liên\s*hệ)\s*(?:nhân\s*viên|tư\s*vấn\s*viên|người\s*thật|cskh)|(?:gặp|chat\s*với)\s*nhân\s*viên/iu.test(lower) ||
+      lower === 'gặp nhân viên' ||
+      memoryState?.userIntent === 'HANDOFF_TO_STAFF';
+
+    if (isHandoffIntent) {
+      const reply =
+        'Dạ, em đã sẵn sàng chuyển quý khách đến bộ phận Chuyên viên Tư vấn & CSKH của Atelier Vérité.\n\n' +
+        'Quý khách vui lòng chọn tab **"Chat với nhân viên"** ở thanh tiêu đề bên trên hoặc nhấn nút chuyển nhanh bên dưới để bắt đầu cuộc trò chuyện trực tiếp ạ!';
+
+      if (this.options.memoryAdvisor) {
+        await this.options.memoryAdvisor.afterCall(
+          conversationId,
+          { role: 'user', content: userText },
+          { role: 'assistant', content: reply },
+          { userIntent: 'HANDOFF_TO_STAFF' }
+        );
+      }
+
+      return {
+        conversationId,
+        reply,
+        intent: 'HANDOFF_TO_STAFF',
+        handoffReady: true,
+        quickReplies: [
+          { label: 'Chuyển sang nhân viên', action: 'switch_to_staff' },
+        ],
+      };
+    }
+
+    const isViewCartIntent =
+      /(?:xem|kiểm\s*tra|check|coi)\s*(?:giỏ|gio|gio\s*hang|giỏ\s*hàng)/iu.test(lower) ||
+      lower === 'giỏ hàng' ||
+      lower === 'xem giỏ hàng' ||
+      memoryState?.userIntent === 'VIEW_CART';
+
+    if (isViewCartIntent) {
+      let cartSummary = '';
+      if (this.options.toolRegistry) {
+        try {
+          const cartRes: any = await this.options.toolRegistry.executeTool('getMyCart', {}, authContext);
+          if (cartRes?.items?.length > 0) {
+            cartSummary = `\nHiện tại giỏ hàng của quý khách có ${cartRes.items.length} món sản phẩm (Tạm tính: ${cartRes.totalPriceFormatted || cartRes.total || '0đ'}).`;
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      const reply = `Dạ, quý khách có thể kiểm tra và quản lý chi tiết giỏ hàng của mình tại đây.${cartSummary}\nQuý khách muốn xem trang giỏ hàng hay tìm thêm trang phục nào khác ạ?`;
+
+      if (this.options.memoryAdvisor) {
+        await this.options.memoryAdvisor.afterCall(
+          conversationId,
+          { role: 'user', content: userText },
+          { role: 'assistant', content: reply },
+          { userIntent: 'VIEW_CART' }
+        );
+      }
+
+      return {
+        conversationId,
+        reply,
+        intent: 'VIEW_CART',
+        quickReplies: [
+          { label: 'Xem giỏ hàng', action: 'view_cart', url: '/cart' },
+          { label: 'Tìm áo', action: 'search' },
+        ],
+      };
+    }
+
+    const isCheckoutIntent = /(?:thanh\s*toán|đặt\s*hàng|mua\s*ngay|chốt\s*đơn|tiến\s*hành\s*thanh\s*toán|checkout|place\s*order|mua\s*sản\s*phẩm\s*vừa\s*chọn)/iu.test(lower);
+    if (isCheckoutIntent && this.options.toolRegistry) {
+      const cartResult: any = await this.options.toolRegistry.executeTool('getMyCart', {}, authContext);
+      if (cartResult?.success === false) {
+        return { conversationId, reply: cartResult.message || 'Không thể kiểm tra giỏ hàng lúc này.', intent: 'CHECKOUT_PREPARE', metadata: { responseType: 'error' } };
+      }
+      if (typeof cartResult === 'string' || !Array.isArray(cartResult?.items) || cartResult.items.length === 0) {
+        return {
+          conversationId,
+          reply: 'Giỏ hàng của quý khách đang trống. Hãy chọn sản phẩm và biến thể trước khi tiến hành thanh toán.',
+          intent: 'CHECKOUT_PREPARE',
+          metadata: { responseType: 'cart_summary' },
+        };
+      }
+
+      const requestedTerms = lower
+        .replace(/(?:thanh\s*toán|đặt\s*hàng|mua\s*ngay|chốt\s*đơn|tiến\s*hành|checkout|place\s*order|mua\s*sản\s*phẩm\s*vừa\s*chọn)/giu, ' ')
+        .trim()
+        .split(/\s+/)
+        .filter((term) => term.length > 1);
+      const matchingItems = requestedTerms.length === 0
+        ? cartResult.items
+        : cartResult.items.filter((item: any) => {
+            const name = String(item.product_name || item.name || '').toLocaleLowerCase('vi-VN');
+            return requestedTerms.every((term) => name.includes(term));
+          });
+
+      if (matchingItems.length === 0) {
+        return {
+          conversationId,
+          reply: 'Em chưa tìm thấy sản phẩm được yêu cầu trong giỏ hàng hiện tại. Quý khách vui lòng chọn đúng sản phẩm trong giỏ trước khi thanh toán.',
+          intent: 'CHECKOUT_PREPARE',
+          metadata: { responseType: 'cart_summary' },
+        };
+      }
+      if (matchingItems.some((item: any) => !item.product_id)) {
+        return {
+          conversationId,
+          reply: 'Hiện chưa thể xác minh đầy đủ thông tin sản phẩm trong giỏ để chuẩn bị thanh toán. Quý khách vui lòng thử lại sau.',
+          intent: 'CHECKOUT_PREPARE',
+          metadata: { responseType: 'error' },
+        };
+      }
+
+      const checkoutResult: any = await this.options.toolRegistry.executeTool(
+        'prepareCheckout',
+        {
+          items: matchingItems.map((item: any) => ({
+            product_id: item.product_id,
+            variant_id: item.variant_id || null,
+            color: item.color || undefined,
+            size: item.size || undefined,
+            quantity: Number(item.quantity || 1),
+          })),
+        },
+        authContext
+      );
+
+      const reply = checkoutResult?.message || 'Không thể chuẩn bị phiên thanh toán lúc này.';
+      if (this.options.memoryAdvisor) {
+        await this.options.memoryAdvisor.afterCall(
+          conversationId,
+          { role: 'user', content: userText },
+          { role: 'assistant', content: reply },
+          { userIntent: 'CHECKOUT_PREPARE', pendingAction: checkoutResult?.requiresConfirmation ? checkoutResult : null }
+        );
+      }
+      return {
+        conversationId,
+        reply,
+        intent: 'CHECKOUT_PREPARE',
+        pendingAction: checkoutResult?.requiresConfirmation ? checkoutResult : null,
+        actionResult: checkoutResult,
+        metadata: { responseType: checkoutResult?.requiresConfirmation ? 'confirmation_required' : 'error' },
+      };
+    }
+
+    const hasExplicitProductQuery = PRODUCT_QUERY_PATTERN.test(lower);
     const isSearchIntent =
-      /^(?:tìm|search|gợi ý|tìm kiếm|xem)/iu.test(lower) ||
+      EXPLICIT_SEARCH_PATTERN.test(lower) ||
       /tìm.*giúp|gợi ý.*cho|xem.*sản phẩm|kiếm.*áo|kiếm.*quần|kiếm.*váy|kiếm.*đầm/iu.test(lower) ||
-      memoryState?.userIntent === 'SEARCH_PRODUCTS';
+      hasExplicitProductQuery;
 
     const isAddToCartIntent =
       /thêm.*vào.*giỏ|cho.*vào.*giỏ|mua|đặt.*hàng/i.test(lower) ||
@@ -320,23 +522,110 @@ export class ChatClient {
           authContext
         );
 
-        const foundProducts: CandidateProduct[] = [];
-        if (searchResult && (Array.isArray(searchResult) || Array.isArray((searchResult as any).results))) {
-          const rawList = Array.isArray(searchResult) ? searchResult : (searchResult as any).results;
-          for (const item of rawList) {
-            const p = item.product || item.metadata || item;
-            foundProducts.push({
-              id: String(p._id || p.id || item.sourceId),
-              name: p.name || 'Sản phẩm Atelier',
-              slug: p.slug,
-              price: p.price ?? p.new_price ?? p.price_number,
-              finalPrice: p.new_price ?? p.price,
-              image: p.image || p.displayProduct?.[0] || '',
-            });
-          }
-        }
+        const foundProducts = extractSearchItems(searchResult);
 
         if (foundProducts.length > 0) {
+          const targetProduct = foundProducts[0];
+
+          // If action is explicitly ADD_TO_CART
+          if (isAddToCartIntent) {
+            // Check if user already provided color & size
+            const hasColor = Boolean(memoryState?.selectedColor);
+            const hasSize = Boolean(memoryState?.selectedSize);
+
+            // If user already specified color & size, execute addToCart directly!
+            if (hasColor && hasSize) {
+              const qty = memoryState?.quantity || 1;
+              const addRes = await this.options.toolRegistry.executeTool(
+                'addToCart',
+                {
+                  product_id: targetProduct.id,
+                  color: memoryState!.selectedColor,
+                  size: memoryState!.selectedSize,
+                  quantity: qty,
+                },
+                authContext
+              );
+
+              const reply = addRes.success
+                ? `Đã kiểm tra tồn kho và thêm thành công **${targetProduct.name}** (Màu: ${memoryState!.selectedColor}, Size: ${memoryState!.selectedSize}, Số lượng: ${qty}) vào giỏ hàng của quý khách!`
+                : addRes.message || 'Không thể thêm sản phẩm vào giỏ hàng.';
+
+              if (this.options.memoryAdvisor) {
+                await this.options.memoryAdvisor.afterCall(
+                  conversationId,
+                  { role: 'user', content: userText },
+                  { role: 'assistant', content: reply },
+                  { selectedProduct: null, userIntent: null }
+                );
+              }
+
+              return {
+                conversationId,
+                reply,
+                selectedProduct: targetProduct,
+                candidateProducts: foundProducts,
+                actionResult: addRes,
+                intent: 'ADD_TO_CART',
+                quickReplies: [
+                  { label: 'Xem giỏ hàng', action: 'view_cart', url: '/cart' },
+                  { label: 'Tiếp tục mua sắm', action: 'search' },
+                ],
+              };
+            }
+
+            // Otherwise, get variants and ask for color/size with quick replies
+            let colors: string[] = [];
+            let sizes: string[] = [];
+            try {
+              const varRes = await this.options.toolRegistry.executeTool(
+                'getProductVariants',
+                { product_id: targetProduct.id },
+                authContext
+              );
+              if (Array.isArray(varRes) && varRes.length > 0) {
+                const c = [...new Set(varRes.map((v) => v.color).filter((value): value is string => typeof value === 'string' && value.trim().length > 0))];
+                const s = [...new Set(varRes.map((v) => v.size).filter((value): value is string => typeof value === 'string' && value.trim().length > 0))];
+                if (c.length) colors = c as string[];
+                if (s.length) sizes = s as string[];
+              }
+            } catch {
+              // fallback
+            }
+
+            if (this.options.memoryAdvisor) {
+              await this.options.memoryAdvisor.setCandidateProducts(conversationId, foundProducts);
+              await this.options.memoryAdvisor.afterCall(
+                conversationId,
+                { role: 'user', content: userText },
+                {
+                  role: 'assistant',
+                  content: `Atelier đã chọn mẫu **${targetProduct.name}** theo yêu cầu thêm vào giỏ hàng của quý khách. Quý khách vui lòng chọn màu sắc và kích cỡ:`,
+                },
+                { selectedProduct: targetProduct, candidateProducts: foundProducts, userIntent: 'ADD_TO_CART' }
+              );
+            }
+
+            const productBulletList = foundProducts
+              .map((p, idx) => `${idx + 1}. **${p.name}** - ${typeof p.finalPrice === 'number' ? p.finalPrice.toLocaleString('vi-VN') + 'đ' : ''}`)
+              .join('\n');
+
+            return {
+              conversationId,
+              reply: `Atelier Vérité đã chọn mẫu **${targetProduct.name}** theo yêu cầu thêm vào giỏ hàng của quý khách.\n\n${productBulletList}\n\nQuý khách vui lòng chọn màu sắc và kích cỡ bên dưới (hoặc bấm chọn mẫu khác) để em thêm vào giỏ hàng nhé:`,
+              intent: 'ADD_TO_CART',
+              selectedProduct: targetProduct,
+              candidateProducts: foundProducts,
+              suggestedVariants: { colors, sizes },
+              quickReplies: [
+                ...colors.map((c) => ({ label: `Màu ${c}`, action: 'select_color', payload: c })),
+                ...sizes.map((s) => ({ label: `Size ${s}`, action: 'select_size', payload: s })),
+                { label: 'Xem giỏ hàng', action: 'view_cart', url: '/cart' },
+              ],
+            };
+          }
+
+          // Search intent (browse/recommend)
           if (this.options.memoryAdvisor) {
             await this.options.memoryAdvisor.setCandidateProducts(conversationId, foundProducts);
             await this.options.memoryAdvisor.afterCall(
@@ -346,7 +635,7 @@ export class ChatClient {
                 role: 'assistant',
                 content: `Atelier Vérité tìm thấy các thiết kế phù hợp với yêu cầu của quý khách. Quý khách ưng ý mẫu nào nhất ạ?`,
               },
-              { userIntent: 'ADD_TO_CART', candidateProducts: foundProducts }
+              { userIntent: 'SEARCH_PRODUCTS', candidateProducts: foundProducts }
             );
           }
 
@@ -357,10 +646,28 @@ export class ChatClient {
           return {
             conversationId,
             reply: `Atelier Vérité tìm thấy các thiết kế phù hợp với yêu cầu của quý khách:\n\n${productBulletList}\n\nQuý khách muốn chọn mẫu nào (ví dụ: *Mẫu đầu tiên*, *Mẫu 2*) ạ?`,
-            intent: 'ADD_TO_CART',
+            intent: 'PRODUCT_SEARCH',
             candidateProducts: foundProducts,
           };
         }
+
+        const searchFailure = searchResult as any;
+        const reply = typeof searchResult === 'string'
+          ? 'Hiện cửa hàng chưa tìm thấy mẫu phù hợp với yêu cầu của quý khách. Quý khách có thể thử một kiểu dáng, màu sắc hoặc khoảng giá khác.'
+          : searchFailure?.success === false
+            ? 'Hiện em chưa thể truy cập danh mục sản phẩm. Quý khách vui lòng thử lại sau ít phút.'
+            : 'Hiện cửa hàng chưa tìm thấy mẫu phù hợp với yêu cầu của quý khách. Quý khách có thể thử một kiểu dáng, màu sắc hoặc khoảng giá khác.';
+
+        if (this.options.memoryAdvisor) {
+          await this.options.memoryAdvisor.afterCall(
+            conversationId,
+            { role: 'user', content: userText },
+            { role: 'assistant', content: reply },
+            { userIntent: null, candidateProducts: [], selectedProduct: null }
+          );
+        }
+
+        return { conversationId, reply, intent: 'PRODUCT_SEARCH', candidateProducts: [] };
       }
     }
 
@@ -370,8 +677,10 @@ export class ChatClient {
       const needColor = !memoryState.selectedColor;
       const needSize = !memoryState.selectedSize;
 
-      // If missing color or size, ask user
+      // If missing color or size, ask user with quick replies
       if (needColor || needSize) {
+        let colors: string[] = [];
+        let sizes: string[] = [];
         let variantHint = '';
         if (this.options.toolRegistry) {
           const varRes = await this.options.toolRegistry.executeTool(
@@ -379,14 +688,18 @@ export class ChatClient {
             { product_id: selected.id },
             authContext
           );
-          if (Array.isArray(varRes)) {
-            const colors = [...new Set(varRes.map((v) => v.color).filter(Boolean))];
-            const sizes = [...new Set(varRes.map((v) => v.size).filter(Boolean))];
-            variantHint = `\n(Màu hiện có: ${colors.join(', ') || 'Tiêu chuẩn'} | Size: ${sizes.join(', ') || 'Freesize'})`;
+          if (Array.isArray(varRes) && varRes.length > 0) {
+            const c = [...new Set(varRes.map((v) => v.color).filter((value): value is string => typeof value === 'string' && value.trim().length > 0))];
+            const s = [...new Set(varRes.map((v) => v.size).filter((value): value is string => typeof value === 'string' && value.trim().length > 0))];
+            if (c.length) colors = c as string[];
+            if (s.length) sizes = s as string[];
+            variantHint = colors.length || sizes.length
+              ? `\n(Màu hiện có: ${colors.join(', ') || 'chưa xác minh'} | Size: ${sizes.join(', ') || 'chưa xác minh'})`
+              : '';
           }
         }
 
-        const reply = `Quý khách đã chọn **${selected.name}**. Quý khách muốn chọn màu sắc và kích cỡ nào${variantHint} ạ?`;
+        const reply = `Quý khách đã chọn **${selected.name}**. Quý khách muốn chọn màu sắc và kích cỡ nào${variantHint} để thêm vào giỏ hàng ạ?`;
         if (this.options.memoryAdvisor) {
           await this.options.memoryAdvisor.afterCall(
             conversationId,
@@ -400,6 +713,11 @@ export class ChatClient {
           reply,
           selectedProduct: selected,
           candidateProducts: memoryState.candidateProducts,
+          suggestedVariants: { colors, sizes },
+          quickReplies: [
+            ...colors.map((c) => ({ label: `Màu ${c}`, action: 'select_color', payload: c })),
+            ...sizes.map((s) => ({ label: `Size ${s}`, action: 'select_size', payload: s })),
+          ],
         };
       }
 
@@ -424,7 +742,7 @@ export class ChatClient {
           reply = `Đã kiểm tra tồn kho cho **${selected.name}** (${memoryState.selectedColor}, size ${memoryState.selectedSize}, số lượng: ${qty}). Quý khách vui lòng bấm nút "Xác nhận" để thêm vào giỏ hàng nhé!`;
           pendingAction = addRes;
         } else if (addRes.success) {
-          reply = `Đã thêm thành công **${selected.name}** (${memoryState.selectedColor}, size ${memoryState.selectedSize}, x${qty}) vào giỏ hàng của quý khách!`;
+          reply = `Đã kiểm tra tồn kho và thêm thành công **${selected.name}** (${memoryState.selectedColor}, size ${memoryState.selectedSize}, x${qty}) vào giỏ hàng của quý khách! Quý khách có thể xem giỏ hàng hoặc tiếp tục mua sắm.`;
         } else {
           reply = addRes.message || 'Không thể thêm sản phẩm vào giỏ hàng. Quý khách vui lòng thử lại.';
         }
@@ -444,6 +762,10 @@ export class ChatClient {
           selectedProduct: selected,
           actionResult: addRes,
           pendingAction,
+          quickReplies: [
+            { label: 'Xem giỏ hàng', action: 'view_cart', url: '/cart' },
+            { label: 'Tìm áo khác', action: 'search' },
+          ],
         };
       }
     }
@@ -480,10 +802,7 @@ export class ChatClient {
     const model = this.options.model || 'meta-llama/llama-3.1-70b-instruct';
 
     if (!apiKey || apiKey.startsWith('sk-or-v1-your')) {
-      return (
-        'Xin kính chào quý khách! Tôi là Stylist AI của Atelier Vérité. ' +
-        'Tôi sẵn sàng hỗ trợ quý khách tìm kiếm trang phục Haute Couture, kiểm tra bảng size, áp dụng voucher ưu đãi và quản lý giỏ hàng.'
-      );
+      return 'Dịch vụ tư vấn AI hiện chưa sẵn sàng. Quý khách có thể thử lại sau hoặc chuyển sang Chat với nhân viên để được hỗ trợ ngay.';
     }
 
     try {
@@ -509,10 +828,7 @@ export class ChatClient {
       const json = await res.json() as any;
       return json?.choices?.[0]?.message?.content || 'Xin lỗi quý khách, hệ thống AI đang cập nhật.';
     } catch {
-      return (
-        'Dạ, Atelier Vérité đã ghi nhận yêu cầu của quý khách. ' +
-        'Quý khách muốn tìm kiếm trang phục dạ tiệc, áo blazer phong cách kiến trúc hay tư vấn bảng size chuẩn ạ?'
-      );
+      return 'Dịch vụ tư vấn AI đang tạm thời gián đoạn. Quý khách vui lòng thử lại sau hoặc chuyển sang Chat với nhân viên.';
     }
   }
 }

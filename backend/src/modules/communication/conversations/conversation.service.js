@@ -7,10 +7,16 @@ import {
 } from "../errors/communication.errors.js";
 import { validateCreateConversationDto } from "../validators/communication.validator.js";
 
-const customerPopulate = {
-  path: "customerId",
-  select: "fullName email avatar_url",
-};
+const customerPopulate = [
+  {
+    path: "customerId",
+    select: "fullName email avatar_url",
+  },
+  {
+    path: "assignedAdminId",
+    select: "fullName email",
+  },
+];
 
 const assertObjectId = (id, field = "id") => {
   if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -122,9 +128,6 @@ class ConversationService {
 
   async closeConversation(conversationId, actor = {}) {
     await this.getConversationById(conversationId, actor);
-    if (actor.role === "admin") {
-      throw new ForbiddenError("Admin is not allowed to close conversations");
-    }
     return conversationRepository.updateById(conversationId, { status: "closed" });
   }
 

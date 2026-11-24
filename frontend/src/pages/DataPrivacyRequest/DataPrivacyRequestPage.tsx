@@ -71,7 +71,6 @@ export const DataPrivacyRequestPage: React.FC = () => {
 
           const data = await res.json();
           if (res.ok) {
-            // Trigger download of exported JSON
             const blob = new Blob([JSON.stringify(data.data || data, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -94,7 +93,6 @@ export const DataPrivacyRequestPage: React.FC = () => {
             throw new Error(data.message || 'Mật khẩu xác thực không chính xác.');
           }
         } else {
-          // ERASURE, RESTRICT, OBJECT
           const res = await fetch('/api/privacy/data-requests', {
             method: 'POST',
             headers: {
@@ -130,7 +128,6 @@ export const DataPrivacyRequestPage: React.FC = () => {
               type: 'info',
             });
           } else {
-            // Demo/mock fallback if backend endpoint is unavailable in staging/test
             setSubmissionResult({
               status: 'pending',
               message:
@@ -147,8 +144,7 @@ export const DataPrivacyRequestPage: React.FC = () => {
           }
         }
       } else {
-        // Guest mode submission
-        const res = await fetch('/api/support/tickets', {
+        await fetch('/api/support/tickets', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -190,28 +186,28 @@ export const DataPrivacyRequestPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#0b0b0e] text-[#f2f2f4] pt-28 pb-20 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-[var(--bg)] text-[var(--text)] pt-28 pb-20 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto space-y-10 w-full overflow-hidden">
 
         {/* Navigation Breadcrumb */}
         <div className="space-y-3">
           <Link
             to="/data-privacy"
-            className="inline-flex items-center gap-1.5 text-xs text-[#d4af37] hover:underline uppercase tracking-wider font-medium"
+            className="inline-flex items-center gap-1.5 text-xs text-[var(--accent)] hover:underline uppercase tracking-wider font-semibold"
           >
             <ArrowLeft className="w-3.5 h-3.5" /> Quay lại Trung tâm quyền riêng tư
           </Link>
-          <h1 className="font-serif text-3xl sm:text-4xl uppercase tracking-wider text-white font-medium">
+          <h1 className="font-serif text-3xl sm:text-4xl uppercase tracking-wider text-[var(--text)] font-medium">
             Biểu Mẫu Thực Hiện Quyền Dữ Liệu Cá Nhân
           </h1>
-          <p className="text-xs sm:text-sm text-white/60 font-light">
+          <p className="text-xs sm:text-sm text-[var(--text-muted)] font-light">
             Biểu mẫu tiếp nhận và xử lý yêu cầu của chủ thể dữ liệu theo Luật Bảo vệ dữ liệu cá nhân 91/2025/QH15.
           </p>
         </div>
 
         {/* Prior Notice Card (Bắt buộc theo Luật) */}
-        <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/10 space-y-2.5 text-xs text-white/70 leading-relaxed font-light">
-          <div className="flex items-center gap-2 text-white font-serif uppercase tracking-wider font-medium text-[#d4af37]">
+        <div className="p-5 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-sm space-y-2.5 text-xs text-[var(--text-muted)] leading-relaxed font-light">
+          <div className="flex items-center gap-2 text-[var(--text)] font-serif uppercase tracking-wider font-medium text-[var(--accent)]">
             <ShieldCheck className="w-4 h-4" />
             <span>Thông Báo Mục Đích Xử Lý Của Biểu Mẫu Trước Khi Thu Thập</span>
           </div>
@@ -223,17 +219,17 @@ export const DataPrivacyRequestPage: React.FC = () => {
         {/* Result Message Container */}
         {submissionResult && (
           <div
-            className={`p-6 rounded-2xl border space-y-2 text-sm ${submissionResult.status === 'completed'
-              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-100'
+            className={`p-6 rounded-2xl border space-y-2 text-sm shadow-sm ${submissionResult.status === 'completed'
+              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-100'
               : submissionResult.status === 'pending'
-                ? 'bg-amber-500/10 border-amber-500/30 text-amber-100'
-                : 'bg-rose-500/10 border-rose-500/30 text-rose-100'
+                ? 'bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-100'
+                : 'bg-rose-500/10 border-rose-500/30 text-rose-700 dark:text-rose-100'
               }`}
           >
             <div className="flex items-center gap-2 font-serif text-base uppercase font-semibold">
-              {submissionResult.status === 'completed' && <CheckCircle2 className="w-5 h-5 text-emerald-400" />}
-              {submissionResult.status === 'pending' && <Clock className="w-5 h-5 text-amber-400" />}
-              {submissionResult.status === 'error' && <AlertCircle className="w-5 h-5 text-rose-400" />}
+              {submissionResult.status === 'completed' && <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />}
+              {submissionResult.status === 'pending' && <Clock className="w-5 h-5 text-amber-600 dark:text-amber-400" />}
+              {submissionResult.status === 'error' && <AlertCircle className="w-5 h-5 text-rose-600 dark:text-rose-400" />}
               <span>
                 {submissionResult.status === 'completed'
                   ? 'Đã Xử Lý Hoàn Tất'
@@ -244,8 +240,8 @@ export const DataPrivacyRequestPage: React.FC = () => {
             </div>
             <p className="text-xs sm:text-sm leading-relaxed">{submissionResult.message}</p>
             {submissionResult.requestCode && (
-              <div className="pt-2 text-xs font-mono text-white/60">
-                Mã tra cứu yêu cầu: <strong className="text-white">{submissionResult.requestCode}</strong>
+              <div className="pt-2 text-xs font-mono text-[var(--text-muted)]">
+                Mã tra cứu yêu cầu: <strong className="text-[var(--text)]">{submissionResult.requestCode}</strong>
               </div>
             )}
           </div>
@@ -255,18 +251,18 @@ export const DataPrivacyRequestPage: React.FC = () => {
         <form
           data-testid="privacy-request-form"
           onSubmit={handleSubmit}
-          className="p-6 sm:p-8 rounded-2xl bg-white/[0.02] border border-white/10 space-y-6"
+          className="p-6 sm:p-8 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xl space-y-6"
         >
 
           {/* Request Type Selector */}
           <div className="space-y-2">
-            <label className="block text-xs uppercase tracking-wider font-serif font-medium text-white">
-              1. Chọn Loại Quyền Cần Thực Hiện <span className="text-[#d4af37]">*</span>
+            <label className="block text-xs uppercase tracking-wider font-serif font-medium text-[var(--text)]">
+              1. Chọn Loại Quyền Cần Thực Hiện <span className="text-[var(--accent)]">*</span>
             </label>
             <select
               value={requestType}
               onChange={(e) => setRequestType(e.target.value)}
-              className="w-full bg-[#14141a] border border-white/10 rounded-xl px-4 py-3 text-xs sm:text-sm text-white focus:outline-none focus:border-[#d4af37]"
+              className="w-full bg-[var(--bg-alt)] border border-[var(--border)] rounded-xl px-4 py-3 text-xs sm:text-sm text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
             >
               <option value="ERASURE">Yêu cầu xóa dữ liệu cá nhân & Hủy tài khoản (Right to Erasure)</option>
               <option value="EXPORT">Yêu cầu trích xuất & Tải bản sao dữ liệu (Data Portability)</option>
@@ -277,7 +273,7 @@ export const DataPrivacyRequestPage: React.FC = () => {
 
           {/* Scope & Accounting Law Notice for ERASURE */}
           {requestType === 'ERASURE' && (
-            <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-200 text-xs space-y-1.5 leading-relaxed">
+            <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-200 text-xs space-y-1.5 leading-relaxed">
               <div className="flex items-center gap-1.5 font-semibold uppercase font-serif">
                 <AlertCircle className="w-4 h-4" />
                 <span>Quy Định Về Phạm Vi Xóa Dữ Liệu</span>
@@ -292,15 +288,15 @@ export const DataPrivacyRequestPage: React.FC = () => {
           )}
 
           {/* Identity Verification Section */}
-          <div className="space-y-3 pt-2 border-t border-white/5">
-            <label className="block text-xs uppercase tracking-wider font-serif font-medium text-white">
-              2. Xác Thực Danh Tính Chủ Thể Dữ Liệu <span className="text-[#d4af37]">*</span>
+          <div className="space-y-3 pt-2 border-t border-[var(--border)]">
+            <label className="block text-xs uppercase tracking-wider font-serif font-medium text-[var(--text)]">
+              2. Xác Thực Danh Tính Chủ Thể Dữ Liệu <span className="text-[var(--accent)]">*</span>
             </label>
 
             {isAuthenticated ? (
               <div className="space-y-2">
-                <p className="text-xs text-white/60">
-                  Tài khoản hiện tại: <strong className="text-white">{user?.email}</strong>. Vui lòng nhập mật khẩu hiện tại để xác thực lại danh tính.
+                <p className="text-xs text-[var(--text-muted)]">
+                  Tài khoản hiện tại: <strong className="text-[var(--text)]">{user?.email}</strong>. Vui lòng nhập mật khẩu hiện tại để xác thực lại danh tính.
                 </p>
                 <div className="relative">
                   <input
@@ -309,32 +305,32 @@ export const DataPrivacyRequestPage: React.FC = () => {
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
                     required
-                    className="w-full bg-[#14141a] border border-white/10 rounded-xl px-4 py-3 pl-10 text-xs sm:text-sm text-white placeholder-white/30 focus:outline-none focus:border-[#d4af37]"
+                    className="w-full bg-[var(--bg-alt)] border border-[var(--border)] rounded-xl px-4 py-3 pl-10 text-xs sm:text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]"
                   />
-                  <Lock className="w-4 h-4 text-white/40 absolute left-3.5 top-3.5" />
+                  <Lock className="w-4 h-4 text-[var(--text-muted)] absolute left-3.5 top-3.5" />
                 </div>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-[11px] text-white/60">Địa chỉ Email xác nhận:</label>
+                  <label className="text-[11px] text-[var(--text-muted)]">Địa chỉ Email xác nhận:</label>
                   <input
                     type="email"
                     placeholder="email@domain.com"
                     value={guestEmail}
                     onChange={(e) => setGuestEmail(e.target.value)}
                     required
-                    className="w-full bg-[#14141a] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-white/30 focus:outline-none focus:border-[#d4af37]"
+                    className="w-full bg-[var(--bg-alt)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[11px] text-white/60">Số điện thoại liên hệ:</label>
+                  <label className="text-[11px] text-[var(--text-muted)]">Số điện thoại liên hệ:</label>
                   <input
                     type="tel"
                     placeholder="09xx xxx xxx"
                     value={guestPhone}
                     onChange={(e) => setGuestPhone(e.target.value)}
-                    className="w-full bg-[#14141a] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-white/30 focus:outline-none focus:border-[#d4af37]"
+                    className="w-full bg-[var(--bg-alt)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-xs text-[var(--text)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]"
                   />
                 </div>
               </div>
@@ -342,8 +338,8 @@ export const DataPrivacyRequestPage: React.FC = () => {
           </div>
 
           {/* Reason / Details Input */}
-          <div className="space-y-2 pt-2 border-t border-white/5">
-            <label className="block text-xs uppercase tracking-wider font-serif font-medium text-white">
+          <div className="space-y-2 pt-2 border-t border-[var(--border)]">
+            <label className="block text-xs uppercase tracking-wider font-serif font-medium text-[var(--text)]">
               3. Lý Do Hoặc Chi Tiết Bổ Sung (Tùy chọn)
             </label>
             <textarea
@@ -351,18 +347,18 @@ export const DataPrivacyRequestPage: React.FC = () => {
               placeholder="Nhập nội dung hoặc yêu cầu chi tiết (nếu có)..."
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              className="w-full bg-[#14141a] border border-white/10 rounded-xl p-4 text-xs sm:text-sm text-white placeholder-white/30 focus:outline-none focus:border-[#d4af37]"
+              className="w-full bg-[var(--bg-alt)] border border-[var(--border)] rounded-xl p-4 text-xs sm:text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]"
             />
           </div>
 
           {/* Consent Checkbox (Strictly Un-ticked by default) */}
-          <div className="pt-2 border-t border-white/5">
-            <label className="flex items-start gap-3 cursor-pointer text-xs text-white/70 leading-relaxed">
+          <div className="pt-2 border-t border-[var(--border)]">
+            <label className="flex items-start gap-3 cursor-pointer text-xs text-[var(--text-muted)] leading-relaxed">
               <input
                 type="checkbox"
                 checked={consentAcknowledge}
                 onChange={(e) => setConsentAcknowledge(e.target.checked)}
-                className="w-4 h-4 rounded mt-0.5 accent-[#d4af37] cursor-pointer"
+                className="w-4 h-4 rounded mt-0.5 accent-[var(--accent)] cursor-pointer"
               />
               <span>
                 Tôi xác nhận là chủ thể dữ liệu hợp pháp hoặc người được ủy quyền hợp pháp. Tôi đã đọc và hiểu rõ thông báo mục đích thu thập và phạm vi xử lý yêu cầu theo quy định pháp luật.
@@ -375,9 +371,9 @@ export const DataPrivacyRequestPage: React.FC = () => {
             <button
               type="submit"
               disabled={submitting}
-              className={`w-full py-3.5 rounded-xl font-semibold text-xs tracking-wider uppercase flex items-center justify-center gap-2 transition-all shadow-lg ${requestType === 'ERASURE'
+              className={`w-full py-3.5 rounded-xl font-semibold text-xs tracking-wider uppercase flex items-center justify-center gap-2 transition-all shadow-md ${requestType === 'ERASURE'
                 ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-600/20'
-                : 'bg-[#d4af37] hover:bg-[#e5c158] text-black shadow-[#d4af37]/20'
+                : 'bg-[var(--accent)] hover:bg-[#9E7B15] text-[var(--accent-contrast)] shadow-md'
                 } ${submitting ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               {submitting ? (

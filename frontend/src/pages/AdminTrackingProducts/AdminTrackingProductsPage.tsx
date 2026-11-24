@@ -36,6 +36,7 @@ export const AdminTrackingProductsPage: React.FC = () => {
       if (overviewRes?.data) setOverview(overviewRes.data);
       if (funnelRes?.data) setFunnel(funnelRes.data);
     } catch (err: any) {
+      if (err?.status === 401 || err?.status === 403 || err?.message?.toLowerCase().includes('refresh')) return;
       setError(err?.message || 'Không thể nạp dữ liệu phân tích sản phẩm');
     } finally {
       setLoading(false);

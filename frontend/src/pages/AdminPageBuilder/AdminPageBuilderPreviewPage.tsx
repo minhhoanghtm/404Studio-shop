@@ -19,6 +19,7 @@ import { cmsPagesApi, PolicyDocument } from '@/shared/api';
 import { EditorSection, ViewportMode, BlockItem } from '@/shared/cms/types';
 import { BlockRenderer } from '@/shared/cms/BlockRenderer';
 import { createBlockInstance } from '@/shared/cms/blockLibrary';
+import { Z_INDEX } from '@/shared/config/zIndex';
 
 export const AdminPageBuilderPreviewPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -103,7 +104,10 @@ export const AdminPageBuilderPreviewPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#07070a] text-white flex flex-col">
       {/* Top Preview Control Bar */}
-      <header className="h-14 border-b border-white/10 bg-[#0e0e14] px-4 flex items-center justify-between shrink-0 sticky top-0 z-40">
+      <header
+        className="h-14 border-b border-white/10 bg-[#0e0e14] px-4 flex items-center justify-between shrink-0 sticky top-0"
+        style={{ zIndex: Z_INDEX.sticky }}
+      >
         <div className="flex items-center gap-3">
           <Link
             to="/admin/page-builder"

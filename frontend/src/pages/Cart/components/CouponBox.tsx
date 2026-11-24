@@ -30,32 +30,32 @@ export const CouponBox: React.FC<CouponBoxProps> = ({
     <div className="space-y-2 pt-2">
       <form onSubmit={handleSubmit} className="flex gap-2">
         <div className="relative flex-1">
-          <Tag className="w-3.5 h-3.5 text-white/40 absolute left-3 top-1/2 -translate-y-1/2" />
+          <Tag className="w-3.5 h-3.5 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={code}
             onChange={(e) => setCode(e.target.value)}
             placeholder={vi.cart.couponPlaceholder}
-            className="w-full pl-9 pr-3 py-2.5 bg-noir-950 border border-white/15 rounded-lg text-xs text-white placeholder-white/40 focus:border-champagne outline-none font-mono uppercase"
+            className="w-full pl-9 pr-3 py-2.5 bg-[var(--bg-alt)] border border-[var(--border)] rounded-lg text-xs text-[var(--text)] placeholder-[var(--text-muted)] focus:border-[var(--accent)] outline-none font-mono uppercase"
           />
         </div>
         <button
           type="submit"
-          className="px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white text-xs font-semibold uppercase tracking-wider rounded-lg transition-colors"
+          className="px-5 py-2.5 bg-[var(--accent)] hover:bg-[#9E7B15] text-[var(--accent-contrast)] text-xs font-semibold uppercase tracking-wider rounded-lg transition-colors"
         >
           {vi.cart.apply}
         </button>
       </form>
 
       {appliedCoupon && (
-        <div className="flex items-center justify-between text-xs text-champagne pt-1 px-1">
+        <div className="flex items-center justify-between text-xs text-[var(--accent)] pt-1 px-1">
           <span>
             Đặc quyền áp dụng: <strong>{appliedCoupon.code}</strong> (-{appliedCoupon.discountPercentage}%)
           </span>
           <button
             type="button"
             onClick={onRemoveCoupon}
-            className="text-white/40 hover:text-white underline text-[11px]"
+            className="text-[var(--text-muted)] hover:text-[var(--text)] underline text-[11px]"
           >
             {vi.cart.removeCoupon}
           </button>
@@ -63,7 +63,7 @@ export const CouponBox: React.FC<CouponBoxProps> = ({
       )}
 
       {couponError && (
-        <p className="text-xs text-red-400 px-1">{couponError}</p>
+        <p className="text-xs text-[var(--status-error)] px-1">{couponError}</p>
       )}
     </div>
   );

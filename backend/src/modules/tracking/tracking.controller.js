@@ -83,6 +83,7 @@ class TrackingController {
       return res.status(202).json({
         success: true,
         message: "Event accepted",
+        accepted: result.accepted,
         deduplicated: result.deduplicated,
       });
     } catch (error) {

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Download, Loader2 } from 'lucide-react';
 import { generateCategoryExcelTemplate } from '@/shared/utils/excel/categoryExcel';
 import { generateProductExcelTemplate } from '@/shared/utils/excel/productExcel';
-import { categoriesApi } from '@/shared/api';
+import { categoriesApi, adminApi } from '@/shared/api';
 import { useToastStore } from '@/shared/stores/useToastStore';
 
 interface ExcelTemplateButtonProps {
@@ -24,16 +24,30 @@ export const ExcelTemplateButton: React.FC<ExcelTemplateButtonProps> = ({
         await generateCategoryExcelTemplate();
         addToast('Đã tải xuống tệp mẫu danh mục: category-import-template.xlsx', 'success');
       } else {
-        // Fetch current categories to populate reference sheet
-        let cats: any[] = [];
+        // Try downloading official backend template with embedded image instructions
         try {
-          const res = await categoriesApi.getCategories();
-          cats = res.data || (res as any) || [];
+          const blob = await adminApi.downloadProductTemplate();
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = 'product-import-template.xlsx';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+          addToast('Đã tải xuống tệp mẫu sản phẩm đa biến thể có hướng dẫn ảnh nhúng!', 'success');
         } catch {
-          // Ignore
+          // Fallback to client-side template generator
+          let cats: any[] = [];
+          try {
+            const res = await categoriesApi.getCategories();
+            cats = res.data || (res as any) || [];
+          } catch {
+            // Ignore
+          }
+          await generateProductExcelTemplate(cats);
+          addToast('Đã tải xuống tệp mẫu sản phẩm đa biến thể: product-import-template.xlsx', 'success');
         }
-        await generateProductExcelTemplate(cats);
-        addToast('Đã tải xuống tệp mẫu sản phẩm đa biến thể: product-import-template.xlsx', 'success');
       }
     } catch (err: any) {
       addToast(`Lỗi tạo tệp mẫu Excel: ${err.message || 'Không rõ nguyên nhân'}`, 'error');
@@ -47,8 +61,8 @@ export const ExcelTemplateButton: React.FC<ExcelTemplateButtonProps> = ({
       type="button"
       onClick={handleDownload}
       disabled={loading}
-      className={`px-3 py-2 text-xs font-mono uppercase tracking-wider text-platinum-light hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 rounded-sm transition-all flex items-center gap-1.5 disabled:opacity-50 ${className}`}
-      title={type === 'category' ? 'Tải tệp Excel mẫu danh mục' : 'Tải tệp Excel mẫu sản phẩm'}
+      className={`px-3 py-2 text-xs font-mono uppercase tracking-wider text-[var(--text-primary)] hover:text-[var(--accent)] bg-[var(--bg-card)] hover:bg-[var(--bg-card-muted)] border border-[var(--border)] rounded-sm transition-all flex items-center gap-1.5 disabled:opacity-50 ${className}`}
+      title={type === 'category' ? 'Tải tệp Excel mẫu danh mục' : 'Tải tệp Excel mẫu sản phẩm có ảnh nhúng'}
     >
       {loading ? (
         <Loader2 className="w-3.5 h-3.5 animate-spin text-champagne" />
@@ -59,3 +73,4 @@ export const ExcelTemplateButton: React.FC<ExcelTemplateButtonProps> = ({
     </button>
   );
 };
+

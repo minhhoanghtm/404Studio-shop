@@ -24,6 +24,7 @@ import { campaignsApi, productsApi } from '@/shared/api';
 import { Campaign, CampaignProductItem, CampaignStats } from '@/shared/campaigns';
 import { PopupPreviewModal } from './components/PopupPreviewModal';
 import { useToastStore } from '@/shared/stores/useToastStore';
+import { useModal, ModalPortal } from '@/shared/context/ModalContext';
 
 export const AdminCampaignDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -53,6 +54,18 @@ export const AdminCampaignDetailPage: React.FC = () => {
   const [editSalePrice, setEditSalePrice] = useState<number>(0);
   const [editQuota, setEditQuota] = useState<number>(0);
   const [updatingProduct, setUpdatingProduct] = useState(false);
+
+  const { overlayZIndex: addProdOverlayZ, contentZIndex: addProdContentZ } = useModal({
+    id: 'admin-campaign-add-product-modal',
+    isOpen: isAddProductModalOpen,
+    onClose: () => setIsAddProductModalOpen(false),
+  });
+
+  const { overlayZIndex: editProdOverlayZ, contentZIndex: editProdContentZ } = useModal({
+    id: 'admin-campaign-edit-product-modal',
+    isOpen: Boolean(editingProduct),
+    onClose: () => setEditingProduct(null),
+  });
 
   const fetchCampaignDetail = useCallback(async () => {
     if (!id) return;
@@ -548,165 +561,183 @@ export const AdminCampaignDetailPage: React.FC = () => {
 
       {/* Add Product Modal */}
       {isAddProductModalOpen && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
-        >
-          <div className="w-full max-w-lg bg-noir-900 border border-white/20 p-6 rounded-sm text-white shadow-2xl space-y-4">
-            <h3 className="font-serif text-base uppercase tracking-wider font-medium text-champagne">
-              Thêm Sản Phẩm Vào Chiến Dịch
-            </h3>
+        <ModalPortal>
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="fixed inset-0 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm pointer-events-auto"
+            style={{ zIndex: addProdOverlayZ }}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setIsAddProductModalOpen(false);
+            }}
+          >
+            <div
+              className="w-full max-w-lg bg-noir-900 border border-white/20 p-6 rounded-sm text-white shadow-2xl space-y-4 max-h-[calc(100dvh-32px)] overflow-y-auto"
+              style={{ zIndex: addProdContentZ }}
+            >
+              <h3 className="font-serif text-base uppercase tracking-wider font-medium text-champagne">
+                Thêm Sản Phẩm Vào Chiến Dịch
+              </h3>
 
-            {addProductError && (
-              <div className="p-3 bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs rounded-xs">
-                {addProductError}
-              </div>
-            )}
+              {addProductError && (
+                <div className="p-3 bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs rounded-xs">
+                  {addProductError}
+                </div>
+              )}
 
-            <form onSubmit={handleAddProductSubmit} className="space-y-4 text-xs">
-              <div>
-                <label className="block text-xs font-mono uppercase tracking-wider text-white/70 mb-1.5">
-                  Chọn Sản Phẩm Từ Danh Mục
-                </label>
-                <select
-                  value={selectedProductId}
-                  onChange={(e) => handleProductSelectChange(e.target.value)}
-                  className="w-full bg-noir-950 border border-white/10 rounded-sm px-3 py-2 text-xs text-white focus:border-champagne focus:outline-none"
-                >
-                  {availableProducts.map((p) => {
-                    const price = p.new_price ?? p.price ?? 0;
-                    return (
-                      <option key={p._id} value={p._id}>
-                        {p.name} - Giá gốc: {price.toLocaleString('vi-VN')}₫
-                      </option>
-                    );
-                  })}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
+              <form onSubmit={handleAddProductSubmit} className="space-y-4 text-xs">
                 <div>
                   <label className="block text-xs font-mono uppercase tracking-wider text-white/70 mb-1.5">
-                    Giá Khuyến Mãi (Sale Price VNĐ) <span className="text-champagne">*</span>
+                    Chọn Sản Phẩm Từ Danh Mục
                   </label>
-                  <input
-                    type="number"
-                    required
-                    min="1000"
-                    value={salePrice}
-                    onChange={(e) => setSalePrice(Number(e.target.value) || 0)}
-                    className="w-full bg-noir-950 border border-white/10 rounded-sm px-3 py-2 text-xs text-white font-mono focus:border-champagne focus:outline-none"
-                  />
+                  <select
+                    value={selectedProductId}
+                    onChange={(e) => handleProductSelectChange(e.target.value)}
+                    className="w-full bg-noir-950 border border-white/10 rounded-sm px-3 py-2 text-xs text-white focus:border-champagne focus:outline-none"
+                  >
+                    {availableProducts.map((p) => {
+                      const price = p.new_price ?? p.price ?? 0;
+                      return (
+                        <option key={p._id} value={p._id}>
+                          {p.name} - Giá gốc: {price.toLocaleString('vi-VN')}₫
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-mono uppercase tracking-wider text-white/70 mb-1.5">
+                      Giá Khuyến Mãi (Sale Price VNĐ) <span className="text-champagne">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      min="1000"
+                      value={salePrice}
+                      onChange={(e) => setSalePrice(Number(e.target.value) || 0)}
+                      className="w-full bg-noir-950 border border-white/10 rounded-sm px-3 py-2 text-xs text-white font-mono focus:border-champagne focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-mono uppercase tracking-wider text-white/70 mb-1.5">
+                      Tổng Suất Bán (Quota) <span className="text-champagne">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      min="1"
+                      value={quota}
+                      onChange={(e) => setQuota(parseInt(e.target.value, 10) || 1)}
+                      className="w-full bg-noir-950 border border-white/10 rounded-sm px-3 py-2 text-xs text-white font-mono focus:border-champagne focus:outline-none"
+                    />
+                  </div>
                 </div>
 
                 <div>
                   <label className="block text-xs font-mono uppercase tracking-wider text-white/70 mb-1.5">
-                    Tổng Suất Bán (Quota) <span className="text-champagne">*</span>
+                    Giới Hạn Mua Mỗi Khách Hàng (Tùy chọn)
                   </label>
                   <input
                     type="number"
-                    required
                     min="1"
-                    value={quota}
-                    onChange={(e) => setQuota(parseInt(e.target.value, 10) || 1)}
+                    value={perUserLimit}
+                    onChange={(e) => setPerUserLimit(parseInt(e.target.value, 10) || 1)}
                     className="w-full bg-noir-950 border border-white/10 rounded-sm px-3 py-2 text-xs text-white font-mono focus:border-champagne focus:outline-none"
                   />
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-xs font-mono uppercase tracking-wider text-white/70 mb-1.5">
-                  Giới Hạn Mua Mỗi Khách Hàng (Tùy chọn)
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  value={perUserLimit}
-                  onChange={(e) => setPerUserLimit(parseInt(e.target.value, 10) || 1)}
-                  className="w-full bg-noir-950 border border-white/10 rounded-sm px-3 py-2 text-xs text-white font-mono focus:border-champagne focus:outline-none"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/10">
-                <button
-                  type="button"
-                  onClick={() => setIsAddProductModalOpen(false)}
-                  className="px-4 py-2 bg-noir-950 border border-white/10 text-xs text-white/70 hover:text-white rounded-xs"
-                >
-                  Hủy Bỏ
-                </button>
-                <button
-                  type="submit"
-                  disabled={addingProduct}
-                  className="px-5 py-2 bg-champagne hover:bg-champagne-light text-noir-950 font-serif text-xs font-semibold uppercase tracking-wider rounded-xs shadow-md disabled:opacity-50"
-                >
-                  {addingProduct ? 'Đang thêm...' : 'Xác Nhận Thêm'}
-                </button>
-              </div>
-            </form>
+                <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddProductModalOpen(false)}
+                    className="px-4 py-2 bg-noir-950 border border-white/10 text-xs text-white/70 hover:text-white rounded-xs"
+                  >
+                    Hủy Bỏ
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={addingProduct}
+                    className="px-5 py-2 bg-champagne hover:bg-champagne-light text-noir-950 font-serif text-xs font-semibold uppercase tracking-wider rounded-xs shadow-md disabled:opacity-50"
+                  >
+                    {addingProduct ? 'Đang thêm...' : 'Xác Nhận Thêm'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
 
       {/* Edit Product Modal */}
       {editingProduct && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
-        >
-          <div className="w-full max-w-md bg-noir-900 border border-white/20 p-6 rounded-sm text-white shadow-2xl space-y-4">
-            <h3 className="font-serif text-base uppercase tracking-wider font-medium text-champagne">
-              Sửa Mức Giá & Quota Sản Phẩm
-            </h3>
+        <ModalPortal>
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="fixed inset-0 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm pointer-events-auto"
+            style={{ zIndex: editProdOverlayZ }}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setEditingProduct(null);
+            }}
+          >
+            <div
+              className="w-full max-w-md bg-noir-900 border border-white/20 p-6 rounded-sm text-white shadow-2xl space-y-4 max-h-[calc(100dvh-32px)] overflow-y-auto"
+              style={{ zIndex: editProdContentZ }}
+            >
+              <h3 className="font-serif text-base uppercase tracking-wider font-medium text-champagne">
+                Sửa Mức Giá & Quota Sản Phẩm
+              </h3>
 
-            <form onSubmit={handleUpdateProductSubmit} className="space-y-4 text-xs">
-              <div>
-                <label className="block text-xs font-mono uppercase tracking-wider text-white/70 mb-1.5">
-                  Giá Khuyến Mãi (VNĐ)
-                </label>
-                <input
-                  type="number"
-                  min="1000"
-                  value={editSalePrice}
-                  onChange={(e) => setEditSalePrice(Number(e.target.value) || 0)}
-                  className="w-full bg-noir-950 border border-white/10 rounded-sm px-3 py-2 text-xs text-white font-mono focus:border-champagne focus:outline-none"
-                />
-              </div>
+              <form onSubmit={handleUpdateProductSubmit} className="space-y-4 text-xs">
+                <div>
+                  <label className="block text-xs font-mono uppercase tracking-wider text-white/70 mb-1.5">
+                    Giá Khuyến Mãi (VNĐ)
+                  </label>
+                  <input
+                    type="number"
+                    min="1000"
+                    value={editSalePrice}
+                    onChange={(e) => setEditSalePrice(Number(e.target.value) || 0)}
+                    className="w-full bg-noir-950 border border-white/10 rounded-sm px-3 py-2 text-xs text-white font-mono focus:border-champagne focus:outline-none"
+                  />
+                </div>
 
-              <div>
-                <label className="block text-xs font-mono uppercase tracking-wider text-white/70 mb-1.5">
-                  Tổng Suất Bán (Quota)
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  value={editQuota}
-                  onChange={(e) => setEditQuota(parseInt(e.target.value, 10) || 1)}
-                  className="w-full bg-noir-950 border border-white/10 rounded-sm px-3 py-2 text-xs text-white font-mono focus:border-champagne focus:outline-none"
-                />
-              </div>
+                <div>
+                  <label className="block text-xs font-mono uppercase tracking-wider text-white/70 mb-1.5">
+                    Tổng Suất Bán (Quota)
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={editQuota}
+                    onChange={(e) => setEditQuota(parseInt(e.target.value, 10) || 1)}
+                    className="w-full bg-noir-950 border border-white/10 rounded-sm px-3 py-2 text-xs text-white font-mono focus:border-champagne focus:outline-none"
+                  />
+                </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/10">
-                <button
-                  type="button"
-                  onClick={() => setEditingProduct(null)}
-                  className="px-4 py-2 bg-noir-950 border border-white/10 text-xs text-white/70 hover:text-white rounded-xs"
-                >
-                  Hủy Bỏ
-                </button>
-                <button
-                  type="submit"
-                  disabled={updatingProduct}
-                  className="px-5 py-2 bg-champagne hover:bg-champagne-light text-noir-950 font-serif text-xs font-semibold uppercase tracking-wider rounded-xs shadow-md disabled:opacity-50"
-                >
-                  {updatingProduct ? 'Đang cập nhật...' : 'Lưu Thay Đổi'}
-                </button>
-              </div>
-            </form>
+                <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => setEditingProduct(null)}
+                    className="px-4 py-2 bg-noir-950 border border-white/10 text-xs text-white/70 hover:text-white rounded-xs"
+                  >
+                    Hủy Bỏ
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={updatingProduct}
+                    className="px-5 py-2 bg-champagne hover:bg-champagne-light text-noir-950 font-serif text-xs font-semibold uppercase tracking-wider rounded-xs shadow-md disabled:opacity-50"
+                  >
+                    {updatingProduct ? 'Đang cập nhật...' : 'Lưu Thay Đổi'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
 
       {/* Live Preview Modal */}

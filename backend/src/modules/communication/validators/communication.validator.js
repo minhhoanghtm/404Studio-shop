@@ -46,7 +46,7 @@ const createConversationDtoSchema = z.object({
 
 const createMessageDtoSchema = z.object({
   conversationId: z.any().optional(),
-  senderType:     z.enum(["user", "admin", "ai", "system"], { message: "senderType must be one of: user, admin, ai, system" }),
+  senderType:     z.enum(["user", "admin", "ai", "system", "guest"], { message: "senderType must be one of: user, admin, ai, system, guest" }),
   senderId:       z.any().optional(),
   messageType:    z.enum(["text", "image", "file", "product_card", "order_card", "system"], { message: "messageType must be one of: text, image, file, product_card, order_card, system" }).default("text"),
   content:        z.string({ required_error: "content is required" }).max(10000, "content must be at most 10000 characters"),

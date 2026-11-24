@@ -66,19 +66,19 @@ export const ResetPasswordPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen pt-28 pb-16 flex items-center justify-center px-4 bg-surface text-primary">
-      <div className="w-full max-w-md bg-surface-subtle/80 backdrop-blur-md border border-theme p-8 rounded-sm shadow-2xl">
+    <div className="min-h-screen pt-28 pb-16 flex items-center justify-center px-4 bg-[var(--bg)] text-[var(--text)]">
+      <div className="w-full max-w-md bg-[var(--surface)] border border-[var(--border)] p-8 rounded-2xl shadow-xl">
         <div className="text-center mb-8">
-          <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-accent/10 border border-accent/30 flex items-center justify-center text-accent">
+          <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-[var(--accent)]/10 border border-[var(--accent)]/30 flex items-center justify-center text-[var(--accent)]">
             <KeyRound className="w-7 h-7" />
           </div>
-          <span className="text-xs uppercase tracking-[0.3em] text-accent block mb-1">
+          <span className="text-xs uppercase tracking-[0.3em] text-[var(--accent)] block mb-1 font-semibold">
             Đặc Quyền Thành Viên
           </span>
-          <h1 className="font-serif text-2xl tracking-wide">
+          <h1 className="font-serif text-2xl tracking-wide text-[var(--text)]">
             {step === 1 ? 'Quên Mật Khẩu' : 'Đặt Lại Mật Khẩu'}
           </h1>
-          <p className="text-xs text-secondary mt-2">
+          <p className="text-xs text-[var(--text-muted)] mt-2">
             {step === 1
               ? 'Nhập email đã đăng ký để nhận mã OTP khôi phục quyền truy cập.'
               : `Nhập mã OTP đã gửi đến ${email} và mật khẩu mới.`}
@@ -88,18 +88,18 @@ export const ResetPasswordPage: React.FC = () => {
         {step === 1 ? (
           <form onSubmit={handleRequestOtp} className="space-y-5">
             <div>
-              <label className="block text-xs uppercase tracking-wider text-secondary mb-1.5">
+              <label className="block text-xs uppercase tracking-wider text-[var(--text-muted)] mb-1.5">
                 Địa Chỉ Email
               </label>
               <div className="relative">
-                <Mail className="w-4 h-4 text-secondary absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Mail className="w-4 h-4 text-[var(--text-muted)] absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="patron@atelierverite.com"
-                  className="w-full pl-10 pr-4 py-3 text-xs bg-surface border border-theme focus:border-accent focus:outline-none transition-colors"
+                  className="w-full pl-10 pr-4 py-3 text-xs bg-[var(--bg-alt)] border border-[var(--border)] text-[var(--text)] rounded-lg focus:border-[var(--accent)] focus:outline-none transition-colors"
                 />
               </div>
             </div>
@@ -107,7 +107,7 @@ export const ResetPasswordPage: React.FC = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3.5 bg-primary text-secondary hover:bg-accent hover:text-black uppercase text-xs tracking-[0.2em] font-medium transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full py-3.5 bg-[var(--accent)] hover:bg-[#9E7B15] text-[var(--accent-contrast)] uppercase text-xs tracking-[0.2em] font-medium transition-all duration-300 flex items-center justify-center gap-2 rounded-lg shadow-md disabled:opacity-50"
             >
               {isLoading ? (
                 <RotateCw className="w-4 h-4 animate-spin" />
@@ -122,7 +122,7 @@ export const ResetPasswordPage: React.FC = () => {
         ) : (
           <form onSubmit={handleResetPassword} className="space-y-4">
             <div>
-              <label className="block text-xs uppercase tracking-wider text-secondary mb-1.5">
+              <label className="block text-xs uppercase tracking-wider text-[var(--text-muted)] mb-1.5">
                 Mã OTP (6 Chữ Số)
               </label>
               <input
@@ -132,40 +132,40 @@ export const ResetPasswordPage: React.FC = () => {
                 value={otp}
                 onChange={(e) => setOtp(e.target.value)}
                 placeholder="123456"
-                className="w-full px-4 py-3 text-center tracking-[0.3em] font-mono text-base bg-surface border border-theme focus:border-accent focus:outline-none transition-colors"
+                className="w-full px-4 py-3 text-center tracking-[0.3em] font-mono text-base bg-[var(--bg-alt)] border border-[var(--border)] text-[var(--text)] rounded-lg focus:border-[var(--accent)] focus:outline-none transition-colors"
               />
             </div>
 
             <div>
-              <label className="block text-xs uppercase tracking-wider text-secondary mb-1.5">
+              <label className="block text-xs uppercase tracking-wider text-[var(--text-muted)] mb-1.5">
                 Mật Khẩu Mới
               </label>
               <div className="relative">
-                <Lock className="w-4 h-4 text-secondary absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Lock className="w-4 h-4 text-[var(--text-muted)] absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="password"
                   required
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="Tối thiểu 6 ký tự"
-                  className="w-full pl-10 pr-4 py-3 text-xs bg-surface border border-theme focus:border-accent focus:outline-none transition-colors"
+                  className="w-full pl-10 pr-4 py-3 text-xs bg-[var(--bg-alt)] border border-[var(--border)] text-[var(--text)] rounded-lg focus:border-[var(--accent)] focus:outline-none transition-colors"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs uppercase tracking-wider text-secondary mb-1.5">
+              <label className="block text-xs uppercase tracking-wider text-[var(--text-muted)] mb-1.5">
                 Xác Nhận Mật Khẩu Mới
               </label>
               <div className="relative">
-                <CheckCircle2 className="w-4 h-4 text-secondary absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <CheckCircle2 className="w-4 h-4 text-[var(--text-muted)] absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="password"
                   required
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Nhập lại mật khẩu"
-                  className="w-full pl-10 pr-4 py-3 text-xs bg-surface border border-theme focus:border-accent focus:outline-none transition-colors"
+                  className="w-full pl-10 pr-4 py-3 text-xs bg-[var(--bg-alt)] border border-[var(--border)] text-[var(--text)] rounded-lg focus:border-[var(--accent)] focus:outline-none transition-colors"
                 />
               </div>
             </div>
@@ -173,7 +173,7 @@ export const ResetPasswordPage: React.FC = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full mt-2 py-3.5 bg-primary text-secondary hover:bg-accent hover:text-black uppercase text-xs tracking-[0.2em] font-medium transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full mt-2 py-3.5 bg-[var(--accent)] hover:bg-[#9E7B15] text-[var(--accent-contrast)] uppercase text-xs tracking-[0.2em] font-medium transition-all duration-300 flex items-center justify-center gap-2 rounded-lg shadow-md disabled:opacity-50"
             >
               {isLoading ? (
                 <RotateCw className="w-4 h-4 animate-spin" />
@@ -190,7 +190,7 @@ export const ResetPasswordPage: React.FC = () => {
         <div className="mt-6 text-center">
           <Link
             to="/login"
-            className="inline-flex items-center gap-1.5 text-xs text-secondary hover:text-primary transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Quay lại Đăng nhập</span>

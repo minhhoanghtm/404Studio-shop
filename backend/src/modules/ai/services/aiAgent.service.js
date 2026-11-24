@@ -1094,11 +1094,15 @@ export class AiToolRegistry {
             total_price: `${Number(cart.total_price || 0).toLocaleString("vi-VN")}đ`,
             items: (items || []).map((it) => ({
               id: String(it._id),
+              product_id: it.product_id?._id ? String(it.product_id._id) : String(it.product_id || ""),
+              variant_id: it.variant_id?._id ? String(it.variant_id._id) : (it.variant_id ? String(it.variant_id) : null),
               product_name: it.product_id?.name || "Sản phẩm",
               quantity: it.quantity,
-              price: `${Number(it.current_price ?? it.price ?? 0).toLocaleString("vi-VN")}đ`,
+              price: Number(it.current_price ?? it.price ?? 0),
+              price_formatted: `${Number(it.current_price ?? it.price ?? 0).toLocaleString("vi-VN")}đ`,
               color: it.variant_id?.color || "",
               size: it.variant_id?.size || "",
+              image: it.variant_id?.image_url || it.product_id?.displayProduct?.[0] || "",
             })),
           };
         }

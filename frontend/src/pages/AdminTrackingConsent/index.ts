@@ -1,1 +1,0 @@
-export { AdminTrackingConsentPage } from './AdminTrackingConsentPage';

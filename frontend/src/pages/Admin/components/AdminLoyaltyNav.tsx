@@ -11,7 +11,7 @@ export const AdminLoyaltyNav: React.FC = () => {
   ];
 
   return (
-    <div className="flex flex-wrap items-center gap-2 border-b border-white/10 pb-4">
+    <div className="flex flex-wrap items-center gap-2 border-b border-[var(--border)] pb-4">
       {tabs.map((tab) => {
         const Icon = tab.icon;
         return (
@@ -22,8 +22,8 @@ export const AdminLoyaltyNav: React.FC = () => {
             className={({ isActive }) =>
               `flex items-center gap-2 px-3.5 py-2 rounded-sm text-xs font-mono uppercase tracking-wider transition-all ${
                 isActive
-                  ? 'bg-champagne text-noir-950 font-bold shadow-md'
-                  : 'bg-white/5 text-platinum-light hover:text-white hover:bg-white/10'
+                  ? 'bg-[var(--accent)] text-[var(--accent-contrast)] font-bold shadow-md'
+                  : 'bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--table-row-hover)] border border-[var(--border)]'
               }`
             }
           >

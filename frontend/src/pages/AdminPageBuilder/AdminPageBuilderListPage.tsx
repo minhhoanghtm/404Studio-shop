@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { AdminLayout } from '@/pages/Admin/AdminLayout';
 import { cmsPagesApi, PolicyDocument } from '@/shared/api';
+import { useModal, ModalPortal } from '@/shared/context/ModalContext';
 
 export const AdminPageBuilderListPage: React.FC = () => {
   const navigate = useNavigate();
@@ -40,6 +41,12 @@ export const AdminPageBuilderListPage: React.FC = () => {
   // Delete modal state
   const [deleteTarget, setDeleteTarget] = useState<PolicyDocument | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  const { overlayZIndex, contentZIndex } = useModal({
+    id: 'admin-page-builder-delete-modal',
+    isOpen: Boolean(deleteTarget),
+    onClose: () => setDeleteTarget(null),
+  });
 
   const fetchPages = async () => {
     setLoading(true);
@@ -334,33 +341,46 @@ export const AdminPageBuilderListPage: React.FC = () => {
 
       {/* Delete Confirmation Modal */}
       {deleteTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-md bg-[#14141c] border border-white/10 rounded-2xl p-6 space-y-4 shadow-2xl">
-            <h3 className="font-serif text-lg font-medium text-white">
-              Xác Nhận Xóa Trang
-            </h3>
-            <p className="text-xs text-white/70 leading-relaxed">
-              Bạn có chắc chắn muốn xóa trang <strong>"{deleteTarget.title}"</strong> (/{deleteTarget.slug})? Toàn bộ các phân vùng và khối nội dung đính kèm sẽ bị xóa vĩnh viễn khỏi hệ thống.
-            </p>
-            <div className="pt-2 flex items-center justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setDeleteTarget(null)}
-                className="px-4 py-2 rounded-lg border border-white/10 text-xs text-white/70 hover:bg-white/5"
-              >
-                Hủy Bỏ
-              </button>
-              <button
-                type="button"
-                disabled={deleting}
-                onClick={handleDelete}
-                className="px-4 py-2 rounded-lg bg-red-500 text-white text-xs font-semibold hover:bg-red-600 transition-colors"
-              >
-                {deleting ? 'Đang Xóa...' : 'Xác Nhận Xóa'}
-              </button>
+        <ModalPortal>
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="fixed inset-0 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn pointer-events-auto"
+            style={{ zIndex: overlayZIndex }}
+            onClick={(e) => {
+              if (e.target === e.currentTarget && !deleting) setDeleteTarget(null);
+            }}
+          >
+            <div
+              className="w-full max-w-md bg-[#14141c] border border-white/10 rounded-2xl p-6 space-y-4 shadow-2xl max-h-[calc(100dvh-32px)] overflow-y-auto"
+              style={{ zIndex: contentZIndex }}
+            >
+              <h3 className="font-serif text-lg font-medium text-white">
+                Xác Nhận Xóa Trang
+              </h3>
+              <p className="text-xs text-white/70 leading-relaxed">
+                Bạn có chắc chắn muốn xóa trang <strong>"{deleteTarget.title}"</strong> (/{deleteTarget.slug})? Toàn bộ các phân vùng và khối nội dung đính kèm sẽ bị xóa vĩnh viễn khỏi hệ thống.
+              </p>
+              <div className="pt-2 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDeleteTarget(null)}
+                  className="px-4 py-2 rounded-lg border border-white/10 text-xs text-white/70 hover:bg-white/5"
+                >
+                  Hủy Bỏ
+                </button>
+                <button
+                  type="button"
+                  disabled={deleting}
+                  onClick={handleDelete}
+                  className="px-4 py-2 rounded-lg bg-red-500 text-white text-xs font-semibold hover:bg-red-600 transition-colors"
+                >
+                  {deleting ? 'Đang Xóa...' : 'Xác Nhận Xóa'}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
     </AdminLayout>
   );

@@ -50,7 +50,7 @@ export const CategoryBespokeSection: React.FC = () => {
           <Link
             key={cat.title}
             to={cat.link}
-            className={`group relative overflow-hidden rounded-2xl bg-noir-900 h-96 sm:h-[480px] ${cat.span} border border-white/10`}
+            className={`group relative overflow-hidden rounded-sm bg-noir-900 h-96 sm:h-[480px] ${cat.span} border border-white/10`}
           >
             <img
               src={cat.image}

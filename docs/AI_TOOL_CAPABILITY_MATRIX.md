@@ -13,3 +13,15 @@ The model may only call the server-defined tool registry; the browser does not b
 | Secrets, passwords, OTP, arbitrary URL/API access | Not a tool | RESTRICTED | Explicit chat warning/refusal |
 
 Every mutating action must retain server authentication, authorization, ownership validation, schema validation, timeout/error handling and idempotency. The frontend does not treat natural-language text as authorization.
+
+## Hotfix verification — 21 November 2026
+
+| Capability | Status | Concrete verification |
+| --- | --- | --- |
+| Bare product search | PASS | AI-service regression and desktop Playwright evidence confirm `áo thể thao` reaches product search. |
+| Cart inspection for checkout | PASS | `getMyCart` maps to `get_my_cart` and returns server-owned product/variant IDs plus price/image fields. |
+| Checkout draft | PASS | Regression verifies `thanh toán áo thể thao` invokes `getMyCart`, then `prepareCheckout`, without searching or adding a cart item. |
+| Checkout confirmation | PASS | Pending checkout lines and reservation identity are preserved across confirmation. |
+| Order creation and payment | BLOCKED | No verified isolated fixture or payment mock was available; no order or payment was created. |
+| Product variant presentation | PARTIAL | Labels are rendered from source records only. The inspected catalog contains `Real` as actual variant data, but its intended display label is unknown. |
+| Product media | PARTIAL | The UI exposes a safe fallback for failed external URLs. Catalog-source repair is pending. |

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { PromptTemplate } from '../client/PromptTemplate.js';
 import { Document } from '../vector/Document.js';
 import { LocalFallbackEmbeddingModel } from '../vector/EmbeddingModel.js';
@@ -209,6 +209,108 @@ describe('Spring AI Architecture in TypeScript Test Suite', () => {
       const res = await resp.chatResponse();
       expect(res.actionResult).toEqual({ status: 'CANCELLED' });
       expect(res.reply).toContain('Đã hủy thao tác');
+    });
+  });
+
+  describe('7. Product-search routing regressions', () => {
+    it('routes a bare Vietnamese product request to the real search tool', async () => {
+      const executeTool = vi.fn(async () => [
+        { id: 'sport-1', name: 'Áo Thun Thể Thao', price_number: 250000, image: '/sport.jpg' },
+      ]);
+      const registry = { executeTool } as unknown as ToolRegistry;
+      const client = ChatClient.builder().defaultToolRegistry(registry).build();
+
+      const response = await client
+        .prompt()
+        .user('áo thể thao')
+        .conversation('bare-product-query')
+        .auth({ role: 'guest' })
+        .call();
+      const result = await response.chatResponse();
+
+      expect(executeTool).toHaveBeenCalledWith(
+        'searchProducts',
+        { keyword: 'áo thể thao', limit: 4 },
+        { role: 'guest' }
+      );
+      expect(result.intent).toBe('PRODUCT_SEARCH');
+      expect(result.reply).toContain('Áo Thun Thể Thao');
+      expect(result.reply).toContain('250.000đ');
+    });
+
+    it('lets a new product request replace stale search context', async () => {
+      const executeTool = vi.fn(async (_tool: string, args: Record<string, unknown>) => [
+        { id: String(args.keyword), name: String(args.keyword), price_number: 300000 },
+      ]);
+      const registry = { executeTool } as unknown as ToolRegistry;
+      const memory = new ShoppingMemoryAdvisor(new InMemoryChatMemory());
+      const client = ChatClient.builder().defaultMemoryAdvisor(memory).defaultToolRegistry(registry).build();
+
+      await (await client.prompt().user('tìm áo blazer').conversation('topic-switch').auth({ role: 'guest' }).call()).chatResponse();
+      const response = await (await client.prompt().user('áo thể thao').conversation('topic-switch').auth({ role: 'guest' }).call()).chatResponse();
+
+      expect(executeTool).toHaveBeenLastCalledWith(
+        'searchProducts',
+        { keyword: 'áo thể thao', limit: 4 },
+        { role: 'guest' }
+      );
+      expect(response.reply).toContain('áo thể thao');
+    });
+
+    it('reports an empty or unavailable catalogue honestly instead of using a greeting fallback', async () => {
+      const executeTool = vi.fn(async () => 'Không tìm thấy sản phẩm phù hợp với mức giá và yêu cầu của bạn.');
+      const registry = { executeTool } as unknown as ToolRegistry;
+      const client = ChatClient.builder().defaultToolRegistry(registry).build();
+
+      const result = await (await client.prompt().user('áo thể thao').conversation('empty-search').auth({ role: 'guest' }).call()).chatResponse();
+
+      expect(result.intent).toBe('PRODUCT_SEARCH');
+      expect(result.reply).toContain('chưa tìm thấy');
+      expect(result.reply).not.toContain('trang phục dạ tiệc');
+    });
+  });
+
+  describe('8. Checkout routing regressions', () => {
+    it('prepares checkout from the authenticated cart instead of searching or adding again', async () => {
+      const executeTool = vi.fn(async (tool: string) => {
+        if (tool === 'getMyCart') {
+          return {
+            total_items: 1,
+            items: [{ product_id: 'product-1', variant_id: 'variant-1', product_name: 'Áo thể thao', color: 'Đen', size: 'L', quantity: 2 }],
+          };
+        }
+        if (tool === 'prepareCheckout') {
+          return { success: true, requiresConfirmation: true, actionType: 'start_checkout', actionId: 'checkout-1', items: [] };
+        }
+        throw new Error(`Unexpected tool: ${tool}`);
+      });
+      const registry = { executeTool } as unknown as ToolRegistry;
+      const client = ChatClient.builder().defaultToolRegistry(registry).build();
+
+      const result = await (await client.prompt().user('thanh toán áo thể thao').conversation('checkout-cart').auth({ userId: 'user-1', role: 'user' }).call()).chatResponse();
+
+      expect(executeTool).toHaveBeenNthCalledWith(1, 'getMyCart', {}, { userId: 'user-1', role: 'user' });
+      expect(executeTool).toHaveBeenNthCalledWith(2, 'prepareCheckout', {
+        items: [{ product_id: 'product-1', variant_id: 'variant-1', color: 'Đen', size: 'L', quantity: 2 }],
+      }, { userId: 'user-1', role: 'user' });
+      expect(result.intent).toBe('CHECKOUT_PREPARE');
+      expect(result.pendingAction).toMatchObject({ actionType: 'start_checkout' });
+      expect(executeTool).not.toHaveBeenCalledWith('searchProducts', expect.anything(), expect.anything());
+      expect(executeTool).not.toHaveBeenCalledWith('addToCart', expect.anything(), expect.anything());
+    });
+
+    it('does not prepare checkout when the requested product is absent from the cart', async () => {
+      const executeTool = vi.fn(async () => ({
+        total_items: 1,
+        items: [{ product_id: 'product-1', product_name: 'Áo polo', quantity: 1 }],
+      }));
+      const registry = { executeTool } as unknown as ToolRegistry;
+      const client = ChatClient.builder().defaultToolRegistry(registry).build();
+
+      const result = await (await client.prompt().user('thanh toán áo thể thao').conversation('checkout-missing').auth({ userId: 'user-1', role: 'user' }).call()).chatResponse();
+
+      expect(result.reply).toContain('chưa tìm thấy');
+      expect(executeTool).toHaveBeenCalledTimes(1);
     });
   });
 });

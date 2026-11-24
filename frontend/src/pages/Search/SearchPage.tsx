@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { PRODUCTS } from '@/shared/data/products';
+import { productsApi } from '@/shared/api';
+import { adaptBackendProduct } from '@/shared/utils/productAdapter';
 import { ProductCard } from '@/shared/components/ProductCard';
 import { Search, X, SlidersHorizontal } from 'lucide-react';
 import { vi } from '@/shared/locales/vi/common';
@@ -10,9 +11,34 @@ export const SearchPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialQuery = searchParams.get('q') || '';
 
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [query, setQuery] = useState(initialQuery);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'relevance' | 'price-asc' | 'price-desc'>('relevance');
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const res = await productsApi.getProducts({ limit: 100 });
+        if (cancelled) return;
+        const rawList = Array.isArray(res.data)
+          ? res.data
+          : Array.isArray((res.data as any)?.products)
+          ? (res.data as any).products
+          : Array.isArray(res)
+          ? res
+          : [];
+        if (rawList.length > 0) {
+          setAllProducts(rawList.map(adaptBackendProduct));
+        }
+      } catch {}
+    }
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     setQuery(searchParams.get('q') || '');
@@ -25,9 +51,9 @@ export const SearchPage: React.FC = () => {
 
   const results = useMemo(() => {
     const q = query.toLowerCase().trim();
-    if (!q) return PRODUCTS;
+    if (!q) return allProducts;
 
-    let list = PRODUCTS.filter(
+    let list = allProducts.filter(
       (p: Product) =>
         p.name.toLowerCase().includes(q) ||
         p.subtitle.toLowerCase().includes(q) ||
@@ -47,7 +73,7 @@ export const SearchPage: React.FC = () => {
     }
 
     return list;
-  }, [query, selectedCategory, sortBy]);
+  }, [allProducts, query, selectedCategory, sortBy]);
 
   const categoryOptions = [
     { label: vi.catalog.all, value: 'all' },
@@ -58,25 +84,25 @@ export const SearchPage: React.FC = () => {
   ];
 
   return (
-    <div className="w-full bg-noir-950 text-white min-h-screen py-16 px-4 sm:px-6 lg:px-8">
+    <div className="w-full bg-[var(--bg)] text-[var(--text)] min-h-screen py-16 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto space-y-10">
         {/* Header & Search Bar */}
         <div className="text-center max-w-2xl mx-auto space-y-6">
-          <span className="text-[10px] font-mono uppercase tracking-ultra text-champagne">
+          <span className="text-[10px] font-mono uppercase tracking-ultra text-[var(--accent)]">
             {vi.search.badge}
           </span>
-          <h1 className="font-display text-3xl sm:text-5xl text-white tracking-wide">
+          <h1 className="font-display text-3xl sm:text-5xl text-[var(--text)] tracking-wide">
             {vi.search.title}
           </h1>
 
           <form onSubmit={handleSearchSubmit} className="relative flex items-center">
-            <Search className="w-5 h-5 text-champagne absolute left-4 pointer-events-none" />
+            <Search className="w-5 h-5 text-[var(--accent)] absolute left-4 pointer-events-none" />
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={vi.search.placeholder}
-              className="w-full pl-12 pr-12 py-4 bg-noir-900 border border-white/15 focus:border-champagne text-white text-sm sm:text-base outline-none rounded-xl"
+              className="w-full pl-12 pr-12 py-4 bg-[var(--bg-alt)] border border-[var(--border)] focus:border-[var(--accent)] text-[var(--text)] placeholder:text-[var(--text-muted)] text-sm sm:text-base outline-none rounded-xl shadow-sm"
             />
             {query && (
               <button
@@ -85,7 +111,7 @@ export const SearchPage: React.FC = () => {
                   setQuery('');
                   setSearchParams({});
                 }}
-                className="absolute right-4 text-white/40 hover:text-white p-1"
+                className="absolute right-4 text-[var(--text-muted)] hover:text-[var(--text)] p-1"
                 aria-label="Xóa nội dung tìm kiếm"
               >
                 <X className="w-4 h-4" />
@@ -95,7 +121,7 @@ export const SearchPage: React.FC = () => {
         </div>
 
         {/* Filter bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-y border-white/10 py-4 gap-4 text-xs font-sans">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-y border-[var(--border)] py-4 gap-4 text-xs font-sans">
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
             {categoryOptions.map((cat) => (
               <button
@@ -103,8 +129,8 @@ export const SearchPage: React.FC = () => {
                 onClick={() => setSelectedCategory(cat.value)}
                 className={`px-3.5 py-1.5 rounded-full uppercase tracking-wider transition-colors whitespace-nowrap ${
                   selectedCategory === cat.value
-                    ? 'bg-champagne text-noir-950 font-bold'
-                    : 'bg-white/5 text-white/70 hover:text-white hover:bg-white/10'
+                    ? 'bg-[var(--accent)] text-[var(--accent-contrast)] font-bold'
+                    : 'bg-[var(--bg-alt)] border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface)]'
                 }`}
               >
                 {cat.label}
@@ -113,15 +139,15 @@ export const SearchPage: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-4">
-            <span className="text-white/40 font-mono">
+            <span className="text-[var(--text-muted)] font-mono">
               {vi.catalog.showing} {results.length} {vi.catalog.items}
             </span>
             <div className="flex items-center gap-2">
-              <SlidersHorizontal className="w-3.5 h-3.5 text-champagne" />
+              <SlidersHorizontal className="w-3.5 h-3.5 text-[var(--accent)]" />
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
-                className="bg-noir-900 border border-white/15 text-white text-xs px-2.5 py-1.5 rounded focus:outline-none focus:border-champagne"
+                className="bg-[var(--surface)] border border-[var(--border)] text-[var(--text)] text-xs px-2.5 py-1.5 rounded focus:outline-none focus:border-[var(--accent)]"
                 aria-label="Sắp xếp kết quả tìm kiếm"
               >
                 <option value="relevance">Độ phù hợp cao nhất</option>
@@ -135,15 +161,15 @@ export const SearchPage: React.FC = () => {
         {/* Results Grid */}
         {results.length === 0 ? (
           <div className="py-20 text-center space-y-3 max-w-md mx-auto">
-            <h3 className="font-display text-2xl text-white">
+            <h3 className="font-display text-2xl text-[var(--text)]">
               {vi.search.noResultsTitle}
             </h3>
-            <p className="text-xs text-platinum-dark font-sans leading-relaxed">
+            <p className="text-xs text-[var(--text-muted)] font-sans leading-relaxed">
               {vi.search.noResultsSubtitle}
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+          <div className="product-card-grid grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
             {results.map((product: Product) => (
               <ProductCard key={product.id} product={product} />
             ))}

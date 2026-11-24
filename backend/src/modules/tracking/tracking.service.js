@@ -1754,6 +1754,7 @@ class TrackingService {
       eventTypeStats,
       topViewedProducts,
       topSearches,
+      trafficSources,
     ] = await Promise.all([
       UserEvent.countDocuments(dateFilter),
       UserEvent.distinct("user_id", { ...dateFilter, user_id: { $ne: null } }).then(
@@ -1809,6 +1810,24 @@ class TrackingService {
         { $sort: { count: -1 } },
         { $limit: 10 },
       ]),
+      UserEvent.aggregate([
+        { $match: { ...dateFilter, event_type: EVENT_TYPES.SESSION_START } },
+        { $sort: { createdAt: 1, _id: 1 } },
+        {
+          $group: {
+            _id: { $ifNull: ["$session_id", "$_id"] },
+            source: { $first: "$context.entrySource" },
+          },
+        },
+        {
+          $group: {
+            _id: { $ifNull: ["$source", "Trực tiếp / Không rõ"] },
+            count: { $sum: 1 },
+          },
+        },
+        { $sort: { count: -1, _id: 1 } },
+        { $limit: 10 },
+      ]),
     ]);
 
     // Tính CTR cho Recommendation & AI Recommendation
@@ -1843,6 +1862,7 @@ class TrackingService {
       },
       topViewedProducts,
       topSearches: topSearches.map((s) => ({ query: s._id, count: s.count })),
+      trafficSources: trafficSources.map((s) => ({ source: s._id, count: s.count })),
     };
   }
 

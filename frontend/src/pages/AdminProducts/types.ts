@@ -3,12 +3,15 @@ export interface ProductVariantItem {
   _id?: string;
   product_id?: string;
   color: string;
+  color_code?: string;
+  color_key?: string;
   size: string;
   stock: number;
   image_url: string;
   price?: number; // Optional UI display / override
   sku?: string;   // Virtual SKU display
   is_active?: boolean;
+  position?: number;
 }
 
 export interface AdminProductFormValues {

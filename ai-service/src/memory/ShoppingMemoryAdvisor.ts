@@ -1,6 +1,8 @@
 import { ChatMemory } from './ChatMemory.js';
 import { CandidateProduct, ChatMessage, ShoppingMemoryState } from '../types/index.js';
 
+const PRODUCT_QUERY_PATTERN = /(?:áo|ao|quần|quan|váy|vay|đầm|dam|jacket|blazer|polo|shirt|t[- ]?shirt|thể thao|the thao|sportswear|sport|giày|giay|túi|tui|phụ kiện|phu kien)/iu;
+
 export interface AdvisorContext {
   userId?: string | null;
   role?: string;
@@ -34,6 +36,7 @@ export class ShoppingMemoryAdvisor {
     // 0. Reset selection if user asks for a fresh search: "Tìm áo thun", "Gợi ý đầm dạ hội", "Search váy"
     if (
       /^(?:tìm|search|gợi ý|tìm kiếm|xem)/iu.test(lower) ||
+      PRODUCT_QUERY_PATTERN.test(lower) ||
       /tìm.*(giúp|hộ|cho)|gợi ý.*cho/iu.test(lower)
     ) {
       state = await this.memory.updateState(conversationId, {
@@ -105,6 +108,14 @@ export class ShoppingMemoryAdvisor {
       state = await this.memory.updateState(conversationId, {
         userIntent: 'POLICY_INQUIRY',
         selectedProduct: null,
+      });
+    } else if (/(?:gặp|chuyển|nói\s*chuyện|liên\s*hệ)\s*(?:nhân\s*viên|tư\s*vấn\s*viên|người\s*thật|cskh)|(?:gặp|chat\s*với)\s*nhân\s*viên/iu.test(lower)) {
+      state = await this.memory.updateState(conversationId, {
+        userIntent: 'HANDOFF_TO_STAFF',
+      });
+    } else if (/(?:xem|kiểm\s*tra|check|coi)\s*(?:giỏ|gio|gio\s*hang|giỏ\s*hàng)/iu.test(lower) || lower === 'giỏ hàng' || lower === 'xem giỏ hàng') {
+      state = await this.memory.updateState(conversationId, {
+        userIntent: 'VIEW_CART',
       });
     } else if (/thêm.*vào.*giỏ|cho.*vào.*giỏ|mua|đặt.*hàng/iu.test(lower)) {
       if (!state.userIntent || state.userIntent === 'SEARCH_PRODUCTS' || state.userIntent === 'POLICY_INQUIRY') {

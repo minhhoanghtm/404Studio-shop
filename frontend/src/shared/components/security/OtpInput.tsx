@@ -102,11 +102,11 @@ export const OtpInput: React.FC<OtpInputProps> = ({
             onPaste={handlePaste}
             className={`w-11 h-13 sm:w-12 sm:h-14 text-center text-lg sm:text-xl font-mono font-bold rounded-xl border transition-all outline-none ${
               hasError
-                ? 'border-rose-500/80 bg-rose-500/10 text-rose-200 focus:border-rose-400 focus:ring-1 focus:ring-rose-400'
+                ? 'border-rose-500/80 bg-rose-500/10 text-rose-500 dark:text-rose-200 focus:border-rose-400 focus:ring-1 focus:ring-rose-400'
                 : isCurrentFilled
-                ? 'border-[#d4af37] bg-white/[0.04] text-white'
-                : 'border-white/15 bg-white/[0.02] text-white/90 hover:border-white/30 focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37]/50'
-            } ${disabled ? 'opacity-40 cursor-not-allowed bg-black/40' : ''}`}
+                ? 'border-[var(--accent)] bg-[var(--bg-page)] text-[var(--text-primary)]'
+                : 'border-[var(--border)] bg-[var(--input-bg)] text-[var(--text-primary)] hover:border-[var(--accent)]/50 focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]/50'
+            } ${disabled ? 'opacity-40 cursor-not-allowed bg-[var(--bg-page)]' : ''}`}
           />
         );
       })}

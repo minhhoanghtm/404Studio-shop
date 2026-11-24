@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import { fileURLToPath } from 'url';
 import path from 'path';
@@ -7,10 +7,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // https://vite.dev/config/
-export default defineConfig({
+const envDir = path.resolve(__dirname, '..');
+
+export default defineConfig(({ mode }) => ({
   // Keep the existing shared local environment file at the workspace root.
   // Backend credentials remain ignored there; only VITE_* values are exposed.
-  envDir: path.resolve(__dirname, '..'),
+  envDir,
   plugins: [react()],
   resolve: {
     alias: {
@@ -21,19 +23,23 @@ export default defineConfig({
     port: 5173,
     host: true,
     proxy: {
+      '/socket.io': {
+        target: loadEnv(mode, envDir).VITE_BACKEND_URL || 'http://127.0.0.1:5000',
+        ws: true,
+        changeOrigin: true,
+      },
       '/api': {
-        target: process.env.VITE_BACKEND_URL || 'http://localhost:5000',
+        target: process.env.VITE_BACKEND_URL || 'http://127.0.0.1:5000',
         changeOrigin: true,
         secure: false,
       },
       '/uploads': {
-        target: process.env.VITE_BACKEND_URL || 'http://localhost:5000',
+        target: process.env.VITE_BACKEND_URL || 'http://127.0.0.1:5000',
         changeOrigin: true,
         secure: false,
       },
     },
   },
-  // @ts-expect-error - Vitest types
   test: {
     globals: true,
     environment: 'jsdom',
@@ -41,4 +47,4 @@ export default defineConfig({
     include: ['src/test/**/*.{test,spec}.{ts,tsx}'],
     exclude: ['e2e/**', 'node_modules/**'],
   },
-});
+}));

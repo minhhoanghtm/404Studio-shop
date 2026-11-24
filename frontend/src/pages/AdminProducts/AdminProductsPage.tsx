@@ -18,6 +18,7 @@ export const AdminProductsPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [stockFilter, setStockFilter] = useState<'all' | 'in_stock' | 'out_of_stock'>('all');
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -97,6 +98,21 @@ export const AdminProductsPage: React.FC = () => {
     return matchesSearch && matchesStock;
   });
 
+  const toggleSelectProduct = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAll = () => {
+    const allFilteredIds = filteredProducts.map((p) => p.id || p._id);
+    if (selectedIds.length === allFilteredIds.length && allFilteredIds.length > 0) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(allFilteredIds);
+    }
+  };
+
   return (
     <AdminLayout
       title="Quản Lý Sản Phẩm"
@@ -108,13 +124,13 @@ export const AdminProductsPage: React.FC = () => {
           <div className="flex flex-wrap items-center gap-3 flex-1 max-w-xl">
             {/* Search Input */}
             <div className="relative flex-1 min-w-[200px]">
-              <Search className="w-4 h-4 text-platinum-dark absolute left-3 top-1/2 -translate-y-1/2" />
+              <Search className="w-4 h-4 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Tìm sản phẩm theo tên hoặc mã slug..."
-                className="w-full pl-9 pr-3 py-2 text-xs bg-noir-900 border border-white/10 rounded-sm focus:border-champagne focus:outline-none text-white"
+                className="w-full pl-9 pr-3 py-2 text-xs bg-[var(--input-bg)] border border-[var(--border)] rounded-sm focus:border-[var(--accent)] focus:outline-none text-[var(--text-primary)] placeholder-[var(--text-muted)]"
               />
             </div>
 
@@ -122,7 +138,7 @@ export const AdminProductsPage: React.FC = () => {
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="py-2 px-3 text-xs bg-noir-900 border border-white/10 rounded-sm focus:border-champagne focus:outline-none text-white"
+              className="py-2 px-3 text-xs bg-[var(--input-bg)] border border-[var(--border)] rounded-sm focus:border-[var(--accent)] focus:outline-none text-[var(--text-primary)]"
             >
               <option value="all">Tất cả danh mục</option>
               {categories.map((c) => (
@@ -136,7 +152,7 @@ export const AdminProductsPage: React.FC = () => {
             <select
               value={stockFilter}
               onChange={(e) => setStockFilter(e.target.value as any)}
-              className="py-2 px-3 text-xs bg-noir-900 border border-white/10 rounded-sm focus:border-champagne focus:outline-none text-white font-mono"
+              className="py-2 px-3 text-xs bg-[var(--input-bg)] border border-[var(--border)] rounded-sm focus:border-[var(--accent)] focus:outline-none text-[var(--text-primary)] font-mono"
             >
               <option value="all">Tất cả tồn kho</option>
               <option value="in_stock">Còn hàng (&gt; 0)</option>
@@ -151,18 +167,23 @@ export const AdminProductsPage: React.FC = () => {
             <button
               type="button"
               onClick={() => setIsImportModalOpen(true)}
-              className="px-3 py-2 text-xs font-mono uppercase tracking-wider text-platinum-light hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 rounded-sm transition-all flex items-center gap-1.5"
+              className="px-3 py-2 text-xs font-mono uppercase tracking-wider text-[var(--text-secondary)] hover:text-[var(--text-primary)] bg-[var(--bg-card)] hover:bg-[var(--table-row-hover)] border border-[var(--border)] rounded-sm transition-all flex items-center gap-1.5"
               title="Nhập sản phẩm từ tệp Excel"
             >
-              <Upload className="w-3.5 h-3.5 text-champagne" />
+              <Upload className="w-3.5 h-3.5 text-[var(--accent)]" />
               <span>Nhập Excel</span>
             </button>
 
-            <ExcelExportButton type="product" />
+            <ExcelExportButton
+              type="product"
+              selectedIds={selectedIds}
+              currentCategory={selectedCategory}
+              currentSearch={search}
+            />
 
             <Link
               to="/admin/products/new"
-              className="px-4 py-2 bg-champagne text-noir-950 font-semibold text-xs uppercase tracking-wider rounded-sm hover:bg-champagne/90 transition-colors flex items-center justify-center gap-1.5 shrink-0"
+              className="px-4 py-2 bg-[var(--accent)] text-[var(--accent-contrast)] font-semibold text-xs uppercase tracking-wider rounded-sm hover:opacity-90 transition-opacity flex items-center justify-center gap-1.5 shrink-0 shadow-md"
             >
               <Plus className="w-4 h-4" />
               <span>Thêm Sản Phẩm Mới</span>
@@ -170,23 +191,41 @@ export const AdminProductsPage: React.FC = () => {
           </div>
         </div>
 
+        {/* Selection Bar */}
+        {selectedIds.length > 0 && (
+          <div className="flex items-center justify-between p-3 bg-[var(--accent)]/10 border border-[var(--accent)]/20 rounded-sm">
+            <div className="flex items-center gap-2 text-xs font-mono">
+              <span className="text-[var(--accent)] font-semibold">Đã chọn: {selectedIds.length} sản phẩm</span>
+              <span className="text-[var(--text-muted)]">•</span>
+              <span className="text-[var(--text-secondary)]">Sẵn sàng xuất Excel hoặc thao tác hàng loạt</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSelectedIds([])}
+              className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] underline font-mono"
+            >
+              Bỏ chọn tất cả
+            </button>
+          </div>
+        )}
+
         {/* Product Inventory Table */}
-        <div className="bg-noir-900 border border-white/10 rounded-sm overflow-hidden">
+        <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-sm overflow-hidden shadow-sm">
           {isLoading ? (
             <div className="p-16 text-center space-y-3">
-              <RotateCw className="w-8 h-8 text-champagne animate-spin mx-auto" />
-              <p className="text-xs text-platinum-dark">Đang nạp dữ liệu danh mục sản phẩm từ MongoDB...</p>
+              <RotateCw className="w-8 h-8 text-[var(--accent)] animate-spin mx-auto" />
+              <p className="text-xs text-[var(--text-muted)]">Đang nạp dữ liệu danh mục sản phẩm từ MongoDB...</p>
             </div>
           ) : filteredProducts.length === 0 ? (
             <div className="p-16 text-center space-y-3">
-              <Package className="w-10 h-10 text-platinum-dark/40 mx-auto" />
-              <h4 className="text-xs font-medium text-white">Không tìm thấy sản phẩm phù hợp</h4>
-              <p className="text-[11px] text-platinum-dark max-w-sm mx-auto">
+              <Package className="w-10 h-10 text-[var(--text-muted)]/40 mx-auto" />
+              <h4 className="text-xs font-medium text-[var(--text-primary)]">Không tìm thấy sản phẩm phù hợp</h4>
+              <p className="text-[11px] text-[var(--text-muted)] max-w-sm mx-auto">
                 Quý khách có thể thử tìm với từ khóa khác hoặc tạo sản phẩm mới.
               </p>
               <Link
                 to="/admin/products/new"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-champagne text-noir-950 text-xs font-semibold rounded-sm mt-2"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[var(--accent)] text-[var(--accent-contrast)] text-xs font-semibold rounded-sm mt-2"
               >
                 <Plus className="w-3.5 h-3.5" /> Tạo sản phẩm đầu tiên
               </Link>
@@ -195,7 +234,16 @@ export const AdminProductsPage: React.FC = () => {
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="border-b border-white/10 text-platinum-dark uppercase tracking-wider bg-white/5 font-mono text-[11px]">
+                  <tr className="border-b border-[var(--border)] text-[var(--text-muted)] uppercase tracking-wider bg-[var(--bg-card-muted)] font-mono text-[11px]">
+                    <th className="py-3 px-3 w-8 text-center">
+                      <input
+                        type="checkbox"
+                        checked={filteredProducts.length > 0 && selectedIds.length === filteredProducts.length}
+                        onChange={handleSelectAll}
+                        aria-label="Chọn tất cả sản phẩm"
+                        className="rounded-sm border-[var(--border)] bg-[var(--input-bg)] text-[var(--accent)] focus:ring-[var(--accent)]/40 cursor-pointer"
+                      />
+                    </th>
                     <th className="py-3 px-4">Sản Phẩm</th>
                     <th className="py-3 px-4">Phân Loại</th>
                     <th className="py-3 px-4">Đơn Giá</th>
@@ -205,9 +253,10 @@ export const AdminProductsPage: React.FC = () => {
                     <th className="py-3 px-4 text-right">Thao Tác</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5 font-sans">
+                <tbody className="divide-y divide-[var(--border)] font-sans">
                   {filteredProducts.map((p) => {
                     const id = p.id || p._id;
+                    const isSelected = selectedIds.includes(id);
                     const stock = Number(p.stock || 0);
                     const variantsCount = Array.isArray(p.variants) ? p.variants.length : 0;
                     const displayImage =
@@ -222,43 +271,58 @@ export const AdminProductsPage: React.FC = () => {
                         : p.category || 'Mặc định';
 
                     return (
-                      <tr key={id} className="hover:bg-white/[0.02] transition-colors">
+                      <tr
+                        key={id}
+                        className={`hover:bg-[var(--table-row-hover)] transition-colors ${
+                          isSelected ? 'bg-[var(--accent)]/10' : ''
+                        }`}
+                      >
+                        {/* Checkbox */}
+                        <td className="py-3.5 px-3 text-center">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleSelectProduct(id)}
+                            aria-label={`Chọn sản phẩm ${p.name}`}
+                            className="rounded-sm border-[var(--border)] bg-[var(--input-bg)] text-[var(--accent)] focus:ring-[var(--accent)]/40 cursor-pointer"
+                          />
+                        </td>
                         {/* Product Info */}
                         <td className="py-3.5 px-4 flex items-center gap-3">
                           <img
                             src={displayImage}
                             alt={p.name}
-                            className="w-12 h-14 object-cover border border-white/10 rounded-sm shrink-0"
+                            className="w-12 h-14 object-cover border border-[var(--border)] rounded-sm shrink-0"
                             onError={(e) => {
                               (e.target as HTMLImageElement).src =
                                 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100';
                             }}
                           />
                           <div className="min-w-0">
-                            <div className="font-serif font-medium text-white text-sm truncate max-w-xs">
+                            <div className="font-serif font-medium text-[var(--text-primary)] text-sm truncate max-w-xs">
                               {p.name}
                             </div>
-                            <div className="text-[11px] text-platinum-dark font-mono mt-0.5 truncate max-w-[200px]">
+                            <div className="text-[11px] text-[var(--text-muted)] font-mono mt-0.5 truncate max-w-[200px]">
                               {p.slug}
                             </div>
                           </div>
                         </td>
 
                         {/* Category */}
-                        <td className="py-3.5 px-4 capitalize text-platinum-light">
+                        <td className="py-3.5 px-4 capitalize text-[var(--text-secondary)]">
                           {categoryName}
                         </td>
 
                         {/* Price */}
-                        <td className="py-3.5 px-4 font-mono font-bold text-champagne">
+                        <td className="py-3.5 px-4 font-mono font-bold text-[var(--accent)]">
                           {formatCurrency(p.new_price || p.price || 0)}
                         </td>
 
                         {/* Variants Count & Summary */}
                         <td className="py-3.5 px-4">
                           <div className="flex items-center gap-2">
-                            <Layers className="w-3.5 h-3.5 text-platinum-dark" />
-                            <span className="font-mono text-platinum-light font-medium">
+                            <Layers className="w-3.5 h-3.5 text-[var(--text-muted)]" />
+                            <span className="font-mono text-[var(--text-secondary)] font-medium">
                               {variantsCount > 0 ? `${variantsCount} biến thể` : 'Chưa có biến thể'}
                             </span>
                           </div>
@@ -269,8 +333,8 @@ export const AdminProductsPage: React.FC = () => {
                           <span
                             className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-sm font-semibold text-[11px] ${
                               stock > 0
-                                ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-800'
-                                : 'bg-red-950/60 text-red-400 border border-red-800'
+                                ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30'
+                                : 'bg-red-500/15 text-red-700 dark:text-red-400 border border-red-500/30'
                             }`}
                           >
                             {stock > 0 ? `${stock} sản phẩm` : 'Hết hàng (0)'}
@@ -281,10 +345,10 @@ export const AdminProductsPage: React.FC = () => {
                         <td className="py-3.5 px-4">
                           <span
                             className={`inline-block w-2 h-2 rounded-full mr-2 ${
-                              p.is_active !== false ? 'bg-emerald-400' : 'bg-neutral-600'
+                              p.is_active !== false ? 'bg-emerald-500' : 'bg-neutral-400'
                             }`}
                           />
-                          <span className="text-[11px] text-platinum-dark">
+                          <span className="text-[11px] text-[var(--text-muted)]">
                             {p.is_active !== false ? 'Đang bán' : 'Ẩn'}
                           </span>
                         </td>
@@ -293,14 +357,14 @@ export const AdminProductsPage: React.FC = () => {
                         <td className="py-3.5 px-4 text-right space-x-1.5 whitespace-nowrap">
                           <Link
                             to={`/products/${p.slug}`}
-                            className="p-1.5 inline-block text-platinum-dark hover:text-white transition-colors"
+                            className="p-1.5 inline-block text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
                             title="Xem trang sản phẩm"
                           >
                             <Eye className="w-4 h-4" />
                           </Link>
                           <Link
                             to={`/admin/products/${id}/edit`}
-                            className="p-1.5 inline-block text-platinum-dark hover:text-champagne transition-colors"
+                            className="p-1.5 inline-block text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors"
                             title="Chỉnh sửa sản phẩm & biến thể"
                           >
                             <Edit3 className="w-4 h-4" />
@@ -309,7 +373,7 @@ export const AdminProductsPage: React.FC = () => {
                             type="button"
                             disabled={deletingId === id}
                             onClick={() => handleDelete(id, p.name)}
-                            className="p-1.5 text-platinum-dark hover:text-red-400 transition-colors disabled:opacity-50"
+                            className="p-1.5 text-[var(--text-muted)] hover:text-red-600 dark:hover:text-red-400 transition-colors disabled:opacity-50"
                             title="Xóa sản phẩm"
                           >
                             <Trash2 className="w-4 h-4" />

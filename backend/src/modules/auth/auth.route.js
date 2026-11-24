@@ -6,6 +6,9 @@ import {
   signIn,
   signOut,
   signUp,
+  register,
+  forgotPassword,
+  resetPasswordWithToken,
   verifyOTP,
   refreshAccessToken,
   signOutAllDevices,
@@ -17,10 +20,13 @@ import {
   sendForgotPasswordOtpController,
   resetPasswordWithOtpController,
   resendOtpController,
+  getMyPermissions,
 } from "./auth.controller.js";
 import { protectedRoute, optionalProtectedRoute } from "../../middlewares/auth.middleware.js";
+import { authenticate } from "../../middlewares/rbac.middleware.js";
 import {
   validateSignUp,
+  validateRegister,
   validateSignIn,
   validateSendOTP,
   validateVerifyOTP,
@@ -30,7 +36,9 @@ import {
   validateSendLoginOtp,
   validateVerifyLoginOtp,
   validateForgotPassword,
+  validateForgotPasswordToken,
   validateResetPasswordWithOtp,
+  validateResetPasswordToken,
   validateResendOtp,
 } from "./auth.validator.js";
 import {
@@ -39,16 +47,22 @@ import {
   sendOtpLimiter,
   verifyOtpLimiter,
   resetPasswordLimiter,
+  refreshLimiter,
 } from "../../middlewares/rateLimiter.middleware.js";
 import { ConsoleSmsProvider } from "../sms/providers/console.provider.js";
 
 const router = express.Router();
 
+// ── Core Authentication Routes ──────────────────────────────────────────────
+router.post("/register", signUpLimiter, validateRegister, register);
+router.post("/login", signInLimiter, validateSignIn, signIn);
+router.post("/forgot-password", sendOtpLimiter, validateForgotPasswordToken, forgotPassword);
+router.post("/reset-password/:token", resetPasswordLimiter, validateResetPasswordToken, resetPasswordWithToken);
+
 // ── SMS & Modern Auth Routes ────────────────────────────────────────────────
 router.post("/register/send-otp", sendOtpLimiter, validateSendRegisterOtp, sendRegisterOtpController);
 router.post("/register/verify", signUpLimiter, validateVerifyRegister, verifyRegisterController);
 
-router.post("/login", signInLimiter, validateSignIn, signIn);
 router.post("/login/otp/send", sendOtpLimiter, validateSendLoginOtp, sendLoginOtpController);
 router.post("/login/otp/verify", signInLimiter, validateVerifyLoginOtp, verifyLoginOtpController);
 
@@ -80,12 +94,19 @@ if (process.env.NODE_ENV !== "production") {
   });
 }
 
+// ── RBAC Effective Permissions Query ────────────────────────────────────────
+router.get("/me/permissions", authenticate, getMyPermissions);
+
+// ── Modern Refresh & Logout Aliases ─────────────────────────────────────────
+router.post("/refresh", refreshLimiter, refreshAccessToken);
+router.post("/logout", optionalProtectedRoute, signOut);
+
 // ── Legacy Auth Routes (Backwards Compatibility) ────────────────────────────
 router.post("/signUp", signUpLimiter, validateSignUp, signUp);
 router.post("/signIn", signInLimiter, validateSignIn, signIn);
 router.post("/signOut", optionalProtectedRoute, signOut);
 router.post("/signOutAll", protectedRoute, signOutAllDevices);
-router.post("/refreshToken", refreshAccessToken);
+router.post("/refreshToken", refreshLimiter, refreshAccessToken);
 router.post("/sendOTP", sendOtpLimiter, validateSendOTP, sendOTPController);
 router.post("/sendResetOTP", sendOtpLimiter, validateSendOTP, sendResetOTPController);
 router.post("/verify-otp", verifyOtpLimiter, validateVerifyOTP, verifyOTP);

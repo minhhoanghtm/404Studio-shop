@@ -5,7 +5,6 @@ import {
   Users,
   Layers,
   Shirt,
-  ShieldCheck,
 } from 'lucide-react';
 
 interface TrackingNavProps {
@@ -18,11 +17,10 @@ export const TrackingNav: React.FC<TrackingNavProps> = () => {
     { label: 'Hành Vi & Phiên Trực Tuyến', to: '/admin/tracking/users', icon: Users },
     { label: 'Sự Kiện Hệ Thống', to: '/admin/tracking/events', icon: Layers },
     { label: 'Sản Phẩm & Phễu Chuyển Đổi', to: '/admin/tracking/products', icon: Shirt },
-    { label: 'Tuân Thủ Quyền Riêng Tư', to: '/admin/tracking/consent', icon: ShieldCheck },
   ];
 
   return (
-    <div className="flex items-center gap-1 overflow-x-auto pb-1 border-b border-white/10 font-sans text-xs">
+    <div className="flex items-center gap-1 overflow-x-auto pb-1 border-b border-[var(--border)] font-sans text-xs">
       {tabs.map((tab) => {
         const Icon = tab.icon;
         return (
@@ -33,8 +31,8 @@ export const TrackingNav: React.FC<TrackingNavProps> = () => {
             className={({ isActive }) =>
               `flex items-center gap-2 px-4 py-2.5 rounded-t-sm border-b-2 font-medium uppercase tracking-wider whitespace-nowrap transition-all ${
                 isActive
-                  ? 'border-champagne text-champagne bg-white/[0.03]'
-                  : 'border-transparent text-platinum-dark hover:text-white hover:bg-white/[0.01]'
+                  ? 'border-[var(--accent)] text-[var(--accent)] bg-[var(--accent)]/10 font-bold'
+                  : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--table-row-hover)]'
               }`
             }
           >

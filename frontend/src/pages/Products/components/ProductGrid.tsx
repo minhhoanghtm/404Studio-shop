@@ -22,18 +22,18 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
   if (products.length === 0) {
     return (
       <div className="py-24 text-center space-y-4 max-w-md mx-auto">
-        <div className="w-16 h-16 rounded-full border border-dashed border-champagne/30 flex items-center justify-center mx-auto text-champagne">
+        <div className="w-16 h-16 rounded-full border border-dashed border-[var(--accent)]/40 flex items-center justify-center mx-auto text-[var(--accent)]">
           <PackageOpen className="w-8 h-8" />
         </div>
-        <h3 className="font-display text-2xl text-white">
+        <h3 className="font-display text-2xl text-[var(--text)]">
           {vi.catalog.emptyTitle}
         </h3>
-        <p className="text-xs text-platinum-dark font-sans leading-relaxed">
+        <p className="text-xs text-[var(--text-muted)] font-sans leading-relaxed">
           {vi.catalog.emptySubtitle}
         </p>
         <button
           onClick={onResetFilters}
-          className="px-6 py-2.5 rounded bg-champagne text-noir-950 text-xs font-semibold uppercase tracking-widest hover:bg-champagne-hover transition-colors"
+          className="px-6 py-2.5 rounded bg-[var(--accent)] text-[var(--accent-contrast)] text-xs font-semibold uppercase tracking-widest hover:bg-[#9E7B15] transition-colors shadow-md"
         >
           {vi.catalog.resetFilters}
         </button>
@@ -43,7 +43,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
 
   return (
     <div className="space-y-12">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+      <div className="product-card-grid grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
         {products.map((product) => (
           <ProductCard key={product.id} product={product} />
         ))}
@@ -51,11 +51,11 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-3 pt-8 border-t border-white/10">
+        <div className="flex items-center justify-center gap-3 pt-8 border-t border-[var(--border)]">
           <button
             onClick={() => onPageChange(currentPage - 1)}
             disabled={currentPage === 1}
-            className="p-2 rounded border border-white/10 text-white/60 hover:text-white disabled:opacity-30 disabled:pointer-events-none transition-colors"
+            className="p-2 rounded border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--bg-alt)] disabled:opacity-30 disabled:pointer-events-none transition-colors"
             aria-label="Trang trước"
           >
             <ChevronLeft className="w-4 h-4" />
@@ -68,8 +68,8 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                 onClick={() => onPageChange(page)}
                 className={`w-8 h-8 rounded transition-colors ${
                   currentPage === page
-                    ? 'bg-champagne text-noir-950 font-bold'
-                    : 'text-white/60 hover:text-white hover:bg-white/5'
+                    ? 'bg-[var(--accent)] text-[var(--accent-contrast)] font-bold shadow-sm'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--bg-alt)]'
                 }`}
               >
                 {page}
@@ -80,7 +80,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
           <button
             onClick={() => onPageChange(currentPage + 1)}
             disabled={currentPage === totalPages}
-            className="p-2 rounded border border-white/10 text-white/60 hover:text-white disabled:opacity-30 disabled:pointer-events-none transition-colors"
+            className="p-2 rounded border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--bg-alt)] disabled:opacity-30 disabled:pointer-events-none transition-colors"
             aria-label="Trang sau"
           >
             <ChevronRight className="w-4 h-4" />

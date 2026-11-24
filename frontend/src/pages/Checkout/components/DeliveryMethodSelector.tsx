@@ -15,8 +15,8 @@ export const DeliveryMethodSelector: React.FC<DeliveryMethodSelectorProps> = ({
   baseShipping,
 }) => {
   return (
-    <div className="p-8 rounded-2xl bg-noir-900 border border-white/10 space-y-6">
-      <h3 className="font-display text-xl text-white tracking-wide border-b border-white/10 pb-4">
+    <div className="p-8 rounded-2xl bg-[var(--surface)] border border-[var(--border)] space-y-6 shadow-sm">
+      <h3 className="font-display text-xl text-[var(--text)] tracking-wide border-b border-[var(--border)] pb-4 font-medium uppercase">
         {vi.checkout.step2}
       </h3>
 
@@ -26,25 +26,25 @@ export const DeliveryMethodSelector: React.FC<DeliveryMethodSelectorProps> = ({
           onClick={() => onSelectMethod('white-glove')}
           className={`p-5 rounded-xl border cursor-pointer transition-all ${
             method === 'white-glove'
-              ? 'border-champagne bg-champagne/10 shadow-lg'
-              : 'border-white/10 bg-noir-950/60 hover:border-white/30'
+              ? 'border-[var(--accent)] bg-[var(--accent)]/10 shadow-md'
+              : 'border-[var(--border)] bg-[var(--bg-alt)] hover:border-[var(--accent)]/50'
           }`}
         >
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <Truck className="w-4 h-4 text-champagne" />
-              <h5 className="font-display text-sm text-white">
+              <Truck className="w-4 h-4 text-[var(--accent)]" />
+              <h5 className="font-display text-sm text-[var(--text)] font-semibold">
                 {vi.checkout.whiteGloveCourier}
               </h5>
             </div>
             {method === 'white-glove' && (
-              <CheckCircle2 className="w-4 h-4 text-champagne" />
+              <CheckCircle2 className="w-4 h-4 text-[var(--accent)]" />
             )}
           </div>
-          <p className="text-xs text-platinum-dark leading-relaxed font-sans mb-3">
+          <p className="text-xs text-[var(--text-muted)] leading-relaxed font-sans mb-3 font-light">
             {vi.checkout.whiteGloveDesc}
           </p>
-          <span className="font-mono text-xs text-champagne font-medium">
+          <span className="font-mono text-xs text-[var(--accent)] font-semibold">
             {baseShipping === 0 ? vi.cart.complimentary : formatCurrency(baseShipping)}
           </span>
         </div>
@@ -54,25 +54,25 @@ export const DeliveryMethodSelector: React.FC<DeliveryMethodSelectorProps> = ({
           onClick={() => onSelectMethod('express')}
           className={`p-5 rounded-xl border cursor-pointer transition-all ${
             method === 'express'
-              ? 'border-champagne bg-champagne/10 shadow-lg'
-              : 'border-white/10 bg-noir-950/60 hover:border-white/30'
+              ? 'border-[var(--accent)] bg-[var(--accent)]/10 shadow-md'
+              : 'border-[var(--border)] bg-[var(--bg-alt)] hover:border-[var(--accent)]/50'
           }`}
         >
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-champagne" />
-              <h5 className="font-display text-sm text-white">
+              <Sparkles className="w-4 h-4 text-[var(--accent)]" />
+              <h5 className="font-display text-sm text-[var(--text)] font-semibold">
                 {vi.checkout.expressAir}
               </h5>
             </div>
             {method === 'express' && (
-              <CheckCircle2 className="w-4 h-4 text-champagne" />
+              <CheckCircle2 className="w-4 h-4 text-[var(--accent)]" />
             )}
           </div>
-          <p className="text-xs text-platinum-dark leading-relaxed font-sans mb-3">
+          <p className="text-xs text-[var(--text-muted)] leading-relaxed font-sans mb-3 font-light">
             {vi.checkout.expressAirDesc}
           </p>
-          <span className="font-mono text-xs text-champagne font-medium">
+          <span className="font-mono text-xs text-[var(--accent)] font-semibold">
             +{formatCurrency(500000)} phụ phí
           </span>
         </div>

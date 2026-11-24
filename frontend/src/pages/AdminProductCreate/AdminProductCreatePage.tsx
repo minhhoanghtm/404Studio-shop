@@ -16,7 +16,6 @@ export const AdminProductCreatePage: React.FC = () => {
     try {
       const payload = {
         name: values.name,
-        slug: values.slug,
         category_id: values.category_id,
         description: values.description,
         old_price: values.old_price,
@@ -33,7 +32,7 @@ export const AdminProductCreatePage: React.FC = () => {
         })),
       };
 
-      await adminApi.createProduct(payload);
+      await adminApi.createAdminFormProduct(payload);
       addToast(`Khởi tạo sản phẩm "${values.name}" thành công!`, 'success');
       navigate('/admin/products');
     } catch (err: any) {

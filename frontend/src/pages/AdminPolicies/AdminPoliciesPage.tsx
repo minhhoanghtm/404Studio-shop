@@ -20,6 +20,7 @@ import { AdminLayout } from '../Admin/AdminLayout';
 import { adminPoliciesApi, PolicyDocument } from '@/shared/api';
 import { useToastStore } from '@/shared/stores/useToastStore';
 import { POLICY_CATEGORIES, PolicyStatusFilter } from './types';
+import { useModal, ModalPortal } from '@/shared/context/ModalContext';
 
 export const AdminPoliciesPage: React.FC = () => {
   const navigate = useNavigate();
@@ -40,6 +41,12 @@ export const AdminPoliciesPage: React.FC = () => {
   // Deletion modal state
   const [deletingPolicy, setDeletingPolicy] = useState<PolicyDocument | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const { overlayZIndex, contentZIndex } = useModal({
+    id: 'admin-delete-policy-modal',
+    isOpen: Boolean(deletingPolicy),
+    onClose: () => setDeletingPolicy(null),
+  });
 
   const fetchPolicies = useCallback(async () => {
     setLoading(true);
@@ -132,52 +139,52 @@ export const AdminPoliciesPage: React.FC = () => {
       <div className="space-y-6">
         {/* KPI / Metric Summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="p-5 rounded-sm bg-noir-900 border border-white/10 flex items-center justify-between">
+          <div className="p-5 rounded-sm bg-[var(--bg-card)] border border-[var(--border)] flex items-center justify-between shadow-sm">
             <div>
-              <p className="text-xs uppercase tracking-wider text-platinum-dark">Tổng Chính Sách</p>
-              <h3 className="font-display text-2xl text-white mt-1">{total}</h3>
+              <p className="text-xs uppercase tracking-wider text-[var(--text-muted)]">Tổng Chính Sách</p>
+              <h3 className="font-display text-2xl text-[var(--text-primary)] mt-1">{total}</h3>
             </div>
-            <div className="w-10 h-10 rounded-sm bg-champagne/10 border border-champagne/30 flex items-center justify-center text-champagne">
+            <div className="w-10 h-10 rounded-sm bg-[var(--accent)]/10 border border-[var(--accent)]/30 flex items-center justify-center text-[var(--accent)]">
               <FileText className="w-5 h-5" />
             </div>
           </div>
 
-          <div className="p-5 rounded-sm bg-noir-900 border border-white/10 flex items-center justify-between">
+          <div className="p-5 rounded-sm bg-[var(--bg-card)] border border-[var(--border)] flex items-center justify-between shadow-sm">
             <div>
-              <p className="text-xs uppercase tracking-wider text-emerald-400">Đang Có Hiệu Lực</p>
-              <h3 className="font-display text-2xl text-white mt-1">{publishedCount}</h3>
+              <p className="text-xs uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Đang Có Hiệu Lực</p>
+              <h3 className="font-display text-2xl text-[var(--text-primary)] mt-1">{publishedCount}</h3>
             </div>
-            <div className="w-10 h-10 rounded-sm bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+            <div className="w-10 h-10 rounded-sm bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
               <CheckCircle className="w-5 h-5" />
             </div>
           </div>
 
-          <div className="p-5 rounded-sm bg-noir-900 border border-white/10 flex items-center justify-between">
+          <div className="p-5 rounded-sm bg-[var(--bg-card)] border border-[var(--border)] flex items-center justify-between shadow-sm">
             <div>
-              <p className="text-xs uppercase tracking-wider text-amber-400">Bản Thảo / Nháp</p>
-              <h3 className="font-display text-2xl text-white mt-1">{draftCount}</h3>
+              <p className="text-xs uppercase tracking-wider text-amber-600 dark:text-amber-400">Bản Thảo / Nháp</p>
+              <h3 className="font-display text-2xl text-[var(--text-primary)] mt-1">{draftCount}</h3>
             </div>
-            <div className="w-10 h-10 rounded-sm bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+            <div className="w-10 h-10 rounded-sm bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-600 dark:text-amber-400">
               <Edit3 className="w-5 h-5" />
             </div>
           </div>
 
-          <div className="p-5 rounded-sm bg-noir-900 border border-white/10 flex items-center justify-between">
+          <div className="p-5 rounded-sm bg-[var(--bg-card)] border border-[var(--border)] flex items-center justify-between shadow-sm">
             <div>
-              <p className="text-xs uppercase tracking-wider text-platinum-dark">Đã Lưu Trữ</p>
-              <h3 className="font-display text-2xl text-white mt-1">{archivedCount}</h3>
+              <p className="text-xs uppercase tracking-wider text-[var(--text-muted)]">Đã Lưu Trữ</p>
+              <h3 className="font-display text-2xl text-[var(--text-primary)] mt-1">{archivedCount}</h3>
             </div>
-            <div className="w-10 h-10 rounded-sm bg-white/5 border border-white/15 flex items-center justify-center text-platinum-dark">
+            <div className="w-10 h-10 rounded-sm bg-[var(--bg-card-muted)] border border-[var(--border)] flex items-center justify-center text-[var(--text-muted)]">
               <Archive className="w-5 h-5" />
             </div>
           </div>
         </div>
 
         {/* Action Header & Search Bar */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-noir-900/60 p-4 border border-white/10 rounded-sm">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[var(--bg-card)] p-4 border border-[var(--border)] rounded-sm shadow-sm">
           {/* Search Input */}
           <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-platinum-dark" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
             <input
               type="text"
               value={search}
@@ -186,7 +193,7 @@ export const AdminPoliciesPage: React.FC = () => {
                 setPage(1);
               }}
               placeholder="Tìm kiếm theo tiêu đề chính sách hoặc mã slug..."
-              className="w-full pl-10 pr-4 py-2 bg-noir-950 border border-white/15 text-xs text-white placeholder-platinum-dark/50 rounded-sm focus:outline-none focus:border-champagne transition-colors"
+              className="w-full pl-10 pr-4 py-2 bg-[var(--input-bg)] border border-[var(--border)] text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] rounded-sm focus:outline-none focus:border-[var(--accent)] transition-colors"
             />
           </div>
 
@@ -194,14 +201,14 @@ export const AdminPoliciesPage: React.FC = () => {
           <div className="flex flex-wrap items-center gap-3">
             {/* Status Filter Dropdown */}
             <div className="flex items-center gap-2">
-              <Filter className="w-3.5 h-3.5 text-platinum-dark hidden sm:inline-block" />
+              <Filter className="w-3.5 h-3.5 text-[var(--text-muted)] hidden sm:inline-block" />
               <select
                 value={statusFilter}
                 onChange={(e) => {
                   setStatusFilter(e.target.value as PolicyStatusFilter);
                   setPage(1);
                 }}
-                className="bg-noir-950 border border-white/15 text-xs text-white px-3 py-2 rounded-sm focus:outline-none focus:border-champagne"
+                className="bg-[var(--input-bg)] border border-[var(--border)] text-xs text-[var(--text-primary)] px-3 py-2 rounded-sm focus:outline-none focus:border-[var(--accent)]"
                 aria-label="Lọc theo trạng thái"
               >
                 <option value="all">Tất cả trạng thái</option>
@@ -213,11 +220,11 @@ export const AdminPoliciesPage: React.FC = () => {
 
             {/* Category Filter */}
             <div className="flex items-center gap-2">
-              <SlidersHorizontal className="w-3.5 h-3.5 text-platinum-dark hidden sm:inline-block" />
+              <SlidersHorizontal className="w-3.5 h-3.5 text-[var(--text-muted)] hidden sm:inline-block" />
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
-                className="bg-noir-950 border border-white/15 text-xs text-white px-3 py-2 rounded-sm focus:outline-none focus:border-champagne"
+                className="bg-[var(--input-bg)] border border-[var(--border)] text-xs text-[var(--text-primary)] px-3 py-2 rounded-sm focus:outline-none focus:border-[var(--accent)]"
                 aria-label="Lọc theo danh mục"
               >
                 {POLICY_CATEGORIES.map((cat) => (
@@ -232,16 +239,16 @@ export const AdminPoliciesPage: React.FC = () => {
             <button
               type="button"
               onClick={() => fetchPolicies()}
-              className="p-2 border border-white/15 hover:border-champagne text-platinum-dark hover:text-champagne rounded-sm transition-colors"
+              className="p-2 border border-[var(--border)] hover:border-[var(--accent)] text-[var(--text-muted)] hover:text-[var(--accent)] rounded-sm transition-colors bg-[var(--bg-card-muted)]"
               title="Tải lại danh sách"
             >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-[var(--accent)]' : ''}`} />
             </button>
 
             {/* Create New Policy CTA */}
             <Link
               to="/admin/policies/new"
-              className="px-4 py-2 bg-champagne text-noir-950 font-semibold text-xs uppercase tracking-wider rounded-sm hover:bg-champagne/90 transition-all flex items-center gap-2 shadow-sm"
+              className="px-4 py-2 bg-[var(--accent)] text-[var(--accent-contrast)] font-semibold text-xs uppercase tracking-wider rounded-sm hover:opacity-90 transition-opacity flex items-center gap-2 shadow-sm"
             >
               <Plus className="w-4 h-4" />
               <span>Tạo Chính Sách Mới</span>
@@ -267,10 +274,10 @@ export const AdminPoliciesPage: React.FC = () => {
         )}
 
         {/* Data Table */}
-        <div className="bg-noir-900 border border-white/10 rounded-sm overflow-hidden">
+        <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-sm overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-noir-950/80 border-b border-white/10 text-[11px] uppercase tracking-wider text-platinum-dark font-mono">
+              <thead className="bg-[var(--bg-card-muted)] border-b border-[var(--border)] text-[11px] uppercase tracking-wider text-[var(--text-muted)] font-mono">
                 <tr>
                   <th className="px-5 py-4">Tên Chính Sách & Đường Dẫn</th>
                   <th className="px-4 py-4">Phân Loại</th>
@@ -280,29 +287,29 @@ export const AdminPoliciesPage: React.FC = () => {
                   <th className="px-5 py-4 text-right">Thao Tác</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5 font-sans">
+              <tbody className="divide-y divide-[var(--border)] font-sans">
                 {loading ? (
                   // Loading Skeletons
                   Array.from({ length: 5 }).map((_, i) => (
                     <tr key={i} className="animate-pulse">
                       <td className="px-5 py-4">
-                        <div className="h-4 bg-white/10 rounded w-48 mb-2" />
-                        <div className="h-3 bg-white/5 rounded w-24" />
+                        <div className="h-4 bg-[var(--border)] rounded w-48 mb-2" />
+                        <div className="h-3 bg-[var(--bg-card-muted)] rounded w-24" />
                       </td>
                       <td className="px-4 py-4">
-                        <div className="h-4 bg-white/5 rounded w-20" />
+                        <div className="h-4 bg-[var(--bg-card-muted)] rounded w-20" />
                       </td>
                       <td className="px-4 py-4">
-                        <div className="h-5 bg-white/10 rounded-full w-24" />
+                        <div className="h-5 bg-[var(--border)] rounded-full w-24" />
                       </td>
                       <td className="px-4 py-4">
-                        <div className="h-4 bg-white/5 rounded w-12" />
+                        <div className="h-4 bg-[var(--bg-card-muted)] rounded w-12" />
                       </td>
                       <td className="px-4 py-4">
-                        <div className="h-4 bg-white/5 rounded w-28" />
+                        <div className="h-4 bg-[var(--bg-card-muted)] rounded w-28" />
                       </td>
                       <td className="px-5 py-4 text-right">
-                        <div className="h-6 bg-white/10 rounded w-32 ml-auto" />
+                        <div className="h-6 bg-[var(--border)] rounded w-32 ml-auto" />
                       </td>
                     </tr>
                   ))
@@ -311,17 +318,17 @@ export const AdminPoliciesPage: React.FC = () => {
                   <tr>
                     <td colSpan={6} className="px-6 py-16 text-center">
                       <div className="max-w-md mx-auto space-y-3">
-                        <div className="w-12 h-12 mx-auto rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-platinum-dark">
+                        <div className="w-12 h-12 mx-auto rounded-full bg-[var(--bg-card-muted)] border border-[var(--border)] flex items-center justify-center text-[var(--text-muted)]">
                           <FileText className="w-6 h-6" />
                         </div>
-                        <h4 className="font-display text-base text-white">Chưa có chính sách nào phù hợp</h4>
-                        <p className="text-xs text-platinum-dark">
+                        <h4 className="font-display text-base text-[var(--text-primary)]">Chưa có chính sách nào phù hợp</h4>
+                        <p className="text-xs text-[var(--text-muted)]">
                           Không tìm thấy chính sách nào theo tiêu chí tìm kiếm hiện tại. Bạn có thể tạo mới chính sách để ban hành cho khách hàng.
                         </p>
                         <div className="pt-2">
                           <Link
                             to="/admin/policies/new"
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-champagne text-noir-950 text-xs font-semibold uppercase tracking-wider rounded-sm hover:bg-champagne/90 transition-all"
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--accent)] text-[var(--accent-contrast)] text-xs font-semibold uppercase tracking-wider rounded-sm hover:opacity-90 transition-opacity"
                           >
                             <Plus className="w-3.5 h-3.5" />
                             <span>Tạo Chính Sách Đầu Tiên</span>
@@ -334,51 +341,51 @@ export const AdminPoliciesPage: React.FC = () => {
                   // Data Rows
                   policies.map((policy) => {
                     return (
-                      <tr key={policy._id} className="hover:bg-white/[0.02] transition-colors">
+                      <tr key={policy._id} className="hover:bg-[var(--table-row-hover)] transition-colors">
                         <td className="px-5 py-4">
-                          <div className="font-medium text-white text-sm tracking-wide">
+                          <div className="font-medium text-[var(--text-primary)] text-sm tracking-wide">
                             {policy.title}
                           </div>
-                          <div className="text-[11px] font-mono text-champagne/80 mt-0.5">
+                          <div className="text-[11px] font-mono text-[var(--accent)] mt-0.5">
                             /{policy.slug}
                           </div>
                           {policy.excerpt && (
-                            <p className="text-[11px] text-platinum-dark mt-1 line-clamp-1 max-w-sm">
+                            <p className="text-[11px] text-[var(--text-muted)] mt-1 line-clamp-1 max-w-sm">
                               {policy.excerpt}
                             </p>
                           )}
                         </td>
 
                         <td className="px-4 py-4">
-                          <span className="px-2.5 py-1 rounded-sm bg-white/5 border border-white/10 text-[11px] font-mono uppercase text-platinum-light">
+                          <span className="px-2.5 py-1 rounded-sm bg-[var(--bg-card-muted)] border border-[var(--border)] text-[11px] font-mono uppercase text-[var(--text-secondary)]">
                             {policy.type}
                           </span>
                         </td>
 
                         <td className="px-4 py-4">
                           {policy.status === 'published' ? (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] font-medium">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-[11px] font-medium">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                               Đã Xuất Bản
                             </span>
                           ) : policy.status === 'draft' ? (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[11px] font-medium">
-                              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-[11px] font-medium">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
                               Bản Nháp
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/15 text-platinum-dark text-[11px] font-medium">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--bg-card-muted)] border border-[var(--border)] text-[var(--text-muted)] text-[11px] font-medium">
                               <Archive className="w-3 h-3" />
                               Đã Lưu Trữ
                             </span>
                           )}
                         </td>
 
-                        <td className="px-4 py-4 font-mono text-white/90">
+                        <td className="px-4 py-4 font-mono text-[var(--text-primary)]">
                           {policy.viewCount ?? 0} lượt
                         </td>
 
-                        <td className="px-4 py-4 text-platinum-dark text-[11px] font-mono">
+                        <td className="px-4 py-4 text-[var(--text-muted)] text-[11px] font-mono">
                           {policy.updatedAt
                             ? new Date(policy.updatedAt).toLocaleDateString('vi-VN', {
                                 day: '2-digit',
@@ -398,7 +405,7 @@ export const AdminPoliciesPage: React.FC = () => {
                                 href={`/${policy.slug}`}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="p-1.5 rounded hover:bg-white/10 text-platinum-dark hover:text-champagne transition-colors"
+                                className="p-1.5 rounded hover:bg-[var(--table-row-hover)] text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors"
                                 title="Xem trang công khai"
                               >
                                 <ExternalLink className="w-3.5 h-3.5" />
@@ -409,7 +416,7 @@ export const AdminPoliciesPage: React.FC = () => {
                             <button
                               type="button"
                               onClick={() => navigate(`/admin/policies/${policy._id}/edit`)}
-                              className="p-1.5 rounded hover:bg-white/10 text-platinum-dark hover:text-white transition-colors"
+                              className="p-1.5 rounded hover:bg-[var(--table-row-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
                               title="Chỉnh sửa nội dung"
                             >
                               <Edit3 className="w-3.5 h-3.5" />
@@ -419,7 +426,7 @@ export const AdminPoliciesPage: React.FC = () => {
                             <button
                               type="button"
                               onClick={() => navigate(`/admin/policies/${policy._id}/history`)}
-                              className="p-1.5 rounded hover:bg-white/10 text-platinum-dark hover:text-champagne transition-colors"
+                              className="p-1.5 rounded hover:bg-[var(--table-row-hover)] text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors"
                               title="Lịch sử phiên bản"
                             >
                               <History className="w-3.5 h-3.5" />
@@ -430,7 +437,7 @@ export const AdminPoliciesPage: React.FC = () => {
                               <button
                                 type="button"
                                 onClick={() => handleQuickStatusChange(policy, 'published')}
-                                className="p-1.5 rounded hover:bg-emerald-500/20 text-emerald-400 transition-colors"
+                                className="p-1.5 rounded hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 transition-colors"
                                 title="Xuất bản chính sách này"
                               >
                                 <CheckCircle className="w-3.5 h-3.5" />
@@ -439,7 +446,7 @@ export const AdminPoliciesPage: React.FC = () => {
                               <button
                                 type="button"
                                 onClick={() => handleQuickStatusChange(policy, 'archived')}
-                                className="p-1.5 rounded hover:bg-amber-500/20 text-amber-400 transition-colors"
+                                className="p-1.5 rounded hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 transition-colors"
                                 title="Ngừng hiệu lực & Lưu trữ"
                               >
                                 <Archive className="w-3.5 h-3.5" />
@@ -450,7 +457,7 @@ export const AdminPoliciesPage: React.FC = () => {
                             <button
                               type="button"
                               onClick={() => setDeletingPolicy(policy)}
-                              className="p-1.5 rounded hover:bg-red-500/20 text-platinum-dark hover:text-red-400 transition-colors"
+                              className="p-1.5 rounded hover:bg-red-500/20 text-[var(--text-muted)] hover:text-red-500 transition-colors"
                               title="Xóa chính sách"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -467,16 +474,16 @@ export const AdminPoliciesPage: React.FC = () => {
 
           {/* Pagination Controls */}
           {totalPages > 1 && (
-            <div className="px-5 py-4 border-t border-white/10 flex items-center justify-between text-xs text-platinum-dark bg-noir-950/60">
+            <div className="px-5 py-4 border-t border-[var(--border)] flex items-center justify-between text-xs text-[var(--text-muted)] bg-[var(--bg-card-muted)]">
               <div>
-                Hiển thị trang <span className="font-semibold text-white">{page}</span> / {totalPages} (Tổng cộng {total} chính sách)
+                Hiển thị trang <span className="font-semibold text-[var(--text-primary)]">{page}</span> / {totalPages} (Tổng cộng {total} chính sách)
               </div>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   disabled={page <= 1}
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  className="px-3 py-1.5 border border-white/15 rounded-sm hover:border-champagne hover:text-champagne disabled:opacity-30 disabled:hover:border-white/15 disabled:hover:text-platinum-dark transition-colors uppercase tracking-wider text-[11px]"
+                  className="px-3 py-1.5 border border-[var(--border)] rounded-sm hover:border-[var(--accent)] hover:text-[var(--accent)] disabled:opacity-30 disabled:hover:border-[var(--border)] disabled:hover:text-[var(--text-muted)] transition-colors uppercase tracking-wider text-[11px] bg-[var(--bg-card)]"
                 >
                   Trang Trước
                 </button>
@@ -484,7 +491,7 @@ export const AdminPoliciesPage: React.FC = () => {
                   type="button"
                   disabled={page >= totalPages}
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  className="px-3 py-1.5 border border-white/15 rounded-sm hover:border-champagne hover:text-champagne disabled:opacity-30 disabled:hover:border-white/15 disabled:hover:text-platinum-dark transition-colors uppercase tracking-wider text-[11px]"
+                  className="px-3 py-1.5 border border-[var(--border)] rounded-sm hover:border-[var(--accent)] hover:text-[var(--accent)] disabled:opacity-30 disabled:hover:border-[var(--border)] disabled:hover:text-[var(--text-muted)] transition-colors uppercase tracking-wider text-[11px] bg-[var(--bg-card)]"
                 >
                   Trang Tiếp
                 </button>
@@ -495,25 +502,38 @@ export const AdminPoliciesPage: React.FC = () => {
 
         {/* Delete Confirmation Modal */}
         {deletingPolicy && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-            <div className="w-full max-w-md bg-noir-900 border border-white/20 rounded-sm p-6 space-y-4 shadow-2xl">
-              <div className="flex items-center gap-3 text-red-400">
+          <ModalPortal>
+            <div
+              className="fixed inset-0 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in pointer-events-auto"
+              style={{ zIndex: overlayZIndex }}
+              onClick={(e) => {
+                if (e.target === e.currentTarget && !isDeleting) setDeletingPolicy(null);
+              }}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Xác nhận xóa chính sách"
+            >
+              <div
+                className="w-full max-w-md bg-[var(--bg-card)] border border-[var(--border)] rounded-sm p-6 space-y-4 shadow-2xl max-h-[calc(100dvh-32px)] overflow-y-auto"
+                style={{ zIndex: contentZIndex }}
+              >
+              <div className="flex items-center gap-3 text-red-500">
                 <div className="w-10 h-10 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center shrink-0">
                   <Trash2 className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-display text-lg text-white">Xác nhận xóa chính sách</h3>
-                  <p className="text-xs text-platinum-dark">Thao tác này sẽ xóa vĩnh viễn khỏi CSDL.</p>
+                  <h3 className="font-display text-lg text-[var(--text-primary)]">Xác nhận xóa chính sách</h3>
+                  <p className="text-xs text-[var(--text-muted)]">Thao tác này sẽ xóa vĩnh viễn khỏi CSDL.</p>
                 </div>
               </div>
 
-              <div className="p-3 bg-white/[0.02] border border-white/10 rounded text-xs space-y-1">
-                <div className="text-white font-medium">{deletingPolicy.title}</div>
-                <div className="text-platinum-dark font-mono">/{deletingPolicy.slug}</div>
+              <div className="p-3 bg-[var(--bg-card-muted)] border border-[var(--border)] rounded text-xs space-y-1">
+                <div className="text-[var(--text-primary)] font-medium">{deletingPolicy.title}</div>
+                <div className="text-[var(--text-muted)] font-mono">/{deletingPolicy.slug}</div>
               </div>
 
               {deletingPolicy.status === 'published' && (
-                <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded text-[11px] text-amber-200">
+                <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded text-[11px] text-amber-700 dark:text-amber-200">
                   <strong>Cảnh báo pháp lý:</strong> Chính sách này đang có hiệu lực công khai. Việc xóa có thể ảnh hưởng đến bằng chứng đồng thuận pháp lý của khách hàng. Khuyến nghị chuyển sang trạng thái <em>Lưu trữ (archived)</em> thay vì xóa vĩnh viễn.
                 </div>
               )}
@@ -523,7 +543,7 @@ export const AdminPoliciesPage: React.FC = () => {
                   type="button"
                   disabled={isDeleting}
                   onClick={() => setDeletingPolicy(null)}
-                  className="px-4 py-2 border border-white/20 hover:border-white/40 text-xs uppercase tracking-wider text-white rounded-sm transition-colors"
+                  className="px-4 py-2 border border-[var(--border)] hover:border-[var(--text-muted)] text-xs uppercase tracking-wider text-[var(--text-primary)] rounded-sm transition-colors bg-[var(--bg-card-muted)]"
                 >
                   Hủy Bỏ
                 </button>
@@ -531,7 +551,7 @@ export const AdminPoliciesPage: React.FC = () => {
                   type="button"
                   disabled={isDeleting}
                   onClick={confirmDelete}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-xs font-semibold uppercase tracking-wider rounded-sm transition-colors flex items-center gap-2"
+                  className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-xs font-semibold uppercase tracking-wider rounded-sm transition-colors flex items-center gap-2 shadow-md"
                 >
                   {isDeleting && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
                   <span>Xác Nhận Xóa</span>
@@ -539,6 +559,7 @@ export const AdminPoliciesPage: React.FC = () => {
               </div>
             </div>
           </div>
+          </ModalPortal>
         )}
       </div>
     </AdminLayout>
