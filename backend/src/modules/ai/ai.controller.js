@@ -44,7 +44,11 @@ export const aiChatController = async (req, res, next) => {
         const chatData = await sendToSpringAi(payload, { userId, role });
         return successResponse(res, chatData, "AI Shopping Agent chat processed successfully", 200);
       } catch (proxyError) {
-        if (proxyError.code === "SPRING_AI_UNAVAILABLE" || proxyError.code === "SPRING_AI_NOT_CONFIGURED") {
+        if (
+          proxyError.code === "SPRING_AI_UNAVAILABLE" ||
+          proxyError.code === "SPRING_AI_NOT_CONFIGURED" ||
+          proxyError.name === "TypeError"
+        ) {
           const chatData = await aiChatService.sendMessage(userId, payload, { role });
           return successResponse(res, chatData, "AI chat message processed successfully (fallback)", 200);
         }

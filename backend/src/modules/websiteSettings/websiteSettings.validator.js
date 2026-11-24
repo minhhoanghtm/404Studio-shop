@@ -38,8 +38,9 @@ const updateSettingsSchema = z.object({
       maintenanceMessage: z.string().optional().nullable(),
       maintenanceUntil:   z.union([z.string(), z.date(), z.null()]).optional(),
       allowGuestCheckout: zodBoolCoerce,
-      enableVoucher:      zodBoolCoerce,
-      enableReviews:      zodBoolCoerce,
+      enableVoucher:            zodBoolCoerce,
+      enableReviews:            zodBoolCoerce,
+      disallowReviewEditDelete: zodBoolCoerce,
     })
     .passthrough()
     .optional(),

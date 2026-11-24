@@ -35,6 +35,12 @@ const voucherSchema = new mongoose.Schema(
       ref: "Category",
       default: [],
     },
+    targetAudience: {
+      type: String,
+      enum: ["all", "new", "member", "vip"],
+      default: "all",
+      index: true,
+    },
     discountType: {
       type: String,
       enum: ["percentage", "fixed"],

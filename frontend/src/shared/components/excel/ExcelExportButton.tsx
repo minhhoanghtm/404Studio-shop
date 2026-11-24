@@ -156,7 +156,7 @@ export const ExcelExportButton: React.FC<ExcelExportButtonProps> = ({
         type="button"
         onClick={handleOpenExportModal}
         disabled={loading}
-        className={`px-3 py-2 text-xs font-mono uppercase tracking-wider text-[var(--text-primary)] hover:text-[var(--accent)] bg-[var(--bg-card)] hover:bg-[var(--bg-card-muted)] border border-[var(--border)] rounded-sm transition-all flex items-center gap-1.5 disabled:opacity-50 ${className}`}
+        className={`px-3.5 py-2 text-xs font-mono uppercase tracking-wider text-[var(--text-primary)] hover:text-[var(--accent)] hover:border-[var(--accent)] bg-[var(--bg-card)] hover:bg-[var(--bg-card-muted)] border border-[var(--border)] rounded-lg transition-all shadow-xs hover:shadow-sm flex items-center gap-1.5 disabled:opacity-50 cursor-pointer ${className}`}
         title={type === 'category' ? 'Xuất danh mục ra Excel' : 'Xuất danh sách sản phẩm ra Excel kèm ảnh nhúng'}
       >
         {loading ? (
@@ -173,22 +173,23 @@ export const ExcelExportButton: React.FC<ExcelExportButtonProps> = ({
           <div
             role="dialog"
             aria-modal="true"
-            className="fixed inset-0 bg-[var(--bg-overlay)] backdrop-blur-sm flex items-center justify-center p-4 pointer-events-auto"
+            aria-label="Xuất Dữ Liệu Sản Phẩm Ra Excel"
+            className="fixed inset-0 bg-[rgba(26,26,23,0.55)] backdrop-blur-sm flex items-center justify-center p-4 pointer-events-auto"
             style={{ zIndex: overlayZIndex }}
             onClick={(e) => {
               if (e.target === e.currentTarget && !loading) setIsModalOpen(false);
             }}
           >
             <div
-              className="bg-[var(--bg-card)] border border-[var(--border)] rounded-sm w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 max-h-[calc(100dvh-32px)] flex flex-col text-[var(--text-primary)]"
+              className="bg-[var(--surface)] border border-[var(--border)] rounded-sm w-full max-w-lg shadow-2xl overflow-hidden max-h-[calc(100dvh-32px)] flex flex-col text-[var(--text)]"
               style={{ zIndex: contentZIndex }}
             >
               {/* Modal Header */}
-              <div className="px-5 py-4 border-b border-[var(--border)] flex items-center justify-between bg-[var(--bg-card-muted)] shrink-0">
+              <div className="px-5 py-4 border-b border-[var(--border)] flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2.5">
                   <FileSpreadsheet className="w-5 h-5 text-[var(--accent)]" />
                   <div>
-                    <h3 className="text-xs font-semibold text-[var(--text-primary)] tracking-wide uppercase font-mono">
+                    <h3 className="text-sm font-semibold text-[var(--text)] tracking-wider uppercase font-display">
                       Xuất Dữ Liệu Sản Phẩm Ra Excel (.xlsx)
                     </h3>
                     <p className="text-[11px] text-[var(--text-muted)]">
@@ -200,49 +201,50 @@ export const ExcelExportButton: React.FC<ExcelExportButtonProps> = ({
                   type="button"
                   onClick={() => setIsModalOpen(false)}
                   disabled={loading}
-                  className="p-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors rounded-sm"
+                  className="p-1 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors rounded-sm"
+                  aria-label="Đóng"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
               {/* Modal Body */}
-              <div className="p-5 space-y-5 overflow-y-auto flex-1">
+              <div className="p-5 space-y-5 overflow-y-auto flex-1 text-xs">
               {/* Scope Selection */}
               <div>
-                <label className="text-xs font-mono uppercase text-platinum-light block mb-2.5">
+                <label className="text-[11px] font-mono uppercase tracking-wider text-[var(--text)] block mb-2">
                   1. Phạm Vi Dữ Liệu Cần Xuất
                 </label>
                 <div className="space-y-2">
-                  <label className="flex items-center gap-3 p-2.5 bg-noir-950/70 border border-white/5 rounded-sm cursor-pointer hover:border-white/15 transition-colors">
+                  <label className="flex items-center gap-3 p-2.5 bg-[var(--bg-alt)] border border-[var(--border)] rounded-sm cursor-pointer hover:border-[var(--accent)]/50 transition-colors">
                     <input
                       type="radio"
                       name="exportScope"
                       value="all"
                       checked={exportScope === 'all'}
                       onChange={() => setExportScope('all')}
-                      className="text-champagne focus:ring-champagne/40 bg-noir-900 border-white/20"
+                      className="text-[var(--accent)] focus:ring-[var(--accent)]"
                     />
                     <div className="text-xs">
-                      <div className="font-medium text-white">Tất cả sản phẩm trong hệ thống</div>
-                      <div className="text-[11px] text-platinum-dark">
+                      <div className="font-medium text-[var(--text)]">Tất cả sản phẩm trong hệ thống</div>
+                      <div className="text-[11px] text-[var(--text-muted)]">
                         Xuất toàn bộ kho hàng (tối đa 500 sản phẩm có ảnh nhúng)
                       </div>
                     </div>
                   </label>
 
-                  <label className="flex items-center gap-3 p-2.5 bg-noir-950/70 border border-white/5 rounded-sm cursor-pointer hover:border-white/15 transition-colors">
+                  <label className="flex items-center gap-3 p-2.5 bg-[var(--bg-alt)] border border-[var(--border)] rounded-sm cursor-pointer hover:border-[var(--accent)]/50 transition-colors">
                     <input
                       type="radio"
                       name="exportScope"
                       value="filtered"
                       checked={exportScope === 'filtered'}
                       onChange={() => setExportScope('filtered')}
-                      className="text-champagne focus:ring-champagne/40 bg-noir-900 border-white/20"
+                      className="text-[var(--accent)] focus:ring-[var(--accent)]"
                     />
                     <div className="text-xs">
-                      <div className="font-medium text-white">Theo bộ lọc hiện tại trên trang</div>
-                      <div className="text-[11px] text-platinum-dark">
+                      <div className="font-medium text-[var(--text)]">Theo bộ lọc hiện tại trên trang</div>
+                      <div className="text-[11px] text-[var(--text-muted)]">
                         {currentCategory !== 'all' && `Danh mục: ${currentCategory} • `}
                         {currentSearch ? `Từ khóa: "${currentSearch}"` : 'Theo điều kiện đang lọc'}
                       </div>
@@ -250,9 +252,9 @@ export const ExcelExportButton: React.FC<ExcelExportButtonProps> = ({
                   </label>
 
                   <label
-                    className={`flex items-center gap-3 p-2.5 bg-noir-950/70 border border-white/5 rounded-sm transition-colors ${
+                    className={`flex items-center gap-3 p-2.5 bg-[var(--bg-alt)] border border-[var(--border)] rounded-sm transition-colors ${
                       selectedIds.length > 0
-                        ? 'cursor-pointer hover:border-white/15'
+                        ? 'cursor-pointer hover:border-[var(--accent)]/50'
                         : 'opacity-50 cursor-not-allowed'
                     }`}
                   >
@@ -263,13 +265,13 @@ export const ExcelExportButton: React.FC<ExcelExportButtonProps> = ({
                       disabled={selectedIds.length === 0}
                       checked={exportScope === 'selected'}
                       onChange={() => setExportScope('selected')}
-                      className="text-champagne focus:ring-champagne/40 bg-noir-900 border-white/20"
+                      className="text-[var(--accent)] focus:ring-[var(--accent)]"
                     />
                     <div className="text-xs">
-                      <div className="font-medium text-white">
+                      <div className="font-medium text-[var(--text)]">
                         Chỉ sản phẩm đã chọn ({selectedIds.length} sản phẩm)
                       </div>
-                      <div className="text-[11px] text-platinum-dark">
+                      <div className="text-[11px] text-[var(--text-muted)]">
                         {selectedIds.length > 0
                           ? 'Xuất danh sách sản phẩm bạn đang tích chọn ở bảng'
                           : 'Hãy tích chọn sản phẩm ở bảng trước để dùng tùy chọn này'}
@@ -281,22 +283,22 @@ export const ExcelExportButton: React.FC<ExcelExportButtonProps> = ({
 
               {/* Image Option */}
               <div>
-                <label className="text-xs font-mono uppercase text-platinum-light block mb-2.5">
+                <label className="text-[11px] font-mono uppercase tracking-wider text-[var(--text)] block mb-2">
                   2. Cấu Hình Hình Ảnh Nhúng
                 </label>
-                <label className="flex items-start gap-3 p-3 bg-champagne/5 border border-champagne/20 rounded-sm cursor-pointer">
+                <label className="flex items-start gap-3 p-3 bg-[var(--accent)]/10 border border-[var(--accent)]/30 rounded-sm cursor-pointer">
                   <input
                     type="checkbox"
                     checked={includeImages}
                     onChange={(e) => setIncludeImages(e.target.checked)}
-                    className="mt-0.5 rounded-sm text-champagne focus:ring-champagne/40 bg-noir-900 border-champagne/40"
+                    className="mt-0.5 rounded-sm text-[var(--accent)] focus:ring-[var(--accent)] border-[var(--border)]"
                   />
                   <div className="text-xs space-y-1">
-                    <div className="font-semibold text-champagne flex items-center gap-1.5">
+                    <div className="font-semibold text-[var(--accent)] flex items-center gap-1.5">
                       <ImageIcon className="w-3.5 h-3.5" />
                       <span>Nhúng hình ảnh trực tiếp vào ô Excel (Khuyên dùng)</span>
                     </div>
-                    <p className="text-[11px] text-platinum-light leading-relaxed">
+                    <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
                       Hình ảnh được tải về, nén JPEG chất lượng 80%, thu nhỏ tối đa 300px và neo cố định vào ô
                       (&apos;oneCell&apos;). Tương thích hoàn toàn với Microsoft Excel, WPS Office, Apple Numbers mà không
                       cần kết nối internet khi mở file.
@@ -306,9 +308,9 @@ export const ExcelExportButton: React.FC<ExcelExportButtonProps> = ({
               </div>
 
               {/* Safety notice */}
-              <div className="p-3 bg-noir-950 border border-white/5 rounded-sm text-[11px] text-platinum-dark space-y-1">
-                <div className="font-mono text-platinum-light flex items-center gap-1">
-                  <Layers className="w-3.5 h-3.5 text-champagne" />
+              <div className="p-3 bg-[var(--bg-alt)] border border-[var(--border)] rounded-sm text-[11px] text-[var(--text-muted)] space-y-1">
+                <div className="font-mono text-[var(--text)] flex items-center gap-1">
+                  <Layers className="w-3.5 h-3.5 text-[var(--accent)]" />
                   <span>Quy định an toàn & giới hạn hệ thống:</span>
                 </div>
                 <p>
@@ -319,12 +321,12 @@ export const ExcelExportButton: React.FC<ExcelExportButtonProps> = ({
             </div>
 
             {/* Modal Footer */}
-            <div className="px-5 py-3.5 border-t border-white/10 bg-noir-950 flex items-center justify-end gap-2.5">
+            <div className="px-5 py-3.5 border-t border-[var(--border)] bg-[var(--surface)] flex items-center justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
                 disabled={loading}
-                className="px-4 py-2 text-xs text-platinum-light hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 rounded-sm transition-colors"
+                className="px-4 py-2 border border-[var(--border)] text-[var(--text)] rounded-sm text-xs font-mono uppercase tracking-wider hover:bg-[var(--bg-alt)] transition-colors"
               >
                 Hủy Bỏ
               </button>
@@ -332,7 +334,7 @@ export const ExcelExportButton: React.FC<ExcelExportButtonProps> = ({
                 type="button"
                 onClick={handleProductExport}
                 disabled={loading}
-                className="px-5 py-2 bg-champagne text-noir-950 text-xs font-semibold rounded-sm hover:bg-champagne/90 transition-all flex items-center gap-2 shadow-md shadow-champagne/10 disabled:opacity-50"
+                className="px-5 py-2 bg-[var(--accent)] text-[var(--accent-contrast)] text-xs font-mono font-semibold uppercase tracking-wider rounded-sm hover:bg-[var(--accent)]/90 transition-all shadow-sm flex items-center gap-2 disabled:opacity-50 cursor-pointer"
               >
                 {loading ? (
                   <>

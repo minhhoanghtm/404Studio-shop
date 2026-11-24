@@ -1,14 +1,20 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Award, Users, Clock, Settings, ShieldCheck } from 'lucide-react';
+import { Award, Users, Clock, Settings } from 'lucide-react';
+import { useAuthStore } from '@/shared/stores/useAuthStore';
 
 export const AdminLoyaltyNav: React.FC = () => {
-  const tabs = [
-    { label: 'Tổng Quan & Cấp Hạng', to: '/admin/loyalty', end: true, icon: Award },
-    { label: 'Hồ Sơ Điểm Thành Viên', to: '/admin/loyalty/customers', icon: Users },
-    { label: 'Sổ Cái Giao Dịch Điểm', to: '/admin/loyalty/transactions', icon: Clock },
-    { label: 'Quy Tắc & Kiểm Định Backend', to: '/admin/loyalty/settings', icon: Settings },
+  const { user } = useAuthStore();
+  const isAdmin = user?.role === 'admin' || user?.vipTier === 'admin';
+
+  const allTabs = [
+    { label: 'Tổng Quan & Cấp Hạng', to: '/admin/loyalty', end: true, icon: Award, adminOnly: false },
+    { label: 'Hồ Sơ Điểm Thành Viên', to: '/admin/loyalty/customers', icon: Users, adminOnly: false },
+    { label: 'Sổ Cái Giao Dịch Điểm', to: '/admin/loyalty/transactions', icon: Clock, adminOnly: false },
+    { label: 'Cấu Hình & Quản Trị Điểm', to: '/admin/loyalty/settings', icon: Settings, adminOnly: true },
   ];
+
+  const tabs = allTabs.filter((t) => !t.adminOnly || isAdmin);
 
   return (
     <div className="flex flex-wrap items-center gap-2 border-b border-[var(--border)] pb-4">
@@ -20,10 +26,10 @@ export const AdminLoyaltyNav: React.FC = () => {
             to={tab.to}
             end={tab.end}
             className={({ isActive }) =>
-              `flex items-center gap-2 px-3.5 py-2 rounded-sm text-xs font-mono uppercase tracking-wider transition-all ${
+              `flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-mono uppercase tracking-wider transition-all duration-200 cursor-pointer ${
                 isActive
-                  ? 'bg-[var(--accent)] text-[var(--accent-contrast)] font-bold shadow-md'
-                  : 'bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--table-row-hover)] border border-[var(--border)]'
+                  ? 'admin-tab-active'
+                  : 'admin-tab-inactive'
               }`
             }
           >

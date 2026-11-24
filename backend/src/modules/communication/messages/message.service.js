@@ -59,6 +59,22 @@ class MessageService {
     const limit = Math.min(Math.max(Number(query.limit) || 50, 1), 100);
     const skip = (page - 1) * limit;
     const filter = { conversationId };
+    if (actor.role === "admin") {
+      filter["metadata.isEphemeral"] = { $ne: true };
+      filter["metadata.actionResult.code"] = {
+        $nin: [
+          "CROSS_USER_FORBIDDEN",
+          "REPLAY_BLOCKED",
+          "EXPIRED",
+          "INVALID_ACTION_TOKEN",
+          "AUTH_REQUIRED",
+          "FORBIDDEN_ROLE",
+        ],
+      };
+      filter.content = {
+        $not: /^⚠️ (?:Thao tác không hợp lệ|Thao tác thêm vào giỏ hàng này đã được thực thi|Chữ ký xác thực hành động không hợp lệ|Yêu cầu xác nhận thêm giỏ hàng đã hết hạn)/i,
+      };
+    }
     const cursor = query.cursor || query.after;
     if (cursor) {
       const after = new Date(cursor);

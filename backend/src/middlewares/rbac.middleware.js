@@ -108,10 +108,10 @@ export const authenticate = async (req, res, next) => {
       });
     }
 
-    if (user.status === "blocked" || user.status === "locked") {
+    if (user.status === "blocked" || user.status === "locked" || user.isActive === false) {
       return res.status(403).json({
         success: false,
-        message: "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên!",
+        message: "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ với shop để giải quyết.",
       });
     }
 

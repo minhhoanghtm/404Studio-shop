@@ -11,7 +11,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:qa": "node --env-file=../backend/.env.qa ./node_modules/@playwright/test/cli.js test e2e/adminAiCreativeStudio.real.spec.ts"
   },
   "dependencies": {
     "@designcodeio/threeui": "^1.2.0",

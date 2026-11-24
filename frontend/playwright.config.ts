@@ -1,15 +1,18 @@
 import { defineConfig } from '@playwright/test';
 
+const baseURL = process.env.QA_FRONTEND_URL || 'http://127.0.0.1:5173';
+const useExistingQaServer = process.env.QA_E2E_ENABLED === 'true';
+
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: 0,
   timeout: 60000,
-  workers: 2,
+  workers: useExistingQaServer ? 1 : 2,
   reporter: 'list',
   use: {
-    baseURL: 'http://127.0.0.1:5173',
+    baseURL,
     trace: 'off',
     screenshot: 'only-on-failure',
     video: 'on',
@@ -39,7 +42,7 @@ export default defineConfig({
       },
     },
   ],
-  webServer: {
+  webServer: useExistingQaServer ? undefined : {
     command: 'npm run dev',
     url: 'http://127.0.0.1:5173',
     reuseExistingServer: true,

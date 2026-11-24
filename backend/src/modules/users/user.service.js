@@ -105,7 +105,7 @@ class UserService {
     return await userRepository.findByIdWithoutPassword(createdUser._id);
   }
 
-  async updateUser(id, updateData) {
+  async updateUser(id, updateData, actor = {}) {
     const {
       email,
       passWord,
@@ -121,6 +121,19 @@ class UserService {
     const user = await userRepository.findById(id);
     if (!user) {
       throw new AppError("Không tìm thấy tài khoản", 404);
+    }
+
+    // Permission enforcement: Only admin has authority to lock/unlock accounts
+    if (status !== undefined) {
+      if (actor && actor.role && actor.role !== "admin") {
+        throw new AppError("Chỉ Quản trị viên (Admin) mới có quyền khóa hoặc mở khóa tài khoản nhân viên và khách hàng.", 403);
+      }
+      if (actor?.userId && String(actor.userId) === String(user._id) && (status === "locked" || status === "blocked")) {
+        throw new AppError("Bạn không thể tự khóa tài khoản của chính mình.", 400);
+      }
+      if (user.role === "admin" && (status === "locked" || status === "blocked")) {
+        throw new AppError("Không thể khóa tài khoản Quản trị viên cấp cao.", 400);
+      }
     }
 
     const previousRole = user.role;
@@ -168,9 +181,11 @@ class UserService {
 
     await user.save();
 
-    // Invalidate user sessions if role changed or status was blocked
+    // Invalidate user sessions if role changed or status was blocked/locked
     const roleChanged = role && role !== previousRole;
-    const statusBlocked = user.status === "blocked" && previousStatus !== "blocked";
+    const isNowLocked = user.status === "blocked" || user.status === "locked";
+    const wasLocked = previousStatus === "blocked" || previousStatus === "locked";
+    const statusBlocked = isNowLocked && !wasLocked;
 
     if (roleChanged || statusBlocked) {
       try {
@@ -220,6 +235,7 @@ class UserService {
     const {
       fullName,
       email,
+      phone,
       birthday,
       sex,
       avatar_url,
@@ -234,6 +250,9 @@ class UserService {
 
     user.fullName = fullName || user.fullName;
     user.email = email || user.email;
+    if (phone !== undefined) {
+      user.phone = phone ? String(phone).trim() : undefined;
+    }
     user.birthday = birthday || user.birthday;
     user.sex = sex || user.sex;
     user.avatar_url = avatar_url || user.avatar_url;

@@ -50,61 +50,65 @@ export const PopupPreviewModal: React.FC<PopupPreviewProps> = ({
         role="dialog"
         aria-modal="true"
         aria-label="Xem trước popup ưu đãi"
-        className="fixed inset-0 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in pointer-events-auto"
+        className="fixed inset-0 bg-[rgba(26,26,23,0.55)] backdrop-blur-sm flex items-center justify-center p-4 pointer-events-auto"
         style={{ zIndex: overlayZIndex }}
         onClick={(e) => {
           if (e.target === e.currentTarget) onClose();
         }}
       >
         <div
-          className="relative w-full max-w-4xl bg-noir-950 border border-white/20 text-white rounded-sm shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-32px)]"
+          className="relative w-full max-w-4xl bg-[var(--surface)] border border-[var(--border)] text-[var(--text)] rounded-sm shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-32px)]"
           style={{ zIndex: contentZIndex }}
         >
           {/* Top Control Bar */}
-          <div className="p-4 bg-noir-900 border-b border-white/10 flex items-center justify-between">
+          <div className="px-5 py-3.5 bg-[var(--surface)] border-b border-[var(--border)] flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-mono uppercase tracking-widest text-champagne">
+              <Sparkles className="w-4 h-4 text-[var(--accent)]" />
+              <span className="text-xs font-mono uppercase tracking-wider text-[var(--text)] font-semibold">
                 Chế Độ Xem Trước Popup Thời Gian Thực
               </span>
             </div>
 
             {/* Device Toggles */}
-            <div className="flex items-center gap-2 bg-noir-950 p-1 border border-white/10 rounded-xs">
+            <div className="flex items-center gap-1 bg-[var(--bg-alt)] p-1 border border-[var(--border)] rounded-sm">
               <button
                 type="button"
                 onClick={() => setDeviceMode('desktop')}
-                className={`px-3 py-1 text-xs flex items-center gap-1.5 transition-colors ${deviceMode === 'desktop'
-                  ? 'bg-champagne text-noir-950 font-medium'
-                  : 'text-white/60 hover:text-white'
-                  }`}
+                className={`px-3 py-1 text-xs flex items-center gap-1.5 transition-colors rounded-sm font-mono uppercase tracking-wider ${
+                  deviceMode === 'desktop'
+                    ? 'bg-[var(--accent)] text-[var(--accent-contrast)] font-medium'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+                }`}
               >
                 <Monitor className="w-3.5 h-3.5" />
-                <span>Máy Tính (Desktop)</span>
+                <span>Máy Tính</span>
               </button>
               <button
                 type="button"
                 onClick={() => setDeviceMode('mobile')}
-                className={`px-3 py-1 text-xs flex items-center gap-1.5 transition-colors ${deviceMode === 'mobile'
-                  ? 'bg-champagne text-noir-950 font-medium'
-                  : 'text-white/60 hover:text-white'
-                  }`}
+                className={`px-3 py-1 text-xs flex items-center gap-1.5 transition-colors rounded-sm font-mono uppercase tracking-wider ${
+                  deviceMode === 'mobile'
+                    ? 'bg-[var(--accent)] text-[var(--accent-contrast)] font-medium'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+                }`}
               >
                 <Smartphone className="w-3.5 h-3.5" />
-                <span>Điện Thoại (Mobile)</span>
+                <span>Điện Thoại</span>
               </button>
             </div>
 
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 text-white/60 hover:text-white transition-colors"
+              className="p-1 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors rounded-sm"
+              aria-label="Đóng"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
           {/* Viewport Area */}
-          <div className="p-8 flex items-center justify-center overflow-y-auto bg-noir-950/80 min-h-[460px]">
+          <div className="p-8 flex items-center justify-center overflow-y-auto bg-[var(--bg-alt)] min-h-[460px]">
             <div
               className={`transition-all duration-300 ${deviceMode === 'desktop'
                 ? 'w-full max-w-2xl bg-noir-900 border border-champagne/30 text-white shadow-2xl flex flex-row overflow-hidden'

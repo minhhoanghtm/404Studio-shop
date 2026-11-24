@@ -40,25 +40,52 @@ export const PERMISSIONS = {
 export type PermissionKey = typeof PERMISSIONS[keyof typeof PERMISSIONS];
 
 /**
+ * Strict role-level requirement for specific administration routes.
+ * If defined, user role MUST be included in the allowed roles list.
+ * Super Admin ('admin') is always allowed unconditionally.
+ */
+export const ROUTE_ROLES: Record<string, string[]> = {
+  '/admin/roles': ['admin'],
+  '/admin/settings': ['admin'],
+  '/admin/policies': ['admin'],
+  '/admin/tracking': ['admin'],
+  '/admin/loyalty/settings': ['admin'],
+};
+
+/**
  * Route to Permission Requirement Mapping
  * If a route requires multiple, possessing ANY of them is sufficient (OR semantics).
  */
 export const ROUTE_PERMISSIONS: Record<string, string[]> = {
-  // Admin Routes
+  // Admin Routes (Overview & AI)
   '/admin': [PERMISSIONS.DASHBOARD_VIEW],
+  '/admin/ai-assistant': [PERMISSIONS.DASHBOARD_VIEW],
+
+  // Products & Categories (Staff & Admin)
   '/admin/products': [PERMISSIONS.PRODUCT_VIEW],
   '/admin/products/new': [PERMISSIONS.PRODUCT_CREATE],
   '/admin/products/:id/edit': [PERMISSIONS.PRODUCT_UPDATE],
   '/admin/categories': [PERMISSIONS.PRODUCT_VIEW],
+
+  // Orders & Customers (Staff & Admin)
   '/admin/orders': [PERMISSIONS.ORDER_VIEW],
   '/admin/customers': [PERMISSIONS.USER_VIEW],
+
+  // Loyalty Program
+  '/admin/loyalty/settings': [PERMISSIONS.ROLE_MANAGE],
+  '/admin/loyalty/customers': [PERMISSIONS.USER_VIEW],
+  '/admin/loyalty/transactions': [PERMISSIONS.DASHBOARD_VIEW],
   '/admin/loyalty': [PERMISSIONS.DASHBOARD_VIEW],
+
+  // Marketing, Coupons & Real-time CSKH
   '/admin/campaigns': [PERMISSIONS.COUPON_MANAGE],
   '/admin/coupons': [PERMISSIONS.COUPON_MANAGE],
   '/admin/chats': [PERMISSIONS.CHAT_REPLY],
   '/admin/page-builder': [PERMISSIONS.CONTENT_MANAGE],
-  '/admin/policies': [PERMISSIONS.CONTENT_MANAGE],
-  '/admin/tracking': [PERMISSIONS.REPORT_VIEW],
+
+  // Sensitive & Security Management Routes (Admin Only)
+  '/admin/policies': [PERMISSIONS.ROLE_MANAGE],
+  '/admin/tracking': [PERMISSIONS.ROLE_MANAGE],
   '/admin/settings': [PERMISSIONS.ROLE_MANAGE],
   '/admin/roles': [PERMISSIONS.ROLE_MANAGE],
 };
@@ -73,14 +100,27 @@ export function canAccessRoute(
 ): boolean {
   if (userRole === 'admin') return true;
 
-  // Exact match
+  // 1. Strict Role-Level Gate Check
+  for (const [routePattern, allowedRoles] of Object.entries(ROUTE_ROLES)) {
+    if (pathname === routePattern || pathname.startsWith(routePattern + '/')) {
+      if (!userRole || !allowedRoles.includes(userRole)) {
+        return false;
+      }
+    }
+  }
+
+  // 2. Exact match in ROUTE_PERMISSIONS
   if (ROUTE_PERMISSIONS[pathname]) {
     const required = ROUTE_PERMISSIONS[pathname];
     return required.some((perm) => userPermissions.includes(perm));
   }
 
-  // Prefix/Subroute match (e.g. /admin/products/123/edit -> /admin/products/:id/edit or /admin/products)
-  for (const [routePattern, required] of Object.entries(ROUTE_PERMISSIONS)) {
+  // 3. Subroute pattern match with longest pattern priority
+  const sortedPatterns = Object.entries(ROUTE_PERMISSIONS).sort(
+    (a, b) => b[0].length - a[0].length
+  );
+
+  for (const [routePattern, required] of sortedPatterns) {
     if (routePattern === pathname) return required.some((p) => userPermissions.includes(p));
 
     // Handle param patterns like /admin/products/:id/edit
@@ -94,7 +134,7 @@ export function canAccessRoute(
     }
   }
 
-  // If route is under /admin but not explicitly registered, require dashboard:view or role:manage as fallback
+  // If route is under /admin but not explicitly registered, require dashboard:view as fallback
   if (pathname.startsWith('/admin')) {
     return userPermissions.includes(PERMISSIONS.DASHBOARD_VIEW);
   }

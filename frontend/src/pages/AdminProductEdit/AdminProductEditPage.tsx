@@ -127,7 +127,7 @@ export const AdminProductEditPage: React.FC = () => {
             <button
               type="button"
               onClick={() => navigate('/admin/products')}
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-white/10 text-xs text-white rounded-sm hover:bg-white/20 transition-colors"
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-white/10 border border-white/20 text-xs font-mono uppercase tracking-wider text-white rounded-lg shadow-xs hover:shadow-sm hover:bg-white/20 transition-all cursor-pointer"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Quay Lại Danh Sách</span>

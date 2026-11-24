@@ -19,25 +19,33 @@ export async function sendToSpringAi(payload, { userId, role }) {
   const material = `${timestamp}.POST.${path}.${userId || "anonymous"}.${safeRole}`;
   const signature = crypto.createHmac("sha256", secret).update(material).digest("hex");
   const timeout = AbortSignal.timeout(Number(process.env.SPRING_AI_TIMEOUT_MS || 30000));
-  const response = await fetch(`${baseUrl}${path}`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "X-AI-Service-Timestamp": timestamp,
-      "X-AI-Service-Signature": signature,
-      "X-AI-End-User-Id": String(userId || "anonymous"),
-      "X-AI-End-User-Role": safeRole,
-    },
-    body: JSON.stringify({
-      content: payload.content,
-      conversationId: payload.conversationId || null,
-      metadata: payload.metadata || {},
-      confirmAction: payload.confirmAction,
-      cancelAction: payload.cancelAction,
-      mode: payload.mode,
-    }),
-    signal: timeout,
-  });
+  let response;
+  try {
+    response = await fetch(`${baseUrl}${path}`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "X-AI-Service-Timestamp": timestamp,
+        "X-AI-Service-Signature": signature,
+        "X-AI-End-User-Id": String(userId || "anonymous"),
+        "X-AI-End-User-Role": safeRole,
+      },
+      body: JSON.stringify({
+        content: payload.content,
+        conversationId: payload.conversationId || null,
+        metadata: payload.metadata || {},
+        confirmAction: payload.confirmAction,
+        cancelAction: payload.cancelAction,
+        mode: payload.mode,
+      }),
+      signal: timeout,
+    });
+  } catch (err) {
+    const error = new Error(`AI service connection failed: ${err.message}`);
+    error.code = "SPRING_AI_UNAVAILABLE";
+    error.cause = err;
+    throw error;
+  }
   if (!response.ok) {
     const error = new Error("AI service rejected the request");
     error.code = "SPRING_AI_UNAVAILABLE";

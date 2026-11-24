@@ -179,7 +179,7 @@ export const PolicyForm: React.FC<PolicyFormProps> = ({
           <button
             type="button"
             onClick={() => navigate('/admin/policies')}
-            className="p-2 border border-white/15 hover:border-white/40 text-platinum-dark hover:text-white rounded-sm transition-colors"
+            className="p-2 border border-[var(--border)] hover:border-[var(--accent)] bg-[var(--bg-card)] text-[var(--text-primary)] hover:text-[var(--accent)] rounded-lg transition-all shadow-xs hover:shadow-sm cursor-pointer"
             title="Quay lại danh sách"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -201,14 +201,14 @@ export const PolicyForm: React.FC<PolicyFormProps> = ({
         {/* View Switcher & Actions */}
         <div className="flex flex-wrap items-center gap-3">
           {/* Editor / Preview Tab Switcher */}
-          <div className="flex items-center p-1 bg-noir-950 border border-white/10 rounded-sm">
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => setViewTab('editor')}
-              className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wider rounded-sm transition-all flex items-center gap-1.5 ${
+              className={`px-3.5 py-2 text-xs font-mono uppercase tracking-wider rounded-lg transition-all duration-200 flex items-center gap-1.5 cursor-pointer ${
                 viewTab === 'editor'
-                  ? 'bg-champagne text-noir-950 shadow-sm'
-                  : 'text-platinum-dark hover:text-white'
+                  ? 'admin-tab-active'
+                  : 'admin-tab-inactive'
               }`}
             >
               <Edit3 className="w-3.5 h-3.5" />
@@ -217,10 +217,10 @@ export const PolicyForm: React.FC<PolicyFormProps> = ({
             <button
               type="button"
               onClick={() => setViewTab('preview')}
-              className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wider rounded-sm transition-all flex items-center gap-1.5 ${
+              className={`px-3.5 py-2 text-xs font-mono uppercase tracking-wider rounded-lg transition-all duration-200 flex items-center gap-1.5 cursor-pointer ${
                 viewTab === 'preview'
-                  ? 'bg-champagne text-noir-950 shadow-sm'
-                  : 'text-platinum-dark hover:text-white'
+                  ? 'admin-tab-active'
+                  : 'admin-tab-inactive'
               }`}
             >
               <Eye className="w-3.5 h-3.5" />
@@ -232,7 +232,7 @@ export const PolicyForm: React.FC<PolicyFormProps> = ({
           <button
             type="submit"
             disabled={isLoading}
-            className="px-5 py-2 bg-champagne hover:bg-champagne/90 text-noir-950 font-semibold text-xs uppercase tracking-wider rounded-sm transition-all flex items-center gap-2 shadow-md disabled:opacity-50"
+            className="px-5 py-2 bg-[var(--accent)] hover:brightness-105 text-[var(--accent-contrast)] border border-[var(--accent)] font-bold text-xs font-mono uppercase tracking-wider rounded-lg transition-all flex items-center gap-2 shadow-md hover:shadow-lg disabled:opacity-50 cursor-pointer"
           >
             <Save className="w-4 h-4" />
             <span>{isLoading ? 'Đang Lưu...' : isEdit ? 'Cập Nhật Chính Sách' : 'Lưu & Khởi Tạo'}</span>

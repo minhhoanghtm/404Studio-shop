@@ -12,13 +12,18 @@ import {
   Loader2,
   RefreshCw,
   Package,
+  Calendar,
+  X,
 } from 'lucide-react';
 import { adminApi } from '@/shared/api';
 import { formatCurrency, formatDate } from '@/shared/utils/formatters';
 import { useToastStore } from '@/shared/stores/useToastStore';
 import { useAuthStore } from '@/shared/stores/useAuthStore';
 import { OrderExportModal } from '@/shared/components/excel/OrderExportModal';
+import { TablePagination } from '@/shared/components/TablePagination';
+import { StatusBadge } from '@/shared/components/StatusBadge';
 import { useModal, ModalPortal } from '@/shared/context/ModalContext';
+import { AdminActionGroup, ViewActionButton } from '@/shared/components/AdminActionButton';
 import {
   normalizeOrderForExport,
   exportOrdersToExcel,
@@ -32,6 +37,8 @@ export const AdminOrdersPage: React.FC = () => {
   const [orders, setOrders] = useState<any[]>([]);
   const [totalOrders, setTotalOrders] = useState(0);
   const [statusFilter, setStatusFilter] = useState('all');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -61,6 +68,8 @@ export const AdminOrdersPage: React.FC = () => {
         limit: 15,
         status: statusFilter !== 'all' ? statusFilter : undefined,
         search: search.trim() || undefined,
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
       });
 
       const items = res?.data?.items || (Array.isArray(res?.data) ? res.data : []);
@@ -77,7 +86,7 @@ export const AdminOrdersPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [page, statusFilter, search, addToast]);
+  }, [page, statusFilter, search, startDate, endDate, addToast]);
 
   useEffect(() => {
     fetchOrders();
@@ -166,9 +175,9 @@ export const AdminOrdersPage: React.FC = () => {
       <div className="space-y-6">
         {/* Action Header & Toolbar */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-          <div className="flex flex-wrap items-center gap-3 flex-1 max-w-xl">
+          <div className="flex flex-wrap items-center gap-3 flex-1">
             {/* Search Input */}
-            <div className="relative flex-1 min-w-[220px]">
+            <div className="relative flex-1 min-w-[200px] max-w-xs">
               <Search className="w-4 h-4 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
@@ -177,7 +186,7 @@ export const AdminOrdersPage: React.FC = () => {
                   setSearch(e.target.value);
                   setPage(1);
                 }}
-                placeholder="Tìm theo mã đơn, tên hoặc số điện thoại..."
+                placeholder="Tìm mã đơn, tên, SĐT..."
                 className="w-full pl-9 pr-3 py-2 text-xs bg-[var(--input-bg)] border border-[var(--border)] rounded-sm focus:border-[var(--accent)] focus:outline-none text-[var(--text-primary)] placeholder-[var(--text-muted)]"
               />
             </div>
@@ -192,12 +201,60 @@ export const AdminOrdersPage: React.FC = () => {
               className="py-2 px-3 text-xs bg-[var(--input-bg)] border border-[var(--border)] rounded-sm focus:border-[var(--accent)] focus:outline-none text-[var(--text-primary)] font-mono"
             >
               <option value="all">Tất cả trạng thái</option>
-              <option value="pending">Chờ xử lý (Pending)</option>
-              <option value="confirmed">Đã xác nhận (Confirmed)</option>
-              <option value="shipping">Đang giao hàng (Shipping)</option>
-              <option value="delivered">Giao thành công (Delivered)</option>
-              <option value="cancelled">Đã hủy (Cancelled)</option>
+              <option value="pending">Chờ xử lý</option>
+              <option value="confirmed">Đã xác nhận</option>
+              <option value="shipping">Đang giao hàng</option>
+              <option value="delivered">Giao thành công</option>
+              <option value="cancelled">Đã hủy</option>
             </select>
+
+            {/* Date Range Filter: Từ ngày - Đến ngày */}
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-1.5 bg-[var(--input-bg)] border border-[var(--border)] rounded-sm px-2.5 py-1.5 text-xs font-mono">
+                <Calendar className="w-3.5 h-3.5 text-[var(--accent)] shrink-0" />
+                <span className="text-[11px] text-[var(--text-muted)] shrink-0">Từ ngày:</span>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => {
+                    setStartDate(e.target.value);
+                    setPage(1);
+                  }}
+                  className="bg-transparent text-xs text-[var(--text-primary)] focus:outline-none cursor-pointer"
+                  title="Lọc đơn hàng từ ngày"
+                />
+              </div>
+
+              <div className="flex items-center gap-1.5 bg-[var(--input-bg)] border border-[var(--border)] rounded-sm px-2.5 py-1.5 text-xs font-mono">
+                <Calendar className="w-3.5 h-3.5 text-[var(--accent)] shrink-0" />
+                <span className="text-[11px] text-[var(--text-muted)] shrink-0">Đến ngày:</span>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => {
+                    setEndDate(e.target.value);
+                    setPage(1);
+                  }}
+                  className="bg-transparent text-xs text-[var(--text-primary)] focus:outline-none cursor-pointer"
+                  title="Lọc đơn hàng đến ngày"
+                />
+              </div>
+
+              {(startDate || endDate) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStartDate('');
+                    setEndDate('');
+                    setPage(1);
+                  }}
+                  className="px-2 py-1.5 text-[11px] font-mono text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/10 border border-[var(--border)] hover:border-red-500/30 rounded-sm transition-colors"
+                  title="Xóa bộ lọc ngày"
+                >
+                  Xóa lọc ngày
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Action Toolbar */}
@@ -206,7 +263,7 @@ export const AdminOrdersPage: React.FC = () => {
               type="button"
               onClick={fetchOrders}
               disabled={isLoading}
-              className="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] bg-[var(--bg-card)] hover:bg-[var(--table-row-hover)] border border-[var(--border)] rounded-sm transition-colors"
+              className="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--accent)] bg-[var(--bg-card)] hover:bg-[var(--table-row-hover)] border border-[var(--border)] rounded-lg shadow-xs hover:shadow-sm transition-all cursor-pointer"
               title="Làm mới danh sách"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-[var(--accent)]' : ''}`} />
@@ -216,7 +273,7 @@ export const AdminOrdersPage: React.FC = () => {
             <button
               type="button"
               onClick={() => setIsExportModalOpen(true)}
-              className="px-3.5 py-2 text-xs font-mono uppercase tracking-wider text-[var(--text-primary)] hover:text-[var(--accent)] bg-[var(--bg-card)] hover:bg-[var(--table-row-hover)] border border-[var(--border)] rounded-sm transition-all flex items-center gap-1.5"
+              className="px-3.5 py-2 text-xs font-mono uppercase tracking-wider text-[var(--text-primary)] hover:text-[var(--accent)] hover:border-[var(--accent)] bg-[var(--bg-card)] hover:bg-[var(--table-row-hover)] border border-[var(--border)] rounded-lg transition-all shadow-xs hover:shadow-sm flex items-center gap-1.5 cursor-pointer"
               title="Mở bảng tùy chọn xuất Excel đa phạm vi"
             >
               <FileSpreadsheet className="w-3.5 h-3.5 text-[var(--accent)]" />
@@ -268,6 +325,7 @@ export const AdminOrdersPage: React.FC = () => {
                         title="Chọn tất cả đơn hàng trên trang"
                       />
                     </th>
+                    <th className="py-3 px-3 w-12 text-center">STT</th>
                     <th className="py-3 px-4">Mã Đơn</th>
                     <th className="py-3 px-4">Khách Hàng</th>
                     <th className="py-3 px-4">Thời Gian</th>
@@ -280,7 +338,7 @@ export const AdminOrdersPage: React.FC = () => {
                 <tbody className="divide-y divide-[var(--border)]">
                   {orders.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="py-14 text-center">
+                      <td colSpan={9} className="py-14 text-center">
                         <Package className="w-9 h-9 text-[var(--text-muted)]/40 mx-auto mb-2.5" />
                         <h4 className="text-xs font-medium text-[var(--text-primary)] mb-1">Không tìm thấy đơn hàng nào</h4>
                         <p className="text-[11px] text-[var(--text-muted)] max-w-sm mx-auto">
@@ -289,7 +347,7 @@ export const AdminOrdersPage: React.FC = () => {
                       </td>
                     </tr>
                   ) : (
-                    orders.map((ord) => {
+                    orders.map((ord, idx) => {
                     const id = String(ord._id || ord.id);
                     const code = ord.orderCode || `ORD-${id.slice(-8).toUpperCase()}`;
                     const customerName =
@@ -313,6 +371,9 @@ export const AdminOrdersPage: React.FC = () => {
                             onChange={() => handleToggleSelect(id)}
                             className="w-3.5 h-3.5 rounded text-[var(--accent)] focus:ring-[var(--accent)] border-[var(--border)]"
                           />
+                        </td>
+                        <td className="py-3.5 px-3 text-center font-mono text-xs text-[var(--text-muted)]">
+                          {(page - 1) * 15 + idx + 1}
                         </td>
                         <td className="py-3.5 px-4 font-mono font-bold text-[var(--accent)]">
                           {code}
@@ -346,14 +407,12 @@ export const AdminOrdersPage: React.FC = () => {
                           </select>
                         </td>
                         <td className="py-3.5 px-4 text-right">
-                          <button
-                            type="button"
-                            onClick={() => handleOpenDetail(ord)}
-                            className="p-1.5 text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors"
-                            title="Xem chi tiết đơn hàng & xuất Excel"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
+                          <AdminActionGroup>
+                            <ViewActionButton
+                              onClick={() => handleOpenDetail(ord)}
+                              title="Xem chi tiết đơn hàng & xuất Excel"
+                            />
+                          </AdminActionGroup>
                         </td>
                       </tr>
                     );
@@ -365,29 +424,14 @@ export const AdminOrdersPage: React.FC = () => {
 
           {/* Pagination Controls */}
           {totalPages > 1 && (
-            <div className="px-6 py-3 border-t border-[var(--border)] bg-[var(--bg-card-muted)] flex items-center justify-between text-xs text-[var(--text-muted)]">
-              <span>
-                Hiển thị trang <strong className="text-[var(--text-primary)] font-mono">{page}</strong> / {totalPages} (Tổng cộng {totalOrders} đơn)
-              </span>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page <= 1}
-                  className="px-3 py-1 bg-[var(--bg-card)] hover:bg-[var(--table-row-hover)] border border-[var(--border)] text-[var(--text-primary)] rounded-sm disabled:opacity-40 transition-colors"
-                >
-                  Trang Trước
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={page >= totalPages}
-                  className="px-3 py-1 bg-[var(--bg-card)] hover:bg-[var(--table-row-hover)] border border-[var(--border)] text-[var(--text-primary)] rounded-sm disabled:opacity-40 transition-colors"
-                >
-                  Trang Sau
-                </button>
-              </div>
-            </div>
+            <TablePagination
+              currentPage={page}
+              totalPages={totalPages}
+              totalItems={totalOrders}
+              pageSize={10}
+              onPageChange={setPage}
+              itemName="đơn hàng"
+            />
           )}
         </div>
 
@@ -395,7 +439,7 @@ export const AdminOrdersPage: React.FC = () => {
         {selectedOrder && (
           <ModalPortal>
             <div
-              className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 pointer-events-auto"
+              className="fixed inset-0 bg-[rgba(26,26,23,0.55)] backdrop-blur-sm flex items-center justify-center p-4 pointer-events-auto"
               style={{ zIndex: overlayZIndex }}
               onClick={(e) => {
                 if (e.target === e.currentTarget) setSelectedOrder(null);
@@ -405,7 +449,7 @@ export const AdminOrdersPage: React.FC = () => {
               aria-label={`Chi tiết đơn hàng ${selectedOrder.orderCode || selectedOrder._id}`}
             >
               <div
-                className="bg-[var(--bg-card)] border border-[var(--border)] w-full max-w-2xl p-6 rounded-sm text-[var(--text-primary)] space-y-5 text-xs shadow-2xl max-h-[calc(100dvh-32px)] overflow-y-auto"
+                className="bg-[var(--surface)] border border-[var(--border)] w-full max-w-2xl p-6 rounded-sm text-[var(--text)] space-y-5 text-xs shadow-2xl max-h-[calc(100dvh-32px)] overflow-y-auto admin-content-scrollbar"
                 style={{ zIndex: contentZIndex }}
               >
               <div className="flex justify-between items-start pb-3 border-b border-[var(--border)]">
@@ -414,9 +458,20 @@ export const AdminOrdersPage: React.FC = () => {
                     <h3 className="font-display text-lg text-[var(--accent)] font-bold">
                       Hóa Đơn {selectedOrder.orderCode || `ORD-${String(selectedOrder._id || selectedOrder.id).slice(-8).toUpperCase()}`}
                     </h3>
-                    <span className="px-2 py-0.5 bg-[var(--accent)]/15 text-[var(--accent)] border border-[var(--accent)]/30 text-[10px] font-mono uppercase rounded-sm">
+                    <StatusBadge
+                      variant={
+                        selectedOrder.status === 'delivered'
+                          ? 'success'
+                          : selectedOrder.status === 'cancelled'
+                            ? 'danger'
+                            : selectedOrder.status === 'shipping'
+                              ? 'info'
+                              : 'warning'
+                      }
+                      uppercase={true}
+                    >
                       {mapOrderStatusLabel(selectedOrder.status)}
-                    </span>
+                    </StatusBadge>
                   </div>
                   <span className="text-[var(--text-muted)] text-[11px] block mt-0.5">
                     Khởi tạo lúc: {formatDate(selectedOrder.createdAt)}
@@ -426,19 +481,19 @@ export const AdminOrdersPage: React.FC = () => {
                   type="button"
                   onClick={() => setSelectedOrder(null)}
                   aria-label="Đóng"
-                  className="text-[var(--text-muted)] hover:text-[var(--text-primary)] p-1 text-base leading-none"
+                  className="text-[var(--text-muted)] hover:text-[var(--text)] p-1 transition-colors"
                 >
-                  ✕
+                  <X className="w-4 h-4" />
                 </button>
               </div>
 
               {/* Delivery Info */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-3 bg-[var(--bg-card-muted)] border border-[var(--border)] rounded-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-3 bg-[var(--bg-alt)] border border-[var(--border)] rounded-sm">
                 <div>
                   <span className="text-[var(--text-muted)] uppercase tracking-wider block text-[10px] font-mono">
                     Khách Hàng
                   </span>
-                  <p className="font-medium text-[var(--text-primary)] mt-0.5">
+                  <p className="font-medium text-[var(--text)] mt-0.5">
                     {selectedOrder.shipping_address?.full_name || selectedOrder.customerName || selectedOrder.guest_email || 'Khách Vãng Lai'}
                   </p>
                   <p className="text-[var(--text-muted)] text-[11px] font-mono">
@@ -449,7 +504,7 @@ export const AdminOrdersPage: React.FC = () => {
                   <span className="text-[var(--text-muted)] uppercase tracking-wider block text-[10px] font-mono">
                     Địa Chỉ Giao Hàng
                   </span>
-                  <p className="text-[var(--text-secondary)] text-[11px] mt-0.5 leading-relaxed">
+                  <p className="text-[var(--text)] text-[11px] mt-0.5 leading-relaxed">
                     {[
                       selectedOrder.shipping_address?.address_detail,
                       selectedOrder.shipping_address?.ward,
@@ -473,7 +528,7 @@ export const AdminOrdersPage: React.FC = () => {
                     <span>Đang nạp chi tiết biến thể...</span>
                   </div>
                 ) : selectedOrderItems.length === 0 ? (
-                  <div className="p-4 bg-[var(--bg-card-muted)] text-center text-[var(--text-muted)] text-[11px] rounded-sm">
+                  <div className="p-4 bg-[var(--bg-alt)] text-center text-[var(--text-muted)] text-[11px] rounded-sm border border-[var(--border)]">
                     Không có thông tin chi tiết từng sản phẩm cho đơn hàng này.
                   </div>
                 ) : (
@@ -488,14 +543,14 @@ export const AdminOrdersPage: React.FC = () => {
                       return (
                         <div
                           key={idx}
-                          className="p-3 bg-[var(--bg-card-muted)] border border-[var(--border)] rounded-sm flex justify-between items-center"
+                          className="p-3 bg-[var(--bg-alt)] border border-[var(--border)] rounded-sm flex justify-between items-center"
                         >
                           <div>
-                            <div className="font-medium text-[var(--text-primary)]">{pName}</div>
+                            <div className="font-medium text-[var(--text)]">{pName}</div>
                             <div className="text-[11px] text-[var(--text-muted)] flex items-center gap-2 mt-0.5">
-                              {color && <span>Màu: <strong className="text-[var(--text-primary)]">{color}</strong></span>}
-                              {size && <span>• Size: <strong className="text-[var(--text-primary)]">{size}</strong></span>}
-                              <span>• SL: <strong className="text-[var(--text-primary)] font-mono">{qty}</strong></span>
+                              {color && <span>Màu: <strong className="text-[var(--text)]">{color}</strong></span>}
+                              {size && <span>• Size: <strong className="text-[var(--text)]">{size}</strong></span>}
+                              <span>• SL: <strong className="text-[var(--text)] font-mono">{qty}</strong></span>
                             </div>
                           </div>
                           <div className="font-mono text-[var(--accent)] font-bold text-right">
@@ -527,7 +582,7 @@ export const AdminOrdersPage: React.FC = () => {
                     type="button"
                     onClick={() => handleExportSingleOrder(selectedOrder)}
                     disabled={isExportingSingle}
-                    className="px-4 py-2 bg-[var(--accent)] text-[var(--accent-contrast)] font-semibold text-xs rounded-sm hover:opacity-90 transition-all shadow-md shadow-[var(--accent)]/10 flex items-center justify-center gap-1.5 flex-1 sm:flex-initial"
+                    className="px-5 py-2.5 bg-[var(--accent)] text-[var(--accent-contrast)] border border-[var(--accent)] font-bold text-xs font-mono uppercase tracking-wider rounded-lg hover:brightness-105 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-1.5 flex-1 sm:flex-initial cursor-pointer"
                   >
                     {isExportingSingle ? (
                       <>
@@ -544,7 +599,7 @@ export const AdminOrdersPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setSelectedOrder(null)}
-                    className="px-4 py-2 bg-[var(--bg-card-muted)] hover:bg-[var(--table-row-hover)] border border-[var(--border)] text-[var(--text-primary)] text-xs rounded-sm transition-colors"
+                    className="px-4 py-2.5 border border-[var(--border)] hover:border-[var(--accent)] bg-[var(--bg-card)] text-[var(--text)] hover:text-[var(--accent)] rounded-lg text-xs font-mono uppercase tracking-wider transition-all shadow-xs hover:shadow-sm cursor-pointer"
                   >
                     Đóng
                   </button>

@@ -83,7 +83,7 @@ export const AdminPolicyEditPage: React.FC = () => {
           <div className="p-12 text-center bg-noir-900 border border-white/10 rounded-sm">
             <RefreshCw className="w-8 h-8 text-champagne animate-spin mx-auto mb-3" />
             <p className="text-xs uppercase tracking-wider text-platinum-dark font-mono">
-              ĐANG TẢI DỮ LIỆU CHÍNH SÁCH TỪ BACKEND...
+              ĐANG TẢI DỮ LIỆU...
             </p>
           </div>
         ) : error ? (
@@ -95,7 +95,7 @@ export const AdminPolicyEditPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => navigate('/admin/policies')}
-                className="px-4 py-2 border border-white/20 hover:border-white/40 text-xs uppercase tracking-wider text-white rounded-sm transition-colors flex items-center gap-2"
+                className="px-4 py-2 border border-white/20 hover:border-white/40 text-xs uppercase tracking-wider text-white rounded-lg shadow-xs hover:shadow-sm transition-all flex items-center gap-2 cursor-pointer font-mono"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
                 <span>Về Danh Sách</span>

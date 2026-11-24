@@ -111,6 +111,13 @@ trackingRouter.get(
   trackingController.getSessionTimeline
 );
 
+trackingRouter.post(
+  "/presence/terminate-session",
+  protectedRoute,
+  adminOnly,
+  trackingController.terminateSession
+);
+
 trackingRouter.get(
   "/analytics/activity",
   protectedRoute,

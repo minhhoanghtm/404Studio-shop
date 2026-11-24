@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Heart, Menu, Moon, Search, ShoppingBag, Sun, User, X, LogOut, Package, Shield } from 'lucide-react';
+import { Heart, Menu, Moon, Search, ShoppingBag, Sun, User, X, LogOut, Package, Shield, KeyRound } from 'lucide-react';
+import { UserProfileModal } from './profile';
 import { useCartStore } from '../stores/useCartStore';
 import { useSearchStore } from '../stores/useSearchStore';
 import { useWishlistStore } from '../stores/useWishlistStore';
@@ -16,6 +17,7 @@ export const Header: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const location = useLocation();
@@ -179,6 +181,18 @@ export const Header: React.FC = () => {
                       <span>Hồ sơ & Tài khoản</span>
                     </Link>
 
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUserDropdownOpen(false);
+                        setIsProfileModalOpen(true);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--bg-alt)] transition-colors text-left"
+                    >
+                      <KeyRound size={15} className="text-[var(--accent)]" />
+                      <span>Thông tin cá nhân & Mật khẩu</span>
+                    </button>
+
                     <Link
                       to="/orders"
                       onClick={() => setUserDropdownOpen(false)}
@@ -188,14 +202,14 @@ export const Header: React.FC = () => {
                       <span>Đơn hàng & Biên lai</span>
                     </Link>
 
-                    {user?.role === 'admin' && (
+                    {(user?.role === 'admin' || user?.role === 'manager' || user?.role === 'staff') && (
                       <Link
                         to="/admin"
                         onClick={() => setUserDropdownOpen(false)}
                         className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--bg-alt)] transition-colors"
                       >
                         <Shield size={15} className="text-[var(--accent)]" />
-                        <span>Quản trị viên (CMS)</span>
+                        <span>Cổng Quản Trị (CMS)</span>
                       </Link>
                     )}
                   </div>
@@ -325,5 +339,11 @@ export const Header: React.FC = () => {
         </div>
       </ModalPortal>
     )}
+
+    {/* User Profile & Password Modal */}
+    <UserProfileModal
+      isOpen={isProfileModalOpen}
+      onClose={() => setIsProfileModalOpen(false)}
+    />
   </>;
 };

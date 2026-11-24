@@ -13,7 +13,7 @@ import { zodEmail, zodPassword, zodObjectId, zodPhone } from "../../common/utils
 
 const sexEnum    = z.enum(["male", "female"],  { message: "Giới tính không hợp lệ! Chỉ chấp nhận: male, female" });
 const roleEnum   = z.enum(["user", "admin"],   { message: "Role không hợp lệ! Chỉ chấp nhận: user, admin" });
-const statusEnum = z.enum(["active", "blocked"], { message: "Trạng thái không hợp lệ! Chỉ chấp nhận: active, blocked" });
+const statusEnum = z.enum(["active", "blocked", "locked"], { message: "Trạng thái không hợp lệ! Chỉ chấp nhận: active, blocked, locked" });
 
 // ---------------------------------------------------------------------------
 // Schemas
@@ -53,6 +53,7 @@ const addressItemSchema = z.object({
 const updateProfileSchema = z.object({
   email:     zodEmail.optional(),
   fullName:  z.string().trim().optional(),
+  phone:     z.string().trim().optional(),
   sex:       sexEnum.optional(),
   birthday:  z.string().optional(),
   address:   addressItemSchema.optional(),

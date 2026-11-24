@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { AdminLayout } from './AdminLayout';
 import { AdminLoyaltyNav } from './components/AdminLoyaltyNav';
 import { useAdminLoyalty } from './hooks/useAdminLoyalty';
 import { MEMBERSHIP_TIERS, TierDefinition, TierFamily } from '@/shared/loyalty';
 import { formatCurrency, formatDate } from '@/shared/utils/formatters';
+import { TablePagination } from '@/shared/components/TablePagination';
 import {
   Users,
   Search,
@@ -18,6 +19,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useModal, ModalPortal } from '@/shared/context/ModalContext';
+import { AdminActionGroup, ViewActionButton } from '@/shared/components/AdminActionButton';
 
 export const AdminLoyaltyCustomersPage: React.FC = () => {
   const { profiles, isLoading, error, refetch } = useAdminLoyalty();
@@ -56,10 +58,21 @@ export const AdminLoyaltyCustomersPage: React.FC = () => {
     return true;
   });
 
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, familyFilter, tierFilter]);
+
+  const paginatedProfiles = useMemo(() => {
+    const start = (page - 1) * 10;
+    return filteredProfiles.slice(start, start + 10);
+  }, [filteredProfiles, page]);
+
   return (
     <AdminLayout
       title="Hồ Sơ Điểm & Hạng Thành Viên"
-      subtitle="Danh sách khách hàng Patron, cấp hạng 12 bậc và tổng hợp điểm thưởng"
+      subtitle="Danh sách khách hàng thành viên, cấp hạng 12 bậc và tổng hợp điểm thưởng"
     >
       <div className="space-y-6">
         <AdminLoyaltyNav />
@@ -83,7 +96,7 @@ export const AdminLoyaltyCustomersPage: React.FC = () => {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Tìm kiếm theo tên, email, số điện thoại hoặc mã Patron..."
+              placeholder="Tìm kiếm theo tên, email, số điện thoại hoặc mã thành viên..."
               className="w-full bg-[var(--input-bg)] border border-[var(--border)] focus:border-[var(--accent)] rounded-sm pl-10 pr-4 py-2 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none transition-colors"
             />
           </div>
@@ -119,7 +132,7 @@ export const AdminLoyaltyCustomersPage: React.FC = () => {
                 <option value="ALL">Tất cả 12 cấp</option>
                 {MEMBERSHIP_TIERS.filter((t) => familyFilter === 'ALL' || t.family === familyFilter).map((t) => (
                   <option key={t.id} value={t.id}>
-                    {t.nameVi} ({t.minPoints} pts)
+                    {t.nameVi} ({t.minPoints.toLocaleString('vi-VN')} điểm)
                   </option>
                 ))}
               </select>
@@ -133,7 +146,8 @@ export const AdminLoyaltyCustomersPage: React.FC = () => {
             <table className="w-full text-left text-xs font-sans">
               <thead>
                 <tr className="border-b border-[var(--border)] bg-[var(--bg-card-muted)] text-[var(--text-muted)] text-[10px] uppercase font-mono tracking-wider">
-                  <th className="py-3.5 px-4">Thành Viên Patron</th>
+                  <th className="py-3.5 px-3 w-12 text-center">STT</th>
+                  <th className="py-3.5 px-4">Thành Viên</th>
                   <th className="py-3.5 px-4">Cấp Hạng</th>
                   <th className="py-3.5 px-4 text-right">Điểm Xét Hạng</th>
                   <th className="py-3.5 px-4 text-right">Tích Lũy</th>
@@ -146,13 +160,16 @@ export const AdminLoyaltyCustomersPage: React.FC = () => {
               <tbody className="divide-y divide-[var(--border)]">
                 {isLoading ? (
                   <tr>
-                    <td colSpan={8} className="py-12 text-center text-[var(--text-muted)]">
+                    <td colSpan={9} className="py-12 text-center text-[var(--text-muted)]">
                       Đang xử lý dữ liệu đơn hàng và điểm thưởng...
                     </td>
                   </tr>
                 ) : filteredProfiles.length > 0 ? (
-                  filteredProfiles.map((p) => (
+                  paginatedProfiles.map((p, idx) => (
                     <tr key={p.customerId} className="hover:bg-[var(--table-row-hover)] transition-colors">
+                      <td className="py-3.5 px-3 text-center font-mono text-xs text-[var(--text-muted)]">
+                        {(page - 1) * 10 + idx + 1}
+                      </td>
                       <td className="py-3.5 px-4">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-[var(--accent)]/15 border border-[var(--accent)]/30 text-[var(--accent)] font-serif text-sm flex items-center justify-center font-bold shrink-0">
@@ -172,7 +189,7 @@ export const AdminLoyaltyCustomersPage: React.FC = () => {
                         </span>
                       </td>
                       <td className="py-3.5 px-4 text-right font-mono font-bold text-[var(--accent)] whitespace-nowrap">
-                        {p.qualifyingPoints.toLocaleString('vi-VN')} pts
+                        {p.qualifyingPoints.toLocaleString('vi-VN')} điểm
                       </td>
                       <td className="py-3.5 px-4 text-right font-mono text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
                         +{p.earnedPoints.toLocaleString('vi-VN')}
@@ -181,21 +198,19 @@ export const AdminLoyaltyCustomersPage: React.FC = () => {
                         {p.reversedPoints > 0 ? `-${p.reversedPoints.toLocaleString('vi-VN')}` : '0'}
                       </td>
                       <td className="py-3.5 px-4 text-right font-mono font-semibold text-[var(--text-primary)] whitespace-nowrap">
-                        {p.currentBalance.toLocaleString('vi-VN')} pts
+                        {p.currentBalance.toLocaleString('vi-VN')} điểm
                       </td>
                       <td className="py-3.5 px-4 text-right font-mono text-[var(--text-secondary)] whitespace-nowrap">
                         {p.eligibleOrdersCount} đơn
                       </td>
                       <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedCustomer(p)}
-                          className="px-2.5 py-1.5 rounded-sm border border-[var(--border)] hover:border-[var(--accent)] text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors inline-flex items-center gap-1.5 bg-[var(--bg-card-muted)]"
-                          title="Xem sổ cái chi tiết của thành viên này"
-                        >
-                          <Eye className="w-3.5 h-3.5 text-[var(--accent)]" />
-                          <span>Chi tiết</span>
-                        </button>
+                        <AdminActionGroup className="justify-center">
+                          <ViewActionButton
+                            onClick={() => setSelectedCustomer(p)}
+                            title="Xem sổ cái chi tiết của thành viên này"
+                            label="Chi tiết"
+                          />
+                        </AdminActionGroup>
                       </td>
                     </tr>
                   ))
@@ -209,13 +224,21 @@ export const AdminLoyaltyCustomersPage: React.FC = () => {
               </tbody>
             </table>
           </div>
+
+          <TablePagination
+            currentPage={page}
+            totalItems={filteredProfiles.length}
+            pageSize={10}
+            onPageChange={setPage}
+            itemName="thành viên"
+          />
         </div>
 
         {/* Modal: Customer Ledger History */}
         {selectedCustomer && (
           <ModalPortal>
             <div
-              className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 pointer-events-auto"
+              className="fixed inset-0 bg-[rgba(26,26,23,0.55)] backdrop-blur-sm flex items-center justify-center p-4 pointer-events-auto"
               style={{ zIndex: overlayZIndex }}
               onClick={(e) => {
                 if (e.target === e.currentTarget) setSelectedCustomer(null);
@@ -225,28 +248,29 @@ export const AdminLoyaltyCustomersPage: React.FC = () => {
               aria-label={`Sổ Cái Điểm: ${selectedCustomer.customerName}`}
             >
               <div
-                className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl w-full max-w-3xl max-h-[calc(100dvh-32px)] flex flex-col overflow-hidden shadow-2xl text-[var(--text-primary)]"
+                className="bg-[var(--surface)] border border-[var(--border)] rounded-sm w-full max-w-3xl max-h-[calc(100dvh-32px)] flex flex-col overflow-hidden shadow-2xl text-[var(--text)] admin-content-scrollbar"
                 style={{ zIndex: contentZIndex }}
               >
               {/* Modal Header */}
-              <div className="p-5 border-b border-[var(--border)] flex items-center justify-between bg-[var(--bg-card-muted)]">
+              <div className="p-5 border-b border-[var(--border)] flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-[var(--accent)]/15 border border-[var(--accent)]/40 flex items-center justify-center text-[var(--accent)] font-bold font-serif">
                     {selectedCustomer.customerName ? selectedCustomer.customerName.charAt(0) : 'P'}
                   </div>
                   <div>
-                    <h3 className="font-display text-base text-[var(--text-primary)]">
+                    <h3 className="text-base font-semibold text-[var(--text)] font-sans uppercase tracking-wider">
                       Sổ Cái Điểm: {selectedCustomer.customerName}
                     </h3>
-                    <p className="text-xs text-[var(--text-muted)] font-mono mt-0.5">
-                      Cấp hạng: <strong className="text-[var(--accent)]">{selectedCustomer.currentTier.nameVi}</strong> • Điểm xét hạng: {selectedCustomer.qualifyingPoints} pts
+                    <p className="text-xs text-[var(--text-muted)] font-sans mt-0.5">
+                      Cấp hạng: <strong className="text-[var(--accent)]">{selectedCustomer.currentTier.nameVi}</strong> • Điểm xét hạng: {selectedCustomer.qualifyingPoints.toLocaleString('vi-VN')} điểm
                     </p>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setSelectedCustomer(null)}
-                  className="p-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-lg transition-colors"
+                  className="p-1 text-[var(--text-muted)] hover:text-[var(--text)] rounded transition-colors"
+                  aria-label="Đóng"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -255,29 +279,33 @@ export const AdminLoyaltyCustomersPage: React.FC = () => {
               {/* Modal Body: Transaction Ledger */}
               <div className="p-5 overflow-y-auto space-y-4 flex-1">
                 {selectedCustomer.transactions && selectedCustomer.transactions.length > 0 ? (
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto border border-[var(--border)] rounded-sm">
                     <table className="w-full text-left text-xs font-sans">
-                      <thead>
-                        <tr className="border-b border-[var(--border)] text-[var(--text-muted)] text-[10px] uppercase font-mono">
-                          <th className="pb-2 px-2">Thời gian</th>
-                          <th className="pb-2 px-2">Mã GD</th>
-                          <th className="pb-2 px-2">Loại</th>
-                          <th className="pb-2 px-2">Đơn Hàng</th>
-                          <th className="pb-2 px-2">Lý do</th>
-                          <th className="pb-2 px-2 text-right">Biến động</th>
-                          <th className="pb-2 px-2 text-right">Số dư</th>
+                      <thead className="bg-[var(--bg-alt)] border-b border-[var(--border)] text-[var(--text-muted)] text-[10px] uppercase font-mono">
+                        <tr>
+                          <th className="py-2.5 px-2 w-10 text-center">STT</th>
+                          <th className="py-2.5 px-3">Thời gian</th>
+                          <th className="py-2.5 px-3">Mã GD</th>
+                          <th className="py-2.5 px-3">Loại</th>
+                          <th className="py-2.5 px-3">Đơn Hàng</th>
+                          <th className="py-2.5 px-3">Lý do</th>
+                          <th className="py-2.5 px-3 text-right">Biến động</th>
+                          <th className="py-2.5 px-3 text-right">Số dư</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-[var(--border)]">
-                        {selectedCustomer.transactions.map((tx: any) => (
-                          <tr key={tx.id} className="hover:bg-[var(--table-row-hover)] transition-colors">
-                            <td className="py-2.5 px-2 font-mono text-[11px] text-[var(--text-muted)] whitespace-nowrap">
+                        {selectedCustomer.transactions.map((tx: any, idx: number) => (
+                          <tr key={tx.id} className="hover:bg-[var(--bg-alt)]/50 transition-colors">
+                            <td className="py-2.5 px-2 text-center font-mono text-[11px] text-[var(--text-muted)]">
+                              {idx + 1}
+                            </td>
+                            <td className="py-2.5 px-3 font-mono text-[11px] text-[var(--text-muted)] whitespace-nowrap">
                               {formatDate(tx.createdAt)}
                             </td>
-                            <td className="py-2.5 px-2 font-mono text-[11px] text-[var(--accent)] whitespace-nowrap">
+                            <td className="py-2.5 px-3 font-mono text-[11px] text-[var(--accent)] whitespace-nowrap">
                               {tx.id}
                             </td>
-                            <td className="py-2.5 px-2 whitespace-nowrap">
+                            <td className="py-2.5 px-3 whitespace-nowrap">
                               {tx.eventType === 'EARN' ? (
                                 <span className="px-1.5 py-0.5 rounded text-[9px] font-mono uppercase bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
                                   Tích điểm
@@ -288,21 +316,21 @@ export const AdminLoyaltyCustomersPage: React.FC = () => {
                                 </span>
                               )}
                             </td>
-                            <td className="py-2.5 px-2 font-mono text-[11px] text-[var(--text-primary)] whitespace-nowrap">
+                            <td className="py-2.5 px-3 font-mono text-[11px] text-[var(--text)] whitespace-nowrap">
                               #{String(tx.orderCode || tx.orderId).slice(-8)}
                             </td>
-                            <td className="py-2.5 px-2 text-[var(--text-secondary)] max-w-xs truncate">
+                            <td className="py-2.5 px-3 text-[var(--text-muted)] max-w-xs truncate">
                               {tx.reason}
                             </td>
-                            <td className="py-2.5 px-2 text-right font-mono font-bold whitespace-nowrap">
+                            <td className="py-2.5 px-3 text-right font-mono font-bold whitespace-nowrap">
                               {tx.pointsDelta > 0 ? (
                                 <span className="text-emerald-600 dark:text-emerald-400">+{tx.pointsDelta}</span>
                               ) : (
                                 <span className="text-amber-600 dark:text-amber-400">{tx.pointsDelta}</span>
                               )}
                             </td>
-                            <td className="py-2.5 px-2 text-right font-mono text-[var(--text-primary)] whitespace-nowrap">
-                              {tx.newBalance} pts
+                            <td className="py-2.5 px-3 text-right font-mono text-[var(--text)] whitespace-nowrap font-medium">
+                              {tx.newBalance.toLocaleString('vi-VN')} điểm
                             </td>
                           </tr>
                         ))}
@@ -310,18 +338,18 @@ export const AdminLoyaltyCustomersPage: React.FC = () => {
                     </table>
                   </div>
                 ) : (
-                  <div className="p-8 text-center text-[var(--text-muted)] text-xs">
+                  <div className="p-8 text-center text-[var(--text-muted)] text-xs bg-[var(--bg-alt)] border border-[var(--border)] rounded-sm">
                     Chưa có lịch sử giao dịch điểm nào được ghi nhận cho thành viên này.
                   </div>
                 )}
               </div>
 
               {/* Modal Footer */}
-              <div className="p-4 border-t border-[var(--border)] bg-[var(--bg-card-muted)] flex justify-end">
+              <div className="p-4 border-t border-[var(--border)] flex justify-end">
                 <button
                   type="button"
                   onClick={() => setSelectedCustomer(null)}
-                  className="px-4 py-2 bg-[var(--bg-card)] hover:bg-[var(--table-row-hover)] border border-[var(--border)] text-[var(--text-primary)] rounded-sm text-xs font-mono uppercase transition-colors"
+                  className="px-4 py-2 border border-[var(--border)] hover:border-[var(--accent)] text-[var(--text)] hover:text-[var(--accent)] bg-[var(--bg-card)] rounded-lg text-xs font-mono uppercase tracking-wider transition-all shadow-xs hover:shadow-sm cursor-pointer"
                 >
                   Đóng
                 </button>

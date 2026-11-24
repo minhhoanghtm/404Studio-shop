@@ -22,6 +22,15 @@ import { campaignsApi } from '@/shared/api';
 import { Campaign, CampaignStatus, CampaignType } from '@/shared/campaigns';
 import { useToastStore } from '@/shared/stores/useToastStore';
 import { useModal, ModalPortal } from '@/shared/context/ModalContext';
+import { TablePagination } from '@/shared/components/TablePagination';
+import { StatusToggle } from '@/shared/components/StatusToggle';
+import { StatusBadge } from '@/shared/components/StatusBadge';
+import {
+  AdminActionGroup,
+  EditActionButton,
+  DeleteActionButton,
+  ViewActionButton,
+} from '@/shared/components/AdminActionButton';
 
 export const AdminCampaignsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -50,8 +59,8 @@ export const AdminCampaignsPage: React.FC = () => {
     onClose: () => setDeletingCampaign(null),
   });
 
-  const fetchCampaigns = useCallback(async () => {
-    setLoading(true);
+  const fetchCampaigns = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     setError(null);
     try {
       const response = await campaignsApi.getAdminCampaigns({
@@ -71,7 +80,7 @@ export const AdminCampaignsPage: React.FC = () => {
       console.error('[AdminCampaignsPage] Error loading campaigns:', err);
       setError(err?.response?.data?.message || 'Không thể tải danh sách chiến dịch.');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [page, limit, search, statusFilter, typeFilter]);
 
@@ -83,12 +92,22 @@ export const AdminCampaignsPage: React.FC = () => {
   const handleToggleStatus = async (camp: Campaign) => {
     const nextStatus: CampaignStatus =
       camp.status === 'active' ? 'ended' : 'active';
+    const prevStatus = camp.status;
+
+    // Cập nhật trực tiếp cục bộ, không reload lại toàn bộ bảng
+    setCampaigns((prev) =>
+      prev.map((c) => (c._id === camp._id ? { ...c, status: nextStatus } : c))
+    );
 
     try {
       await campaignsApi.updateCampaign(camp._id, { status: nextStatus });
       addToast(`Đã chuyển trạng thái chiến dịch thành "${nextStatus}".`, 'success');
-      fetchCampaigns();
+      void fetchCampaigns(true);
     } catch (err: any) {
+      // Hoàn tác nếu lỗi
+      setCampaigns((prev) =>
+        prev.map((c) => (c._id === camp._id ? { ...c, status: prevStatus } : c))
+      );
       addToast(err?.response?.data?.message || 'Không thể cập nhật trạng thái.', 'error');
     }
   };
@@ -96,14 +115,21 @@ export const AdminCampaignsPage: React.FC = () => {
   // Confirm delete
   const handleDeleteConfirm = async () => {
     if (!deletingCampaign) return;
+    const targetId = deletingCampaign._id;
     setIsDeleting(true);
+
+    // Xóa trực tiếp khỏi bảng hiển thị, không làm bảng nhấp nháy spinner
+    setCampaigns((prev) => prev.filter((c) => c._id !== targetId));
+    setTotal((prev) => Math.max(0, prev - 1));
+
     try {
-      await campaignsApi.deleteCampaign(deletingCampaign._id);
+      await campaignsApi.deleteCampaign(targetId);
       addToast('Chiến dịch đã được xóa thành công.', 'success');
       setDeletingCampaign(null);
-      fetchCampaigns();
+      void fetchCampaigns(true);
     } catch (err: any) {
       addToast(err?.response?.data?.message || 'Lỗi khi xóa chiến dịch.', 'error');
+      void fetchCampaigns();
     } finally {
       setIsDeleting(false);
     }
@@ -166,7 +192,7 @@ export const AdminCampaignsPage: React.FC = () => {
           <div className="flex items-center gap-3">
             <button
               onClick={() => fetchCampaigns()}
-              className="px-3.5 py-2 bg-[var(--bg-card)] hover:bg-[var(--table-row-hover)] border border-[var(--border)] text-[var(--text-primary)] text-xs rounded-sm flex items-center gap-2 transition-colors shadow-sm"
+              className="px-3.5 py-2 bg-[var(--bg-card)] hover:bg-[var(--table-row-hover)] border border-[var(--border)] hover:border-[var(--accent)] text-[var(--text-primary)] text-xs font-mono uppercase tracking-wider rounded-lg flex items-center gap-2 transition-all shadow-xs hover:shadow-sm cursor-pointer"
               title="Làm mới dữ liệu"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-[var(--accent)]' : ''}`} />
@@ -174,7 +200,7 @@ export const AdminCampaignsPage: React.FC = () => {
             </button>
             <Link
               to="/admin/campaigns/new"
-              className="px-4 py-2 bg-[var(--accent)] text-[var(--accent-contrast)] hover:opacity-90 text-xs font-serif font-semibold tracking-wider uppercase rounded-sm flex items-center gap-2 transition-opacity shadow-md"
+              className="px-4 py-2 bg-[var(--accent)] text-[var(--accent-contrast)] border border-[var(--accent)] hover:brightness-105 text-xs font-mono font-bold tracking-wider uppercase rounded-lg flex items-center gap-2 transition-all shadow-md hover:shadow-lg cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>Tạo Chiến Dịch Mới</span>
@@ -236,7 +262,7 @@ export const AdminCampaignsPage: React.FC = () => {
           {loading ? (
             <div className="p-12 text-center text-xs text-[var(--text-muted)] flex flex-col items-center justify-center gap-3">
               <div className="w-7 h-7 rounded-full border border-[var(--accent)]/40 border-t-[var(--accent)] animate-spin" />
-              <span>Đang kết nối API Backend tải danh sách chiến dịch...</span>
+              <span>Đang tải dữ liệu...</span>
             </div>
           ) : error ? (
             <div className="p-8 text-center text-xs text-rose-500 bg-rose-500/5">
@@ -263,6 +289,7 @@ export const AdminCampaignsPage: React.FC = () => {
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
                   <tr className="bg-[var(--bg-card-muted)] border-b border-[var(--border)] text-[11px] font-mono uppercase text-[var(--text-muted)] tracking-wider">
+                    <th className="py-3 px-3 w-12 text-center">STT</th>
                     <th className="py-3 px-4">Chiến Dịch</th>
                     <th className="py-3 px-4">Loại</th>
                     <th className="py-3 px-4">Thời Gian Diễn Ra</th>
@@ -272,7 +299,7 @@ export const AdminCampaignsPage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--border)]">
-                  {campaigns.map((camp) => {
+                  {campaigns.map((camp, idx) => {
                     const start = new Date(camp.startAt).toLocaleString('vi-VN', {
                       day: '2-digit',
                       month: '2-digit',
@@ -293,6 +320,9 @@ export const AdminCampaignsPage: React.FC = () => {
                         key={camp._id}
                         className="hover:bg-[var(--table-row-hover)] transition-colors group"
                       >
+                        <td className="py-3.5 px-3 text-center font-mono text-xs text-[var(--text-muted)]">
+                          {(page - 1) * limit + idx + 1}
+                        </td>
                         <td className="py-3.5 px-4">
                           <Link
                             to={`/admin/campaigns/${camp._id}`}
@@ -311,15 +341,12 @@ export const AdminCampaignsPage: React.FC = () => {
                         </td>
 
                         <td className="py-3.5 px-4 font-mono">
-                          {camp.type === 'flash_sale' ? (
-                            <span className="text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 border border-amber-500/20 rounded-xs text-[10px] uppercase">
-                              Flash Sale
-                            </span>
-                          ) : (
-                            <span className="text-purple-600 dark:text-purple-400 bg-purple-500/10 px-2 py-0.5 border border-purple-500/20 rounded-xs text-[10px] uppercase">
-                              Sự Kiện Mùa
-                            </span>
-                          )}
+                          <StatusBadge
+                            variant={camp.type === 'flash_sale' ? 'warning' : 'purple'}
+                            uppercase={true}
+                          >
+                            {camp.type === 'flash_sale' ? 'Flash Sale' : 'Sự Kiện Mùa'}
+                          </StatusBadge>
                         </td>
 
                         <td className="py-3.5 px-4 text-[11px] text-[var(--text-secondary)] font-mono">
@@ -328,49 +355,36 @@ export const AdminCampaignsPage: React.FC = () => {
                         </td>
 
                         <td className="py-3.5 px-4 font-mono">
-                          <span className="bg-[var(--bg-card-muted)] text-[var(--accent)] px-2 py-0.5 rounded-xs border border-[var(--border)] font-bold">
-                            {camp.priority || 0}
-                          </span>
+                          <StatusBadge variant="neutral" size="sm">
+                            Ưu tiên: {camp.priority || 0}
+                          </StatusBadge>
                         </td>
 
-                        <td className="py-3.5 px-4">
-                          {getStatusBadge(camp.status)}
+                        <td className="py-3.5 px-4 whitespace-nowrap">
+                          <StatusToggle
+                            checked={camp.status === 'active'}
+                            onChange={() => handleToggleStatus(camp)}
+                            activeLabel="Hoạt Động"
+                            inactiveLabel={camp.status === 'scheduled' ? 'Lên Lịch' : 'Tạm Dừng'}
+                            ariaLabel="Bật / tắt trạng thái chiến dịch"
+                          />
                         </td>
 
                         <td className="py-3.5 px-4 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
-                            <button
-                              onClick={() => handleToggleStatus(camp)}
-                              className="p-1.5 text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--table-row-hover)] rounded-xs transition-colors"
-                              title={camp.status === 'active' ? 'Kết thúc chiến dịch' : 'Kích hoạt chiến dịch'}
-                            >
-                              <Power className="w-3.5 h-3.5" />
-                            </button>
-
-                            <Link
+                          <AdminActionGroup>
+                            <ViewActionButton
                               to={`/admin/campaigns/${camp._id}`}
-                              className="p-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--table-row-hover)] rounded-xs transition-colors"
                               title="Xem chi tiết & Thống kê"
-                            >
-                              <Eye className="w-3.5 h-3.5" />
-                            </Link>
-
-                            <Link
+                            />
+                            <EditActionButton
                               to={`/admin/campaigns/${camp._id}/edit`}
-                              className="p-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--table-row-hover)] rounded-xs transition-colors"
                               title="Chỉnh sửa chiến dịch"
-                            >
-                              <Edit3 className="w-3.5 h-3.5" />
-                            </Link>
-
-                            <button
+                            />
+                            <DeleteActionButton
                               onClick={() => setDeletingCampaign(camp)}
-                              className="p-1.5 text-[var(--text-muted)] hover:text-rose-500 hover:bg-rose-500/10 rounded-xs transition-colors"
                               title="Xóa chiến dịch"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
+                            />
+                          </AdminActionGroup>
                         </td>
                       </tr>
                     );
@@ -382,27 +396,14 @@ export const AdminCampaignsPage: React.FC = () => {
 
           {/* Pagination Controls */}
           {totalPages > 1 && (
-            <div className="p-4 border-t border-[var(--border)] flex items-center justify-between text-xs text-[var(--text-muted)]">
-              <div>
-                Trang {page} / {totalPages} (Tổng {total} bản ghi)
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  disabled={page <= 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  className="px-3 py-1 bg-[var(--bg-card-muted)] border border-[var(--border)] disabled:opacity-40 hover:bg-[var(--table-row-hover)] text-[var(--text-primary)] rounded-xs transition-colors"
-                >
-                  Trước
-                </button>
-                <button
-                  disabled={page >= totalPages}
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  className="px-3 py-1 bg-[var(--bg-card-muted)] border border-[var(--border)] disabled:opacity-40 hover:bg-[var(--table-row-hover)] text-[var(--text-primary)] rounded-xs transition-colors"
-                >
-                  Sau
-                </button>
-              </div>
-            </div>
+            <TablePagination
+              currentPage={page}
+              totalPages={totalPages}
+              totalItems={total}
+              pageSize={limit}
+              onPageChange={setPage}
+              itemName="chiến dịch"
+            />
           )}
         </div>
       </div>
@@ -413,44 +414,45 @@ export const AdminCampaignsPage: React.FC = () => {
           <div
             role="dialog"
             aria-modal="true"
-            className="fixed inset-0 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm pointer-events-auto"
+            aria-label="Xác Nhận Xóa Chiến Dịch"
+            className="fixed inset-0 flex items-center justify-center p-4 bg-[rgba(26,26,23,0.55)] backdrop-blur-sm pointer-events-auto"
             style={{ zIndex: deleteOverlayZ }}
             onClick={(e) => {
               if (e.target === e.currentTarget && !isDeleting) setDeletingCampaign(null);
             }}
           >
             <div
-              className="w-full max-w-md bg-[var(--bg-card)] border border-rose-500/40 p-6 rounded-sm text-[var(--text-primary)] shadow-2xl max-h-[calc(100dvh-32px)] overflow-y-auto"
+              className="w-full max-w-md bg-[var(--surface)] border border-red-500/40 p-6 rounded-sm text-[var(--text)] shadow-2xl max-h-[calc(100dvh-32px)] overflow-y-auto admin-content-scrollbar"
               style={{ zIndex: deleteContentZ }}
             >
-              <div className="flex items-center gap-3 text-rose-500 mb-3">
+              <div className="flex items-center gap-2.5 text-red-500 mb-3">
                 <AlertCircle className="w-5 h-5 shrink-0" />
-                <h3 className="font-serif text-base uppercase tracking-wider font-medium">
+                <h3 className="font-display text-base font-semibold uppercase tracking-wider text-[var(--text)]">
                   Xác Nhận Xóa Chiến Dịch
                 </h3>
               </div>
               <p className="text-xs text-[var(--text-secondary)] leading-relaxed mb-6">
                 Bạn có chắc chắn muốn xóa chiến dịch{' '}
-                <strong className="text-[var(--text-primary)]">"{deletingCampaign.name}"</strong>? Thao tác này sẽ dừng
+                <strong className="text-[var(--text)]">"{deletingCampaign.name}"</strong>? Thao tác này sẽ dừng
                 mọi hiển thị Popup và gỡ bỏ ưu đãi của các sản phẩm liên quan. Lịch sử đơn hàng vẫn
                 được bảo toàn.
               </p>
-              <div className="flex items-center justify-end gap-3">
+              <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-[var(--border)]">
                 <button
                   type="button"
                   onClick={() => setDeletingCampaign(null)}
                   disabled={isDeleting}
-                  className="px-4 py-2 bg-[var(--bg-card-muted)] border border-[var(--border)] text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-sm transition-colors"
+                  className="px-4 py-2 border border-[var(--border)] text-[var(--text)] rounded-sm text-xs font-mono uppercase tracking-wider hover:bg-[var(--bg-alt)] transition-colors"
                 >
-                  Hủy bỏ
+                  Hủy Bỏ
                 </button>
                 <button
                   type="button"
                   onClick={handleDeleteConfirm}
                   disabled={isDeleting}
-                  className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-xs font-semibold text-white rounded-sm shadow-md"
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-xs font-semibold text-white rounded-sm font-mono uppercase tracking-wider shadow-sm transition-colors"
                 >
-                  {isDeleting ? 'Đang xóa...' : 'Xác Nhận Xóa'}
+                  {isDeleting ? 'Đang Xóa...' : 'Xác Nhận Xóa'}
                 </button>
               </div>
             </div>

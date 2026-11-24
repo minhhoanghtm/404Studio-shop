@@ -22,7 +22,7 @@ export const MEMBERSHIP_TIERS: TierDefinition[] = [
     badgeColor: 'text-amber-600 border-amber-600/40 bg-amber-600/10',
     gradient: 'from-[#3a2012] via-[#24140b] to-[#120a06]',
     benefits: [
-      'Ghi danh thành viên Patron chính thức của Atelier Vérité',
+      'Ghi danh thành viên thân thiết chính thức của Atelier Vérité',
       'Tích lũy 1 điểm cho mỗi 10.000 ₫ mua sắm hợp lệ',
       'Bản tin thời trang & Lookbook ấn bản kỹ thuật số độc quyền',
     ],
@@ -86,7 +86,7 @@ export const MEMBERSHIP_TIERS: TierDefinition[] = [
     benefits: [
       'Toàn bộ đặc quyền của hạng Bạc I',
       'Chiết khấu 5% dịch vụ may đo chỉnh sửa theo số đo riêng',
-      'Quà tặng sinh nhật Patron được tuyển chọn đặc biệt từ xưởng',
+      'Quà tặng sinh nhật thành viên được tuyển chọn đặc biệt từ xưởng',
     ],
   },
   {
@@ -180,7 +180,7 @@ export const MEMBERSHIP_TIERS: TierDefinition[] = [
     benefits: [
       'Toàn bộ đặc quyền của hạng Kim Cương I',
       'Trải nghiệm may đo Bespoke tại tư gia hoặc khách sạn 5 sao theo yêu cầu',
-      'Món quà tri ân thượng đỉnh hàng năm được chế tác riêng mang tên Patron',
+      'Món quà tri ân thượng đỉnh hàng năm được chế tác riêng mang tên thành viên',
     ],
   },
   {
@@ -194,7 +194,7 @@ export const MEMBERSHIP_TIERS: TierDefinition[] = [
     gradient: 'from-[#284a54] via-[#182a35] to-[#0d161d]',
     benefits: [
       'Cấp hạng vinh dự tối thượng của Atelier Vérité',
-      'Đặc quyền Patron Thượng Đỉnh: Khắc tên vĩnh viễn trên Bảng Danh Dự Maison',
+      'Đặc quyền Thành Viên Thượng Đỉnh: Khắc tên vĩnh viễn trên Bảng Danh Dự Maison',
       'Được tiếp đón bởi Giám đốc Nghệ thuật tại Atelier Paris',
       'Dịch vụ Concierge Toàn Cầu 24/7 cho mọi nhu cầu phong cách và trải nghiệm',
     ],

@@ -190,41 +190,41 @@ export const BlockInspectorPanel: React.FC<BlockInspectorPanelProps> = ({
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-white/10 bg-white/[0.02]">
+      <div className="flex items-center gap-1.5 p-2 border-b border-[var(--border)] bg-[var(--bg-card)]">
         <button
           type="button"
           onClick={() => setActiveTab('content')}
-          className={`flex-1 py-2 text-[11px] font-medium flex items-center justify-center gap-1.5 transition-colors ${
+          className={`flex-1 py-1.5 text-[11px] font-mono uppercase tracking-wider flex items-center justify-center gap-1.5 rounded-md transition-all cursor-pointer ${
             activeTab === 'content'
-              ? 'border-b-2 border-[#d4af37] text-[#d4af37] font-semibold'
-              : 'text-white/60 hover:text-white'
+              ? 'admin-tab-active'
+              : 'admin-tab-inactive'
           }`}
         >
-          <Type className="w-3.5 h-3.5" />
+          <Type className="w-3.5 h-3.5 shrink-0" />
           <span>Nội Dung</span>
         </button>
         <button
           type="button"
           onClick={() => setActiveTab('styles')}
-          className={`flex-1 py-2 text-[11px] font-medium flex items-center justify-center gap-1.5 transition-colors ${
+          className={`flex-1 py-1.5 text-[11px] font-mono uppercase tracking-wider flex items-center justify-center gap-1.5 rounded-md transition-all cursor-pointer ${
             activeTab === 'styles'
-              ? 'border-b-2 border-[#d4af37] text-[#d4af37] font-semibold'
-              : 'text-white/60 hover:text-white'
+              ? 'admin-tab-active'
+              : 'admin-tab-inactive'
           }`}
         >
-          <Palette className="w-3.5 h-3.5" />
+          <Palette className="w-3.5 h-3.5 shrink-0" />
           <span>Kiểu Dáng</span>
         </button>
         <button
           type="button"
           onClick={() => setActiveTab('responsive')}
-          className={`flex-1 py-2 text-[11px] font-medium flex items-center justify-center gap-1.5 transition-colors ${
+          className={`flex-1 py-1.5 text-[11px] font-mono uppercase tracking-wider flex items-center justify-center gap-1.5 rounded-md transition-all cursor-pointer ${
             activeTab === 'responsive'
-              ? 'border-b-2 border-[#d4af37] text-[#d4af37] font-semibold'
-              : 'text-white/60 hover:text-white'
+              ? 'admin-tab-active'
+              : 'admin-tab-inactive'
           }`}
         >
-          <Eye className="w-3.5 h-3.5" />
+          <Eye className="w-3.5 h-3.5 shrink-0" />
           <span>Hiển Thị</span>
         </button>
       </div>

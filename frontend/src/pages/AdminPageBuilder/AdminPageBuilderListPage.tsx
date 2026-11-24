@@ -19,10 +19,19 @@ import {
   CheckCircle2,
   AlertCircle,
   ExternalLink,
+  X,
 } from 'lucide-react';
 import { AdminLayout } from '@/pages/Admin/AdminLayout';
 import { cmsPagesApi, PolicyDocument } from '@/shared/api';
 import { useModal, ModalPortal } from '@/shared/context/ModalContext';
+import { TablePagination } from '@/shared/components/TablePagination';
+import { StatusBadge } from '@/shared/components/StatusBadge';
+import {
+  AdminActionGroup,
+  EditActionButton,
+  DeleteActionButton,
+  ViewActionButton,
+} from '@/shared/components/AdminActionButton';
 
 export const AdminPageBuilderListPage: React.FC = () => {
   const navigate = useNavigate();
@@ -48,8 +57,8 @@ export const AdminPageBuilderListPage: React.FC = () => {
     onClose: () => setDeleteTarget(null),
   });
 
-  const fetchPages = async () => {
-    setLoading(true);
+  const fetchPages = async (silent = false) => {
+    if (!silent) setLoading(true);
     setError(null);
     try {
       const res = await cmsPagesApi.getPages({
@@ -69,7 +78,7 @@ export const AdminPageBuilderListPage: React.FC = () => {
     } catch (err: any) {
       setError(err?.message || 'Không thể tải danh sách trang');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -84,23 +93,42 @@ export const AdminPageBuilderListPage: React.FC = () => {
   };
 
   const handleToggleFeature = async (id: string) => {
+    const targetPage = pages.find((p) => p._id === id);
+    const nextFeatured = !targetPage?.isFeatured;
+
+    // Cập nhật ghim trang trực tiếp trong state cục bộ
+    setPages((prev) =>
+      prev.map((p) => (p._id === id ? { ...p, isFeatured: nextFeatured } : p))
+    );
+
     try {
       await cmsPagesApi.toggleFeature(id);
-      fetchPages();
+      void fetchPages(true);
     } catch (err: any) {
+      // Hoàn tác nếu lỗi
+      setPages((prev) =>
+        prev.map((p) => (p._id === id ? { ...p, isFeatured: !nextFeatured } : p))
+      );
       alert(err?.message || 'Không thể thay đổi trạng thái nổi bật');
     }
   };
 
   const handleDelete = async () => {
     if (!deleteTarget?._id) return;
+    const targetId = deleteTarget._id;
     setDeleting(true);
+
+    // Xóa trang trực tiếp khỏi danh sách
+    setPages((prev) => prev.filter((p) => p._id !== targetId));
+    setTotalCount((prev) => Math.max(0, prev - 1));
+
     try {
-      await cmsPagesApi.deletePage(deleteTarget._id);
+      await cmsPagesApi.deletePage(targetId);
       setDeleteTarget(null);
-      fetchPages();
+      void fetchPages(true);
     } catch (err: any) {
       alert(err?.message || 'Lỗi khi xóa trang');
+      void fetchPages();
     } finally {
       setDeleting(false);
     }
@@ -175,7 +203,7 @@ export const AdminPageBuilderListPage: React.FC = () => {
             {/* Create Page Button */}
             <Link
               to="/admin/page-builder/new"
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#d4af37] text-black text-xs font-semibold uppercase tracking-wider hover:bg-[#e5c158] transition-colors shadow-md"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--accent)] text-[var(--accent-contrast)] border border-[var(--accent)] text-xs font-mono font-bold uppercase tracking-wider hover:brightness-105 transition-all shadow-md hover:shadow-lg cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>Thiết Kế Trang Mới</span>
@@ -204,7 +232,7 @@ export const AdminPageBuilderListPage: React.FC = () => {
               </p>
               <Link
                 to="/admin/page-builder/new"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#d4af37] text-black text-xs font-semibold uppercase tracking-wider hover:bg-[#e5c158] transition-colors"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[var(--accent)] text-[var(--accent-contrast)] border border-[var(--accent)] text-xs font-mono font-bold uppercase tracking-wider hover:brightness-105 transition-all shadow-md hover:shadow-lg cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
                 <span>Bắt Đầu Thiết Kế</span>
@@ -215,6 +243,7 @@ export const AdminPageBuilderListPage: React.FC = () => {
               <table className="w-full text-left text-xs">
                 <thead className="bg-white/5 border-b border-white/10 text-white/50 uppercase font-mono text-[10px] tracking-wider">
                   <tr>
+                    <th className="px-3 py-3.5 w-12 text-center">STT</th>
                     <th className="px-5 py-3.5">Tiêu Đề & Đường Dẫn</th>
                     <th className="px-4 py-3.5">Phân Loại</th>
                     <th className="px-4 py-3.5">Trạng Thái</th>
@@ -225,8 +254,11 @@ export const AdminPageBuilderListPage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5 text-white/80">
-                  {pages.map((p) => (
+                  {pages.map((p, idx) => (
                     <tr key={p._id} className="hover:bg-white/[0.02] transition-colors">
+                      <td className="px-3 py-4 text-center font-mono text-xs text-white/50">
+                        {(page - 1) * 10 + idx + 1}
+                      </td>
                       <td className="px-5 py-4 space-y-1">
                         <div className="font-serif text-sm font-medium text-white">
                           {p.title}
@@ -237,21 +269,19 @@ export const AdminPageBuilderListPage: React.FC = () => {
                       </td>
 
                       <td className="px-4 py-4">
-                        <span className="px-2 py-1 rounded bg-white/5 border border-white/10 text-[11px] text-white/80">
+                        <StatusBadge variant="neutral">
                           {getTypeLabel(p.type)}
-                        </span>
+                        </StatusBadge>
                       </td>
 
                       <td className="px-4 py-4">
-                        <span
-                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-mono uppercase font-semibold ${
-                            p.status === 'published'
-                              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                              : 'bg-amber-500/10 text-amber-300 border border-amber-500/20'
-                          }`}
+                        <StatusBadge
+                          variant={p.status === 'published' ? 'success' : 'warning'}
+                          dot={true}
+                          uppercase={true}
                         >
                           {p.status === 'published' ? 'Đã Xuất Bản' : 'Bản Nháp'}
-                        </span>
+                        </StatusBadge>
                       </td>
 
                       <td className="px-4 py-4 text-center">
@@ -278,30 +308,20 @@ export const AdminPageBuilderListPage: React.FC = () => {
                       </td>
 
                       <td className="px-5 py-4 text-right">
-                        <div className="inline-flex items-center gap-1.5">
-                          <Link
+                        <AdminActionGroup>
+                          <ViewActionButton
                             to={`/admin/page-builder/${p._id}/preview`}
                             title="Xem trước giao diện"
-                            className="p-1.5 rounded text-white/50 hover:text-white hover:bg-white/10 transition-colors"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                          </Link>
-                          <Link
+                          />
+                          <EditActionButton
                             to={`/admin/page-builder/${p._id}/edit`}
                             title="Mở Visual Page Builder"
-                            className="p-1.5 rounded text-[#d4af37] hover:bg-[#d4af37]/10 transition-colors"
-                          >
-                            <Edit3 className="w-3.5 h-3.5" />
-                          </Link>
-                          <button
-                            type="button"
+                          />
+                          <DeleteActionButton
                             onClick={() => setDeleteTarget(p)}
                             title="Xóa trang"
-                            className="p-1.5 rounded text-red-400 hover:bg-red-500/10 transition-colors"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
+                          />
+                        </AdminActionGroup>
                       </td>
                     </tr>
                   ))}
@@ -312,29 +332,14 @@ export const AdminPageBuilderListPage: React.FC = () => {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="p-4 border-t border-white/10 flex items-center justify-between text-xs text-white/60">
-              <div>
-                Hiển thị trang <strong>{page}</strong> / <strong>{totalPages}</strong> (Tổng cộng {totalCount} trang)
-              </div>
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  disabled={page <= 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  className="px-3 py-1 rounded bg-white/5 border border-white/10 text-white disabled:opacity-30"
-                >
-                  Trước
-                </button>
-                <button
-                  type="button"
-                  disabled={page >= totalPages}
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  className="px-3 py-1 rounded bg-white/5 border border-white/10 text-white disabled:opacity-30"
-                >
-                  Sau
-                </button>
-              </div>
-            </div>
+            <TablePagination
+              currentPage={page}
+              totalPages={totalPages}
+              totalItems={totalCount}
+              pageSize={10}
+              onPageChange={setPage}
+              itemName="trang CMS"
+            />
           )}
         </div>
       </div>
@@ -345,27 +350,43 @@ export const AdminPageBuilderListPage: React.FC = () => {
           <div
             role="dialog"
             aria-modal="true"
-            className="fixed inset-0 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn pointer-events-auto"
+            aria-label="Xác Nhận Xóa Trang"
+            className="fixed inset-0 bg-[rgba(26,26,23,0.55)] backdrop-blur-sm flex items-center justify-center p-4 pointer-events-auto"
             style={{ zIndex: overlayZIndex }}
             onClick={(e) => {
               if (e.target === e.currentTarget && !deleting) setDeleteTarget(null);
             }}
           >
             <div
-              className="w-full max-w-md bg-[#14141c] border border-white/10 rounded-2xl p-6 space-y-4 shadow-2xl max-h-[calc(100dvh-32px)] overflow-y-auto"
+              className="w-full max-w-md bg-[var(--surface)] border border-[var(--border)] rounded-sm p-6 space-y-5 text-[var(--text)] shadow-2xl max-h-[calc(100dvh-32px)] overflow-y-auto admin-content-scrollbar"
               style={{ zIndex: contentZIndex }}
             >
-              <h3 className="font-serif text-lg font-medium text-white">
-                Xác Nhận Xóa Trang
-              </h3>
-              <p className="text-xs text-white/70 leading-relaxed">
-                Bạn có chắc chắn muốn xóa trang <strong>"{deleteTarget.title}"</strong> (/{deleteTarget.slug})? Toàn bộ các phân vùng và khối nội dung đính kèm sẽ bị xóa vĩnh viễn khỏi hệ thống.
-              </p>
-              <div className="pt-2 flex items-center justify-end gap-3">
+              <div className="flex items-center justify-between pb-3 border-b border-[var(--border)]">
+                <div className="flex items-center gap-2">
+                  <Trash2 className="w-4 h-4 text-rose-500" />
+                  <h3 className="font-display text-base font-semibold uppercase tracking-wider text-[var(--text)]">
+                    Xác Nhận Xóa Trang
+                  </h3>
+                </div>
                 <button
                   type="button"
                   onClick={() => setDeleteTarget(null)}
-                  className="px-4 py-2 rounded-lg border border-white/10 text-xs text-white/70 hover:bg-white/5"
+                  className="p-1 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors rounded-sm"
+                  aria-label="Đóng"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <p className="text-xs text-[var(--text-muted)] leading-relaxed">
+                Bạn có chắc chắn muốn xóa trang <strong className="text-[var(--text)]">"{deleteTarget.title}"</strong> (/{deleteTarget.slug})? Toàn bộ các phân vùng và khối nội dung đính kèm sẽ bị xóa vĩnh viễn khỏi hệ thống.
+              </p>
+
+              <div className="pt-3 border-t border-[var(--border)] flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setDeleteTarget(null)}
+                  className="px-4 py-2 border border-[var(--border)] text-[var(--text)] rounded-lg text-xs font-mono uppercase tracking-wider hover:bg-[var(--bg-alt)] shadow-xs hover:shadow-sm transition-all cursor-pointer"
                 >
                   Hủy Bỏ
                 </button>
@@ -373,7 +394,7 @@ export const AdminPageBuilderListPage: React.FC = () => {
                   type="button"
                   disabled={deleting}
                   onClick={handleDelete}
-                  className="px-4 py-2 rounded-lg bg-red-500 text-white text-xs font-semibold hover:bg-red-600 transition-colors"
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold border border-red-500 rounded-lg text-xs font-mono uppercase tracking-wider shadow-md hover:shadow-lg transition-all disabled:opacity-50 cursor-pointer"
                 >
                   {deleting ? 'Đang Xóa...' : 'Xác Nhận Xóa'}
                 </button>

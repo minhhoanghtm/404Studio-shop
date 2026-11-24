@@ -1,6 +1,7 @@
 import { api, ApiResponse } from './client';
 
 export * from './client';
+export * from './adminAiApi';
 
 // ============================================================================
 // AUTH & USER APIs
@@ -42,10 +43,10 @@ export const authApi = {
       ...payload,
     }),
 
-  forgotPasswordOtp: (payload: { email?: string; phone?: string }) =>
-    api.post<ApiResponse<{ message: string }>>('/auth/password/forgot', payload),
+  forgotPasswordOtp: (payload: { email?: string; phone?: string; identifier?: string; channel?: string }) =>
+    api.post<ApiResponse<{ message: string; data?: any }>>('/auth/password/forgot', payload),
 
-  resetPassword: (payload: { email?: string; phone?: string; otp: string; newPassword: string }) =>
+  resetPassword: (payload: { email?: string; phone?: string; identifier?: string; otp: string; newPassword: string }) =>
     api.post<ApiResponse<{ message: string }>>('/auth/password/reset', payload),
 
   logout: () => api.post<ApiResponse>('/auth/signOut'),
@@ -432,6 +433,13 @@ export const recommendationsApi = {
 };
 
 export const trackingApi = {
+  sendHeartbeat: (payload: {
+    visitorId: string;
+    page: string;
+    status: 'active' | 'idle' | 'away' | 'background';
+    [key: string]: any;
+  }) => api.post('/events/presence/heartbeat', payload),
+
   trackEvent: (eventPayload: Record<string, unknown>) =>
     api.post<ApiResponse<{ processed: number }> & { accepted?: boolean }>('/events', eventPayload, {
       headers: eventPayload.anonymous_id ? { 'X-Anonymous-ID': String(eventPayload.anonymous_id) } : undefined,
@@ -470,12 +478,14 @@ export const adminApi = {
   getOrderStats: (userId?: string) =>
     api.get<ApiResponse<any>>(`/order/admin/stats${userId ? `?userId=${userId}` : ''}`),
   getVoucherStats: () => api.get<ApiResponse<any>>('/vouchers/admin/stats'),
-  getAllOrders: (params?: { page?: number; limit?: number; status?: string; search?: string }) => {
+  getAllOrders: (params?: { page?: number; limit?: number; status?: string; search?: string; startDate?: string; endDate?: string }) => {
     const query = new URLSearchParams();
     if (params?.page) query.set('page', String(params.page));
     if (params?.limit) query.set('limit', String(params.limit));
     if (params?.status && params.status !== 'all') query.set('status', params.status);
     if (params?.search) query.set('search', params.search);
+    if (params?.startDate) query.set('startDate', params.startDate);
+    if (params?.endDate) query.set('endDate', params.endDate);
     const qs = query.toString();
     return api.get<ApiResponse<{ items: any[]; pagination: { page: number; limit: number; total: number; totalPages: number } }>>(
       `/order/admin/orders${qs ? `?${qs}` : ''}`
@@ -504,9 +514,31 @@ export const adminApi = {
   createCategory: (data: any) => api.post<ApiResponse<any>>('/categories', data),
   updateCategory: (id: string, data: any) => api.put<ApiResponse<any>>(`/categories/${id}`, data),
   deleteCategory: (id: string) => api.delete<ApiResponse<any>>(`/categories/${id}`),
-  createVoucher: (data: any) => api.post<ApiResponse<any>>('/vouchers', data),
-  updateVoucher: (id: string, data: any) => api.put<ApiResponse<any>>(`/vouchers/${id}`, data),
-  deleteVoucher: (id: string) => api.delete<ApiResponse<any>>(`/vouchers/${id}`),
+  getAdminVouchers: (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    status?: string;
+    discountType?: string;
+    sortBy?: string;
+    sortOrder?: string;
+  }) => {
+    const query = new URLSearchParams();
+    if (params?.page) query.set('page', String(params.page));
+    if (params?.limit) query.set('limit', String(params.limit));
+    if (params?.search) query.set('search', params.search);
+    if (params?.status) query.set('status', params.status);
+    if (params?.discountType) query.set('discountType', params.discountType);
+    if (params?.sortBy) query.set('sortBy', params.sortBy);
+    if (params?.sortOrder) query.set('sortOrder', params.sortOrder);
+    const qs = query.toString();
+    return api.get<ApiResponse<any[]>>(`/vouchers/admin${qs ? `?${qs}` : ''}`);
+  },
+  createVoucher: (data: any) => api.post<ApiResponse<any>>('/vouchers/admin', data),
+  updateVoucher: (id: string, data: any) => api.put<ApiResponse<any>>(`/vouchers/admin/${id}`, data),
+  deleteVoucher: (id: string) => api.delete<ApiResponse<any>>(`/vouchers/admin/${id}`),
+  toggleVoucherStatus: (id: string) => api.patch<ApiResponse<any>>(`/vouchers/admin/${id}/status`),
+  getSettings: () => api.get<ApiResponse<any>>('/settings'),
   updateSettings: (data: any) => api.put<ApiResponse<any>>('/settings', data),
 
   // Product Excel with Embedded Images
@@ -801,13 +833,19 @@ export interface ActivityAnalyticsResponse {
 
 export interface LiveSession {
   sessionId: string;
+  visitorId?: string;
   userId?: string;
+  displayName?: string;
+  userDisplay?: string;
+  type?: 'user' | 'guest';
   isAnonymous: boolean;
   currentRoute?: string;
+  page?: string;
   status: 'active' | 'idle' | 'away' | 'background' | 'disconnected';
   lastSeen: string;
+  lastHeartbeatAt?: number;
   deviceType?: string;
-  tabCount: number;
+  tabCount?: number;
 }
 
 export interface LivePresenceResponse {
@@ -862,6 +900,13 @@ export const adminTrackingApi = {
   getSessionTimeline: (sessionId: string) =>
     api.get<ApiResponse<any>>(`/events/presence/session/${encodeURIComponent(sessionId)}`),
 
+  terminateSession: (sessionId: string, reason?: string) =>
+    api.post<ApiResponse<any>>('/events/presence/terminate-session', {
+      sessionId,
+      visitorId: sessionId,
+      reason,
+    }),
+
   getPolicyMetadata: () =>
     api.get<ApiResponse<{ version: string; effectiveDate: string }>>('/privacy/policy'),
 
@@ -889,6 +934,8 @@ export const loyaltyApi = {
     return api.get<ApiResponse<any>>(`/loyalty/admin/transactions${qs ? `?${qs}` : ''}`);
   },
   updateTierSettings: (data: any) => api.put<ApiResponse<any>>('/loyalty/admin/tiers', data),
+  adjustPoints: (data: { customerId: string; pointsDelta: number; reason: string; referenceCode?: string }) =>
+    api.post<ApiResponse<any>>('/loyalty/admin/adjust', data),
 };
 
 export * from './communicationApi';

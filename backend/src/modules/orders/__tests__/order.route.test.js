@@ -71,6 +71,22 @@ jest.unstable_mockModule("../../../middlewares/auth.middleware.js", () => ({
   },
 }));
 
+jest.unstable_mockModule("../../../middlewares/rbac.middleware.js", () => ({
+  authenticate: (req, res, next) => {
+    if (!authState.authenticated) {
+      return res.status(401).json({ success: false, message: "Khong tim thay access token" });
+    }
+    req.user = { userId: authState.userId, role: authState.role };
+    return next();
+  },
+  authorize: () => (req, res, next) => {
+    if (authState.role !== "admin") {
+      return res.status(403).json({ success: false, message: "Ban khong co quyen truy cap" });
+    }
+    return next();
+  },
+}));
+
 const { orderRouter } = await import("../order.route.js");
 const { default: errorHandler } = await import("../../../middlewares/error.middleware.js");
 

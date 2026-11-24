@@ -399,3 +399,394 @@ html.light body.admin-active .border-champagne,
 [data-theme="light"] body.admin-active .border-champagne {
   border-color: var(--accent) !important;
 }
+
+/* ==========================================================================
+   BUTTON STANDARDIZATION & SHADOW ELEVATION SYSTEM ACROSS ALL ADMIN SUBPAGES
+   - Buttons without border MUST have elevation shadow (đổ bóng) so they stand out as buttons
+   - Synchronized primary, secondary, and interactive button tactile styling
+   ========================================================================== */
+
+/* 1. All buttons in Admin shell: smooth interaction, elevation transitions, pointer cursor */
+.admin-shell button,
+.admin-shell a[role="button"],
+body.admin-active button,
+body.admin-active a[role="button"] {
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* 2. BUTTONS WITHOUT BORDER: MUST HAVE PROMINENT ELEVATION SHADOW */
+.admin-shell button:not([class*="border"]):not([class*="bg-transparent"]):not([class*="hover:bg-transparent"]):not([class*="p-0"]):not([class*="p-1"]):not([class*="w-"]):not(:disabled),
+.admin-shell a[role="button"]:not([class*="border"]):not([class*="bg-transparent"]):not([class*="hover:bg-transparent"]):not([class*="p-0"]):not([class*="p-1"]):not([class*="w-"]):not([aria-disabled="true"]),
+.admin-shell a[class*="bg-[var(--accent)]"]:not([class*="border"]),
+.admin-shell a[class*="bg-accent"]:not([class*="border"]),
+.admin-shell a[class*="bg-champagne"]:not([class*="border"]),
+body.admin-active button:not([class*="border"]):not([class*="bg-transparent"]):not([class*="hover:bg-transparent"]):not([class*="p-0"]):not([class*="p-1"]):not([class*="w-"]):not(:disabled),
+body.admin-active a[role="button"]:not([class*="border"]):not([class*="bg-transparent"]):not([class*="hover:bg-transparent"]):not([class*="p-0"]):not([class*="p-1"]):not([class*="w-"]):not([aria-disabled="true"]) {
+  box-shadow: 0 4px 14px -1px rgba(0, 0, 0, 0.14), 0 2px 5px -1px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Dark mode elevation shadow for buttons without border */
+html.dark .admin-shell button:not([class*="border"]):not([class*="bg-transparent"]):not([class*="hover:bg-transparent"]):not([class*="p-0"]):not([class*="p-1"]):not([class*="w-"]):not(:disabled),
+html.dark .admin-shell a[role="button"]:not([class*="border"]):not([class*="bg-transparent"]):not([class*="hover:bg-transparent"]):not([class*="p-0"]):not([class*="p-1"]):not([class*="w-"]):not([aria-disabled="true"]),
+html.dark .admin-shell a[class*="bg-[var(--accent)]"]:not([class*="border"]),
+html.dark .admin-shell a[class*="bg-accent"]:not([class*="border"]),
+html.dark .admin-shell a[class*="bg-champagne"]:not([class*="border"]),
+html.dark body.admin-active button:not([class*="border"]):not([class*="bg-transparent"]):not([class*="hover:bg-transparent"]):not([class*="p-0"]):not([class*="p-1"]):not([class*="w-"]):not(:disabled),
+html.dark body.admin-active a[role="button"]:not([class*="border"]):not([class*="bg-transparent"]):not([class*="hover:bg-transparent"]):not([class*="p-0"]):not([class*="p-1"]):not([class*="w-"]):not([aria-disabled="true"]) {
+  box-shadow: 0 4px 16px -1px rgba(0, 0, 0, 0.55), 0 0 14px rgba(212, 175, 55, 0.22) !important;
+}
+
+/* Hover elevation for buttons without border */
+.admin-shell button:not([class*="border"]):not([class*="bg-transparent"]):not([class*="p-0"]):not([class*="p-1"]):not([class*="w-"]):not(:disabled):hover,
+.admin-shell a[role="button"]:not([class*="border"]):not([class*="bg-transparent"]):not([class*="p-0"]):not([class*="p-1"]):not([class*="w-"]):not([aria-disabled="true"]):hover,
+.admin-shell a[class*="bg-[var(--accent)]"]:not([class*="border"]):hover,
+.admin-shell a[class*="bg-accent"]:not([class*="border"]):hover,
+.admin-shell a[class*="bg-champagne"]:not([class*="border"]):hover,
+body.admin-active button:not([class*="border"]):not([class*="bg-transparent"]):not([class*="p-0"]):not([class*="p-1"]):not([class*="w-"]):not(:disabled):hover,
+body.admin-active a[role="button"]:not([class*="border"]):not([class*="bg-transparent"]):not([class*="p-0"]):not([class*="p-1"]):not([class*="w-"]):not([aria-disabled="true"]):hover {
+  box-shadow: 0 8px 24px -2px rgba(0, 0, 0, 0.22), 0 3px 8px -1px rgba(0, 0, 0, 0.12) !important;
+  transform: translateY(-1.5px);
+}
+
+/* 3. Primary action buttons: Gold Accent styling with high contrast text in light & dark modes */
+html.light .admin-shell button[class*="bg-[var(--accent)]"],
+html.light .admin-shell button[class*="bg-accent"],
+html.light .admin-shell a[class*="bg-[var(--accent)]"],
+html.light .admin-shell a[class*="bg-accent"],
+html.light body.admin-active button[class*="bg-[var(--accent)]"],
+html.light body.admin-active button[class*="bg-accent"],
+html.light body.admin-active a[class*="bg-[var(--accent)]"],
+html.light body.admin-active a[class*="bg-accent"],
+.admin-shell .admin-btn-primary,
+body.admin-active .admin-btn-primary {
+  background-color: var(--accent) !important;
+  color: var(--accent-contrast) !important;
+  border-color: var(--accent) !important;
+}
+
+html.light .admin-shell button[class*="bg-[var(--accent)]"] *,
+html.light .admin-shell button[class*="bg-accent"] *,
+html.light .admin-shell a[class*="bg-[var(--accent)]"] *,
+html.light .admin-shell a[class*="bg-accent"] *,
+html.light body.admin-active button[class*="bg-[var(--accent)]"] *,
+html.light body.admin-active button[class*="bg-accent"] *,
+html.light body.admin-active a[class*="bg-[var(--accent)]"] *,
+html.light body.admin-active a[class*="bg-accent"] *,
+.admin-shell .admin-btn-primary *,
+body.admin-active .admin-btn-primary * {
+  color: var(--accent-contrast) !important;
+}
+
+html.dark .admin-shell button[class*="bg-[var(--accent)]"],
+html.dark .admin-shell button[class*="bg-accent"],
+html.dark .admin-shell a[class*="bg-[var(--accent)]"],
+html.dark .admin-shell a[class*="bg-accent"],
+html.dark body.admin-active button[class*="bg-[var(--accent)]"],
+html.dark body.admin-active button[class*="bg-accent"],
+html.dark body.admin-active a[class*="bg-[var(--accent)]"],
+html.dark body.admin-active a[class*="bg-accent"],
+html.dark .admin-shell .admin-btn-primary,
+html.dark body.admin-active .admin-btn-primary {
+  background-color: var(--accent) !important;
+  color: var(--accent-contrast) !important;
+  border-color: var(--accent) !important;
+}
+
+html.dark .admin-shell button[class*="bg-[var(--accent)]"] *,
+html.dark .admin-shell button[class*="bg-accent"] *,
+html.dark .admin-shell a[class*="bg-[var(--accent)]"] *,
+html.dark .admin-shell a[class*="bg-accent"] *,
+html.dark body.admin-active button[class*="bg-[var(--accent)]"] *,
+html.dark body.admin-active button[class*="bg-accent"] *,
+html.dark body.admin-active a[class*="bg-[var(--accent)]"] *,
+html.dark body.admin-active a[class*="bg-accent"] *,
+html.dark .admin-shell .admin-btn-primary *,
+html.dark body.admin-active .admin-btn-primary * {
+  color: var(--accent-contrast) !important;
+}
+
+/* ==========================================================================
+   UNIFIED ADMIN TABS STYLING (ACTIVE & INACTIVE)
+   Guarantees high contrast, crisp border, button shadow, and clear active state across all pages
+   ========================================================================== */
+
+/* Inactive Admin Tab (Clean card background, visible border, subtle button shadow) */
+.admin-tab-inactive,
+.admin-shell .admin-tab-inactive,
+.admin-shell a.admin-tab-inactive,
+.admin-shell button.admin-tab-inactive,
+body.admin-active .admin-tab-inactive,
+body.admin-active a.admin-tab-inactive,
+body.admin-active button.admin-tab-inactive {
+  background-color: var(--bg-card) !important;
+  color: var(--text-secondary) !important;
+  border: 1.5px solid var(--border) !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.06) !important;
+  font-weight: 500 !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.admin-tab-inactive:hover,
+.admin-shell .admin-tab-inactive:hover,
+.admin-shell a.admin-tab-inactive:hover,
+.admin-shell button.admin-tab-inactive:hover,
+body.admin-active .admin-tab-inactive:hover,
+body.admin-active a.admin-tab-inactive:hover,
+body.admin-active button.admin-tab-inactive:hover {
+  background-color: var(--table-row-hover) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--accent) !important;
+  box-shadow: 0 3px 8px -1px rgba(0, 0, 0, 0.12) !important;
+  transform: translateY(-1px);
+}
+
+/* Active Admin Tab - LIGHT MODE: Deep gold accent, pure white text, solid dark-gold border, rich elevation shadow */
+html.light .admin-tab-active,
+html.light .admin-shell .admin-tab-active,
+html.light .admin-shell a.admin-tab-active,
+html.light .admin-shell button.admin-tab-active,
+html.light body.admin-active .admin-tab-active,
+html.light body.admin-active a.admin-tab-active,
+html.light body.admin-active button.admin-tab-active,
+[data-theme="light"] .admin-tab-active,
+[data-theme="light"] .admin-shell .admin-tab-active,
+[data-theme="light"] .admin-shell a.admin-tab-active,
+[data-theme="light"] .admin-shell button.admin-tab-active,
+[data-theme="light"] body.admin-active .admin-tab-active,
+[data-theme="light"] body.admin-active a.admin-tab-active,
+[data-theme="light"] body.admin-active button.admin-tab-active {
+  background-color: #8a6d1a !important;
+  color: #ffffff !important;
+  border: 2px solid #5c470f !important;
+  box-shadow: 0 8px 22px -2px rgba(0, 0, 0, 0.35), 0 3px 8px -1px rgba(138, 109, 26, 0.45) !important;
+  font-weight: 700 !important;
+  transform: translateY(-0.5px);
+}
+
+/* Active Admin Tab - DARK MODE: Radiant champagne gold, charcoal text, crisp bright-gold border, luminous button shadow */
+html.dark .admin-tab-active,
+html.dark .admin-shell .admin-tab-active,
+html.dark .admin-shell a.admin-tab-active,
+html.dark .admin-shell button.admin-tab-active,
+html.dark body.admin-active .admin-tab-active,
+html.dark body.admin-active a.admin-tab-active,
+html.dark body.admin-active button.admin-tab-active,
+[data-theme="dark"] .admin-tab-active,
+[data-theme="dark"] .admin-shell .admin-tab-active,
+[data-theme="dark"] .admin-shell a.admin-tab-active,
+[data-theme="dark"] .admin-shell button.admin-tab-active,
+[data-theme="dark"] body.admin-active .admin-tab-active,
+[data-theme="dark"] body.admin-active a.admin-tab-active,
+[data-theme="dark"] body.admin-active button.admin-tab-active {
+  background-color: #d4af37 !important;
+  color: #121217 !important;
+  border: 2px solid #fef08a !important;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.95), 0 0 20px rgba(212, 175, 55, 0.5) !important;
+  font-weight: 700 !important;
+  transform: translateY(-0.5px);
+}
+
+/* Child icons and text inside active tab */
+.admin-tab-active *,
+.admin-shell a.admin-tab-active *,
+.admin-shell button.admin-tab-active *,
+body.admin-active a.admin-tab-active *,
+body.admin-active button.admin-tab-active * {
+  color: inherit !important;
+}
+
+/* ==========================================================================
+   SEGMENTED CONTROL / PILL TABS (Admin Loyalty Settings & Sub-panels)
+   High-depth tactile elevation shadow distinct in both Light & Dark modes
+   ========================================================================== */
+.admin-pill-tab-active,
+html.light .admin-pill-tab-active,
+[data-theme="light"] .admin-pill-tab-active {
+  background-color: #ffffff !important;
+  color: #1a1a1a !important;
+  border: 1.5px solid rgba(0, 0, 0, 0.12) !important;
+  box-shadow: 0 10px 24px -2px rgba(0, 0, 0, 0.28), 0 4px 10px -1px rgba(0, 0, 0, 0.16) !important;
+  font-weight: 700 !important;
+  transform: translateY(-1px);
+}
+
+html.dark .admin-pill-tab-active,
+[data-theme="dark"] .admin-pill-tab-active {
+  background-color: #242432 !important;
+  color: #f5eeeb !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.22) !important;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.95), 0 0 18px rgba(212, 175, 55, 0.38) !important;
+  font-weight: 700 !important;
+  transform: translateY(-1px);
+}
+
+.admin-pill-tab-inactive,
+html.light .admin-pill-tab-inactive,
+[data-theme="light"] .admin-pill-tab-inactive,
+html.dark .admin-pill-tab-inactive,
+[data-theme="dark"] .admin-pill-tab-inactive {
+  background-color: transparent !important;
+  color: var(--text-muted) !important;
+  border: 1.5px solid transparent !important;
+  box-shadow: none !important;
+  font-weight: 500 !important;
+  transform: none !important;
+}
+
+.admin-pill-tab-inactive:hover,
+html.light .admin-pill-tab-inactive:hover,
+[data-theme="light"] .admin-pill-tab-inactive:hover,
+html.dark .admin-pill-tab-inactive:hover,
+[data-theme="dark"] .admin-pill-tab-inactive:hover {
+  background-color: var(--table-row-hover) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border) !important;
+  box-shadow: 0 3px 8px -1px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* ==========================================================================
+   PAGINATION BUTTONS - DUAL-THEME HIGH CONTRAST & ACCESSIBILITY
+   Ensures active and inactive page buttons are vividly clear in both Light & Dark modes
+   ========================================================================== */
+
+/* Active Page Button (Selected Page) */
+.pagination-btn-active,
+.admin-shell button.pagination-btn-active,
+body.admin-active button.pagination-btn-active {
+  font-weight: 700 !important;
+}
+
+html.light .pagination-btn-active,
+html.light .admin-shell button.pagination-btn-active,
+html.light body.admin-active button.pagination-btn-active,
+[data-theme="light"] .pagination-btn-active,
+[data-theme="light"] .admin-shell button.pagination-btn-active,
+[data-theme="light"] body.admin-active button.pagination-btn-active {
+  background-color: #8a6d1a !important;
+  color: #ffffff !important;
+  border-color: #8a6d1a !important;
+  box-shadow: 0 4px 14px -1px rgba(138, 109, 26, 0.4), 0 2px 4px rgba(0, 0, 0, 0.12) !important;
+}
+
+html.dark .pagination-btn-active,
+html.dark .admin-shell button.pagination-btn-active,
+html.dark body.admin-active button.pagination-btn-active,
+[data-theme="dark"] .pagination-btn-active,
+[data-theme="dark"] .admin-shell button.pagination-btn-active,
+[data-theme="dark"] body.admin-active button.pagination-btn-active {
+  background-color: #d4af37 !important;
+  color: #121217 !important;
+  border-color: #d4af37 !important;
+  box-shadow: 0 0 16px rgba(212, 175, 55, 0.55), 0 4px 12px rgba(0, 0, 0, 0.7) !important;
+}
+
+/* Inactive Page Buttons */
+html.light .pagination-btn-inactive,
+html.light .admin-shell button.pagination-btn-inactive,
+html.light body.admin-active button.pagination-btn-inactive,
+[data-theme="light"] .pagination-btn-inactive,
+[data-theme="light"] .admin-shell button.pagination-btn-inactive,
+[data-theme="light"] body.admin-active button.pagination-btn-inactive {
+  background-color: #ffffff !important;
+  color: #1a1a17 !important;
+  border-color: #e3ded2 !important;
+}
+
+html.light .pagination-btn-inactive:hover,
+html.light .admin-shell button.pagination-btn-inactive:hover,
+html.light body.admin-active button.pagination-btn-inactive:hover {
+  background-color: #f7f5ef !important;
+  color: #8a6d1a !important;
+  border-color: #8a6d1a !important;
+}
+
+html.dark .pagination-btn-inactive,
+html.dark .admin-shell button.pagination-btn-inactive,
+html.dark body.admin-active button.pagination-btn-inactive,
+[data-theme="dark"] .pagination-btn-inactive,
+[data-theme="dark"] .admin-shell button.pagination-btn-inactive,
+[data-theme="dark"] body.admin-active button.pagination-btn-inactive {
+  background-color: #27272a !important;
+  color: #e4e4e7 !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+}
+
+html.dark .pagination-btn-inactive:hover,
+html.dark .admin-shell button.pagination-btn-inactive:hover,
+html.dark body.admin-active button.pagination-btn-inactive:hover {
+  background-color: #3f3f46 !important;
+  color: #fef08a !important;
+  border-color: #d4af37 !important;
+}
+
+/* Previous / Next Navigation Buttons */
+html.light .pagination-btn-nav,
+html.light .admin-shell button.pagination-btn-nav,
+html.light body.admin-active button.pagination-btn-nav {
+  background-color: #ffffff !important;
+  color: #1a1a17 !important;
+  border-color: #e3ded2 !important;
+}
+
+html.light .pagination-btn-nav:hover:not(:disabled),
+html.light .admin-shell button.pagination-btn-nav:hover:not(:disabled),
+html.light body.admin-active button.pagination-btn-nav:hover:not(:disabled) {
+  background-color: #f7f5ef !important;
+  color: #8a6d1a !important;
+  border-color: #8a6d1a !important;
+}
+
+html.dark .pagination-btn-nav,
+html.dark .admin-shell button.pagination-btn-nav,
+html.dark body.admin-active button.pagination-btn-nav {
+  background-color: #27272a !important;
+  color: #e4e4e7 !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+}
+
+html.dark .pagination-btn-nav:hover:not(:disabled),
+html.dark .admin-shell button.pagination-btn-nav:hover:not(:disabled),
+html.dark body.admin-active button.pagination-btn-nav:hover:not(:disabled) {
+  background-color: #3f3f46 !important;
+  color: #fef08a !important;
+  border-color: #d4af37 !important;
+}
+
+/* 4. Secondary (Outline) buttons: crisp border, subtle card background and soft shadow */
+.admin-shell button[class*="border"]:not(:disabled),
+.admin-shell a[role="button"][class*="border"]:not([aria-disabled="true"]),
+body.admin-active button[class*="border"]:not(:disabled),
+body.admin-active a[role="button"][class*="border"]:not([aria-disabled="true"]) {
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.admin-shell button[class*="border"]:not(:disabled):hover,
+.admin-shell a[role="button"][class*="border"]:not([aria-disabled="true"]):hover,
+body.admin-active button[class*="border"]:not(:disabled):hover,
+body.admin-active a[role="button"][class*="border"]:not([aria-disabled="true"]):hover {
+  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.09), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+  transform: translateY(-1px);
+}
+
+/* 5. Active physical tactile feedback for all admin buttons */
+.admin-shell button:not(:disabled):active,
+.admin-shell a[role="button"]:not([aria-disabled="true"]):active,
+body.admin-active button:not(:disabled):active,
+body.admin-active a[role="button"]:not([aria-disabled="true"]):active {
+  transform: translateY(0.5px) scale(0.985) !important;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Creative Studio controls: neutral workspace UI; poster pixels are rendered only from project data. */
+.studio-button, .studio-icon, .studio-tool, .studio-select, .studio-input { border: 1px solid var(--border); border-radius: .5rem; background: var(--surface); color: var(--text); font-size: .72rem; transition: border-color .15s ease, background .15s ease; }
+.studio-button { display: inline-flex; align-items: center; gap: .35rem; padding: .45rem .6rem; }
+.studio-button:hover, .studio-icon:hover, .studio-tool:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
+.studio-button:disabled { opacity: .45; cursor: not-allowed; }
+.studio-icon { display: inline-grid; place-items: center; width: 1.8rem; height: 1.8rem; }
+.studio-tool { width: 100%; display: flex; align-items: center; gap: .5rem; padding: .55rem .65rem; text-align: left; }
+.studio-select, .studio-input { width: 100%; padding: .45rem .55rem; outline: none; }
+.studio-select { width: auto; }
+.studio-input:focus { border-color: var(--accent); }
+.studio-label { font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--text-muted); }
+.studio-field { display: grid; gap: .22rem; color: var(--text-muted); }

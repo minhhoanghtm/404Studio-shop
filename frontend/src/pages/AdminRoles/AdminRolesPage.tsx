@@ -22,6 +22,14 @@ import {
 import { useToastStore } from '@/shared/stores/useToastStore';
 import { useAuthStore } from '@/shared/stores/useAuthStore';
 import { useModal, ModalPortal } from '@/shared/context/ModalContext';
+import { TablePagination } from '@/shared/components/TablePagination';
+import { StatusToggle } from '@/shared/components/StatusToggle';
+import { StatusBadge } from '@/shared/components/StatusBadge';
+import {
+  AdminActionGroup,
+  LockActionButton,
+  UnlockActionButton,
+} from '@/shared/components';
 
 interface RoleItem {
   _id: string;
@@ -117,9 +125,9 @@ export const AdminRolesPage: React.FC = () => {
   const [isAuditLoading, setIsAuditLoading] = useState(false);
 
   // Fetch initial roles & permissions
-  const loadRolesAndPermissions = async () => {
+  const loadRolesAndPermissions = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const [rolesRes, permsRes] = await Promise.all([
         rolesApi.getRoles(),
         rolesApi.getStandardPermissions(),
@@ -142,7 +150,7 @@ export const AdminRolesPage: React.FC = () => {
     } catch (err: any) {
       addToast(err?.message || 'Không thể tải danh sách vai trò và quyền hạn', 'error');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -151,9 +159,9 @@ export const AdminRolesPage: React.FC = () => {
   }, []);
 
   // Fetch users when tab is active or filters change
-  const loadUsers = async () => {
+  const loadUsers = async (silent = false) => {
     try {
-      setIsUsersLoading(true);
+      if (!silent) setIsUsersLoading(true);
       const res = await rolesApi.getUsers({
         page: usersPage,
         limit: 15,
@@ -166,7 +174,7 @@ export const AdminRolesPage: React.FC = () => {
     } catch (err: any) {
       addToast(err?.message || 'Không thể tải danh sách người dùng', 'error');
     } finally {
-      setIsUsersLoading(false);
+      if (!silent) setIsUsersLoading(false);
     }
   };
 
@@ -227,8 +235,14 @@ export const AdminRolesPage: React.FC = () => {
         );
 
       await Promise.all(updatePromises);
+      // Cập nhật ma trận trực tiếp vào roles cục bộ, không reload lại toàn bộ trang
+      setRoles((prev) =>
+        prev.map((r) =>
+          matrixState[r._id] ? { ...r, permissions: matrixState[r._id] } : r
+        )
+      );
       addToast('Cập nhật ma trận phân quyền thành công! Quyền mới có hiệu lực ngay.', 'success');
-      await loadRolesAndPermissions();
+      void loadRolesAndPermissions(true);
     } catch (err: any) {
       addToast(err?.message || 'Lỗi khi cập nhật ma trận quyền', 'error');
     } finally {
@@ -245,18 +259,28 @@ export const AdminRolesPage: React.FC = () => {
     }
 
     try {
-      await rolesApi.createRole({
+      const res: any = await rolesApi.createRole({
         name: newRoleName.trim().toLowerCase(),
         displayName: newRoleDisplayName.trim(),
         description: newRoleDescription.trim(),
         permissions: [],
       });
+      const createdRole: RoleItem = res?.data || {
+        _id: `role_${Date.now()}`,
+        name: newRoleName.trim().toLowerCase(),
+        displayName: newRoleDisplayName.trim(),
+        description: newRoleDescription.trim(),
+        permissions: [],
+      };
+      // Thêm vai trò mới trực tiếp vào state cục bộ
+      setRoles((prev) => [...prev, createdRole]);
+      setMatrixState((prev) => ({ ...prev, [createdRole._id]: [] }));
       addToast(`Đã tạo vai trò mới '${newRoleDisplayName}' thành công!`, 'success');
       setIsCreateRoleModalOpen(false);
       setNewRoleName('');
       setNewRoleDisplayName('');
       setNewRoleDescription('');
-      await loadRolesAndPermissions();
+      void loadRolesAndPermissions(true);
     } catch (err: any) {
       addToast(err?.message || 'Lỗi khi tạo vai trò mới', 'error');
     }
@@ -282,12 +306,25 @@ export const AdminRolesPage: React.FC = () => {
         deny: editUserDeny,
       });
 
+      // Cập nhật thông tin quyền hạn của người dùng trực tiếp trong bảng
+      setUsers((prev) =>
+        prev.map((u) =>
+          u._id === selectedUserForEdit._id
+            ? {
+                ...u,
+                role: editUserRole,
+                permissionOverrides: { allow: editUserAllow, deny: editUserDeny },
+              }
+            : u
+        )
+      );
+
       addToast(
         `Đã cập nhật vai trò và quyền riêng cho tài khoản ${selectedUserForEdit.email}! Phiên cũ đã được thu hồi.`,
         'success'
       );
       setSelectedUserForEdit(null);
-      await loadUsers();
+      void loadUsers(true);
     } catch (err: any) {
       addToast(err?.message || 'Lỗi khi cập nhật quyền tài khoản', 'error');
     } finally {
@@ -297,6 +334,10 @@ export const AdminRolesPage: React.FC = () => {
 
   // Toggle User Status (Lock/Unlock)
   const handleToggleUserStatus = async (userItem: RbacUserItem) => {
+    if (currentUser?.role !== 'admin') {
+      addToast('Chỉ Quản trị viên (Admin) mới có quyền khóa hoặc mở khóa tài khoản.', 'error');
+      return;
+    }
     const isCurrentlyActive = userItem.status === 'active';
     const nextStatus = isCurrentlyActive ? 'locked' : 'active';
     const actionLabel = isCurrentlyActive ? 'khóa' : 'mở khóa';
@@ -312,10 +353,18 @@ export const AdminRolesPage: React.FC = () => {
     }
 
     try {
+      // Cập nhật lạc quan trạng thái người dùng tại dòng tương ứng
+      setUsers((prev) =>
+        prev.map((u) => (u._id === userItem._id ? { ...u, status: nextStatus as any } : u))
+      );
       await rolesApi.updateUserStatus(userItem._id, nextStatus as any);
       addToast(`Đã ${actionLabel} tài khoản ${userItem.email} thành công!`, 'success');
-      await loadUsers();
+      void loadUsers(true);
     } catch (err: any) {
+      // Hoàn tác nếu lỗi
+      setUsers((prev) =>
+        prev.map((u) => (u._id === userItem._id ? { ...u, status: userItem.status } : u))
+      );
       addToast(err?.message || `Lỗi khi ${actionLabel} tài khoản`, 'error');
     }
   };
@@ -328,43 +377,43 @@ export const AdminRolesPage: React.FC = () => {
       <div className="space-y-6">
         {/* Navigation Tabs Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-[var(--border)]">
-          <div className="flex items-center gap-2 bg-[var(--surface)] p-1 border border-[var(--border)] rounded-sm">
+          <div className="flex flex-wrap items-center gap-2.5">
             <button
               type="button"
               onClick={() => setActiveTab('matrix')}
-              className={`px-4 py-2 text-xs font-mono uppercase tracking-wider rounded-sm transition-all flex items-center gap-2 ${
+              className={`px-4 py-2.5 text-xs font-mono uppercase tracking-wider rounded-lg transition-all duration-200 flex items-center gap-2 cursor-pointer ${
                 activeTab === 'matrix'
-                  ? 'bg-[var(--accent)] text-[var(--accent-contrast)] font-semibold shadow-sm'
-                  : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--bg-alt)]'
+                  ? 'admin-tab-active'
+                  : 'admin-tab-inactive'
               }`}
             >
-              <KeyRound className="w-3.5 h-3.5" />
+              <KeyRound className="w-3.5 h-3.5 shrink-0" />
               <span>Ma Trận Vai Trò × Quyền</span>
             </button>
 
             <button
               type="button"
               onClick={() => setActiveTab('users')}
-              className={`px-4 py-2 text-xs font-mono uppercase tracking-wider rounded-sm transition-all flex items-center gap-2 ${
+              className={`px-4 py-2.5 text-xs font-mono uppercase tracking-wider rounded-lg transition-all duration-200 flex items-center gap-2 cursor-pointer ${
                 activeTab === 'users'
-                  ? 'bg-[var(--accent)] text-[var(--accent-contrast)] font-semibold shadow-sm'
-                  : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--bg-alt)]'
+                  ? 'admin-tab-active'
+                  : 'admin-tab-inactive'
               }`}
             >
-              <Users className="w-3.5 h-3.5" />
+              <Users className="w-3.5 h-3.5 shrink-0" />
               <span>Tài Khoản & Overrides</span>
             </button>
 
             <button
               type="button"
               onClick={() => setActiveTab('audit')}
-              className={`px-4 py-2 text-xs font-mono uppercase tracking-wider rounded-sm transition-all flex items-center gap-2 ${
+              className={`px-4 py-2.5 text-xs font-mono uppercase tracking-wider rounded-lg transition-all duration-200 flex items-center gap-2 cursor-pointer ${
                 activeTab === 'audit'
-                  ? 'bg-[var(--accent)] text-[var(--accent-contrast)] font-semibold shadow-sm'
-                  : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--bg-alt)]'
+                  ? 'admin-tab-active'
+                  : 'admin-tab-inactive'
               }`}
             >
-              <History className="w-3.5 h-3.5" />
+              <History className="w-3.5 h-3.5 shrink-0" />
               <span>Nhật Ký Kiểm Toán</span>
             </button>
           </div>
@@ -374,7 +423,7 @@ export const AdminRolesPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsCreateRoleModalOpen(true)}
-                className="px-4 py-2 text-xs font-mono uppercase tracking-wider border border-[var(--border)] hover:border-[var(--accent)] text-[var(--text)] hover:text-[var(--accent)] rounded-sm transition-colors flex items-center gap-1.5"
+                className="px-4 py-2 text-xs font-mono uppercase tracking-wider border border-[var(--border)] hover:border-[var(--accent)] bg-[var(--bg-card)] text-[var(--text)] hover:text-[var(--accent)] rounded-lg shadow-xs hover:shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Thêm Vai Trò Mới</span>
@@ -384,7 +433,7 @@ export const AdminRolesPage: React.FC = () => {
                 type="button"
                 onClick={handleSaveMatrix}
                 disabled={isSavingMatrix}
-                className="px-5 py-2 text-xs font-mono uppercase tracking-wider bg-[var(--accent)] hover:bg-[var(--accent)]/90 text-[var(--accent-contrast)] font-semibold rounded-sm transition-all shadow-sm flex items-center gap-1.5 disabled:opacity-50"
+                className="px-5 py-2 text-xs font-mono uppercase tracking-wider bg-[var(--accent)] border border-[var(--accent)] hover:brightness-105 text-[var(--accent-contrast)] font-bold rounded-lg transition-all shadow-md hover:shadow-lg flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
               >
                 {isSavingMatrix ? (
                   <RefreshCw className="w-3.5 h-3.5 animate-spin" />
@@ -494,21 +543,16 @@ export const AdminRolesPage: React.FC = () => {
                                     key={`${r._id}-${perm.key}`}
                                     className="p-3 text-center border-r border-[var(--border)] last:border-r-0"
                                   >
-                                    <label
-                                      className={`inline-flex items-center justify-center p-1 rounded-sm cursor-pointer ${
-                                        isDisabled ? 'cursor-not-allowed opacity-80' : ''
-                                      }`}
-                                    >
-                                      <input
-                                        type="checkbox"
+                                    <div className="flex items-center justify-center">
+                                      <StatusToggle
                                         checked={isPermChecked}
                                         disabled={isDisabled}
                                         onChange={() =>
                                           handleToggleMatrixPermission(r._id, r.name, perm.key)
                                         }
-                                        className="w-4 h-4 text-[var(--accent)] rounded border-[var(--border)] focus:ring-[var(--accent)] cursor-pointer"
+                                        ariaLabel={`Phân quyền ${perm.label} cho vai trò ${r.displayName || r.name}`}
                                       />
-                                    </label>
+                                    </div>
                                   </td>
                                 );
                               })}
@@ -572,8 +616,8 @@ export const AdminRolesPage: React.FC = () => {
 
                 <button
                   type="button"
-                  onClick={loadUsers}
-                  className="p-2 border border-[var(--border)] hover:border-[var(--accent)] rounded-sm text-[var(--text-muted)] hover:text-[var(--accent)]"
+                  onClick={() => loadUsers()}
+                  className="p-2 border border-[var(--border)] hover:border-[var(--accent)] rounded-lg text-[var(--text-muted)] hover:text-[var(--accent)] shadow-xs hover:shadow-sm transition-all cursor-pointer"
                   title="Tải lại danh sách"
                 >
                   <RefreshCw className="w-4 h-4" />
@@ -600,6 +644,7 @@ export const AdminRolesPage: React.FC = () => {
                   <table className="w-full text-left text-xs">
                     <thead>
                       <tr className="bg-[var(--bg-alt)] border-b border-[var(--border)] text-[var(--text)] font-mono text-[11px] uppercase tracking-wider">
+                        <th className="p-3.5 w-12 text-center">STT</th>
                         <th className="p-3.5">Họ Tên & Email</th>
                         <th className="p-3.5">Vai Trò Hiện Tại</th>
                         <th className="p-3.5">Quyền Riêng (Overrides)</th>
@@ -608,13 +653,19 @@ export const AdminRolesPage: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[var(--border)]">
-                      {users.map((u) => {
+                      {users.map((u, idx) => {
                         const allowCount = u.permissionOverrides?.allow?.length || 0;
                         const denyCount = u.permissionOverrides?.deny?.length || 0;
                         const isLocked = u.status === 'locked' || u.status === 'blocked';
+                        const isSelf = String(u._id) === String(currentUser?.id);
+                        const isTargetAdmin = u.role === 'admin';
+                        const canToggleUser = currentUser?.role === 'admin' && !isSelf && (!isTargetAdmin || isLocked);
 
                         return (
                           <tr key={u._id} className="hover:bg-[var(--bg-alt)]/30 transition-colors">
+                            <td className="p-3.5 text-center font-mono text-xs text-[var(--text-muted)]">
+                              {(usersPage - 1) * 20 + idx + 1}
+                            </td>
                             <td className="p-3.5">
                               <span className="font-semibold text-[var(--text)] block">{u.fullName}</span>
                               <span className="text-[11px] text-[var(--text-muted)] block">{u.email}</span>
@@ -662,51 +713,54 @@ export const AdminRolesPage: React.FC = () => {
                               )}
                             </td>
 
-                            <td className="p-3.5">
-                              <span
-                                className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono uppercase tracking-wider font-semibold ${
-                                  isLocked
-                                    ? 'bg-red-100 text-red-800 border border-red-200'
-                                    : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                                }`}
-                              >
-                                <span
-                                  className={`w-1.5 h-1.5 rounded-full ${
-                                    isLocked ? 'bg-red-600' : 'bg-emerald-600'
-                                  }`}
-                                />
-                                {isLocked ? 'Đã khóa' : 'Hoạt động'}
-                              </span>
+                            <td className="p-3.5 whitespace-nowrap">
+                              <StatusToggle
+                                checked={!isLocked}
+                                disabled={!canToggleUser}
+                                onChange={() => handleToggleUserStatus(u)}
+                                activeLabel="Hoạt Động"
+                                inactiveLabel="Đã Khóa"
+                                ariaLabel="Bật / tắt trạng thái tài khoản"
+                              />
                             </td>
 
                             <td className="p-3.5 text-right">
-                              <div className="flex items-center justify-end gap-2">
+                              <AdminActionGroup>
                                 <button
                                   type="button"
                                   onClick={() => handleOpenUserEdit(u)}
-                                  className="px-2.5 py-1 text-xs border border-[var(--border)] hover:border-[var(--accent)] hover:text-[var(--accent)] rounded-sm transition-colors"
+                                  className="px-2.5 py-1 text-xs border border-[var(--border)] hover:border-[var(--accent)] hover:text-[var(--accent)] rounded-sm shadow-xs hover:shadow-sm transition-all cursor-pointer font-mono"
                                 >
                                   Phân Quyền
                                 </button>
-
-                                <button
-                                  type="button"
-                                  onClick={() => handleToggleUserStatus(u)}
-                                  disabled={String(u._id) === String(currentUser?.id)}
-                                  className={`p-1.5 rounded-sm border transition-colors ${
-                                    isLocked
-                                      ? 'border-emerald-300 text-emerald-700 hover:bg-emerald-50'
-                                      : 'border-red-200 text-red-600 hover:bg-red-50'
-                                  } disabled:opacity-40 disabled:cursor-not-allowed`}
-                                  title={isLocked ? 'Mở khóa tài khoản' : 'Khóa tài khoản'}
-                                >
-                                  {isLocked ? (
-                                    <Unlock className="w-3.5 h-3.5" />
-                                  ) : (
-                                    <Lock className="w-3.5 h-3.5" />
-                                  )}
-                                </button>
-                              </div>
+                                {!isLocked ? (
+                                  <LockActionButton
+                                    title={
+                                      currentUser?.role !== 'admin'
+                                        ? 'Chỉ Quản trị viên (Admin) mới có quyền khóa tài khoản nhân viên'
+                                        : isTargetAdmin
+                                        ? 'Không thể khóa tài khoản Quản trị viên cấp cao'
+                                        : isSelf
+                                        ? 'Bạn không thể tự khóa tài khoản của chính mình'
+                                        : 'Khóa tài khoản này'
+                                    }
+                                    ariaLabel="Khóa tài khoản này"
+                                    disabled={!canToggleUser}
+                                    onClick={() => handleToggleUserStatus(u)}
+                                  />
+                                ) : (
+                                  <UnlockActionButton
+                                    title={
+                                      currentUser?.role !== 'admin'
+                                        ? 'Chỉ Quản trị viên (Admin) mới có quyền mở khóa tài khoản nhân viên'
+                                        : 'Mở khóa tài khoản này'
+                                    }
+                                    ariaLabel="Mở khóa tài khoản này"
+                                    disabled={currentUser?.role !== 'admin'}
+                                    onClick={() => handleToggleUserStatus(u)}
+                                  />
+                                )}
+                              </AdminActionGroup>
                             </td>
                           </tr>
                         );
@@ -714,6 +768,14 @@ export const AdminRolesPage: React.FC = () => {
                     </tbody>
                   </table>
                 </div>
+
+                <TablePagination
+                  currentPage={usersPage}
+                  totalItems={usersTotal}
+                  pageSize={20}
+                  onPageChange={setUsersPage}
+                  itemName="người dùng"
+                />
               </div>
             )}
           </div>
@@ -753,6 +815,7 @@ export const AdminRolesPage: React.FC = () => {
                   <table className="w-full text-left text-xs font-sans">
                     <thead>
                       <tr className="bg-[var(--bg-alt)] border-b border-[var(--border)] text-[var(--text)] font-mono text-[11px] uppercase tracking-wider">
+                        <th className="p-3.5 w-12 text-center">STT</th>
                         <th className="p-3.5">Thời Gian</th>
                         <th className="p-3.5">Người Thực Hiện</th>
                         <th className="p-3.5">Hành Động</th>
@@ -761,8 +824,11 @@ export const AdminRolesPage: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[var(--border)]">
-                      {auditLogs.map((log) => (
+                      {auditLogs.map((log, idx) => (
                         <tr key={log._id} className="hover:bg-[var(--bg-alt)]/20 font-sans">
+                          <td className="p-3.5 text-center font-mono text-xs text-[var(--text-muted)]">
+                            {idx + 1}
+                          </td>
                           <td className="p-3.5 font-mono text-[11px] text-[var(--text-muted)] whitespace-nowrap">
                             {new Date(log.createdAt).toLocaleString('vi-VN')}
                           </td>
@@ -773,9 +839,9 @@ export const AdminRolesPage: React.FC = () => {
                             </span>
                           </td>
                           <td className="p-3.5">
-                            <span className="inline-block px-2 py-0.5 rounded-xs bg-[var(--bg-alt)] border border-[var(--border)] font-mono text-[10px] uppercase font-semibold text-[var(--text)]">
+                            <StatusBadge variant="neutral" uppercase={true}>
                               {log.action}
-                            </span>
+                            </StatusBadge>
                           </td>
                           <td className="p-3.5 text-xs text-[var(--text-muted)] max-w-xs truncate">
                             <code className="text-[10px] font-mono text-[var(--text)]">
@@ -878,13 +944,13 @@ export const AdminRolesPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setIsCreateRoleModalOpen(false)}
-                    className="px-4 py-2 border border-[var(--border)] text-[var(--text)] rounded-sm text-xs font-mono uppercase tracking-wider hover:bg-[var(--bg-alt)]"
+                    className="px-4 py-2 border border-[var(--border)] hover:border-[var(--accent)] bg-[var(--bg-card)] text-[var(--text)] hover:text-[var(--accent)] rounded-lg text-xs font-mono uppercase tracking-wider transition-all shadow-xs hover:shadow-sm cursor-pointer"
                   >
                     Hủy Bỏ
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 bg-[var(--accent)] text-[var(--accent-contrast)] font-semibold rounded-sm text-xs font-mono uppercase tracking-wider hover:bg-[var(--accent)]/90 shadow-sm"
+                    className="px-5 py-2 bg-[var(--accent)] text-[var(--accent-contrast)] border border-[var(--accent)] font-bold rounded-lg text-xs font-mono uppercase tracking-wider hover:brightness-105 shadow-md hover:shadow-lg transition-all cursor-pointer"
                   >
                     Tạo Vai Trò
                   </button>
@@ -1048,7 +1114,7 @@ export const AdminRolesPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setSelectedUserForEdit(null)}
-                  className="px-4 py-2 border border-[var(--border)] text-[var(--text)] rounded-sm text-xs font-mono uppercase tracking-wider hover:bg-[var(--bg-alt)]"
+                  className="px-4 py-2 border border-[var(--border)] hover:border-[var(--accent)] bg-[var(--bg-card)] text-[var(--text)] hover:text-[var(--accent)] rounded-lg text-xs font-mono uppercase tracking-wider transition-all shadow-xs hover:shadow-sm cursor-pointer"
                 >
                   Đóng
                 </button>
@@ -1056,7 +1122,7 @@ export const AdminRolesPage: React.FC = () => {
                   type="button"
                   onClick={handleSaveUserOverrides}
                   disabled={isSavingUserOverrides}
-                  className="px-5 py-2 bg-[var(--accent)] text-[var(--accent-contrast)] font-semibold rounded-sm text-xs font-mono uppercase tracking-wider hover:bg-[var(--accent)]/90 shadow-sm flex items-center gap-1.5 disabled:opacity-50"
+                  className="px-5 py-2 bg-[var(--accent)] text-[var(--accent-contrast)] border border-[var(--accent)] font-bold rounded-lg text-xs font-mono uppercase tracking-wider hover:brightness-105 shadow-md hover:shadow-lg flex items-center gap-1.5 disabled:opacity-50 transition-all cursor-pointer"
                 >
                   {isSavingUserOverrides ? (
                     <RefreshCw className="w-3.5 h-3.5 animate-spin" />

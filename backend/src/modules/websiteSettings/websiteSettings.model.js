@@ -35,6 +35,7 @@ const websiteSettingsSchema = new mongoose.Schema(
       allowGuestCheckout: { type: Boolean, default: false },
       enableVoucher: { type: Boolean, default: true },
       enableReviews: { type: Boolean, default: true },
+      disallowReviewEditDelete: { type: Boolean, default: false },
     },
     socialLinks: {
       facebook: { type: String, default: "" },

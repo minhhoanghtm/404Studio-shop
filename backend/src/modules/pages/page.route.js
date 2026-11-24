@@ -13,7 +13,7 @@ import {
   getAdminPageDetail,
   toggleFeaturePage,
 } from "./page.controller.js";
-import { validatePage } from "./page.validator.js";
+import { validatePage, validateUpdatePage } from "./page.validator.js";
 
 const pageRouter = express.Router();
 const adminPageRouter = express.Router();
@@ -34,7 +34,7 @@ adminPageRouter.get("/", getPages);
 adminPageRouter.get("/:id/detail", getAdminPageDetail);
 adminPageRouter.get("/:id", getPageById);
 adminPageRouter.post("/", validatePage, createPage);
-adminPageRouter.put("/:id", validatePage, updatePage);
+adminPageRouter.put("/:id", validateUpdatePage, updatePage);
 adminPageRouter.delete("/:id", deletePage);
 adminPageRouter.put("/:id/feature", toggleFeaturePage);
 

@@ -13,6 +13,7 @@ import {
   CheckCircle2,
   UserCheck,
   Headphones,
+  RotateCcw,
 } from 'lucide-react';
 import { useToastStore } from '@/shared/stores/useToastStore';
 import { useAuthStore } from '@/shared/stores/useAuthStore';
@@ -22,7 +23,7 @@ import { socketService } from '@/shared/services/socketService';
 interface MessageItem {
   id: string;
   clientMessageId?: string;
-  sender: 'customer' | 'admin';
+  sender: 'customer' | 'admin' | 'system';
   text: string;
   timestamp: string;
   isHandoffContext?: boolean;
@@ -30,13 +31,18 @@ interface MessageItem {
 
 interface Conversation {
   id: string;
+  customerId?: string | null;
+  guestId?: string | null;
   customerName: string;
   customerEmail: string;
   category: 'tailoring' | 'order' | 'general';
   lastMessage: string;
+  lastMessageSender?: 'customer' | 'admin' | 'system' | 'ai';
+  customerMessageCount?: number;
   updatedAt: string;
   unreadCount?: number;
   isOnline?: boolean;
+  lastActiveAt?: string | Date | null;
   status?: string;
   assignedAdminId?: string | null;
   assignedAdminName?: string | null;
@@ -44,16 +50,71 @@ interface Conversation {
   messages: MessageItem[];
 }
 
+/**
+ * Quy đổi thời gian hoạt động cuối cùng của khách hàng sang các mốc thời gian phù hợp:
+ * - Vài giây trước
+ * - xx phút trước
+ * - xx giờ trước
+ * - xx ngày trước
+ * - xx tuần trước
+ * - xx tháng trước
+ * - xx năm trước
+ */
+export const formatLastActiveTime = (dateInput?: string | Date | number | null): string => {
+  if (!dateInput) return 'Đã hoạt động gần đây';
+  const timestamp = typeof dateInput === 'number'
+    ? dateInput
+    : new Date(dateInput).getTime();
+
+  if (isNaN(timestamp) || timestamp <= 0) {
+    return 'Đã hoạt động gần đây';
+  }
+
+  const now = Date.now();
+  const diffMs = Math.max(0, now - timestamp);
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHours = Math.floor(diffMin / 60);
+  const diffDays = Math.floor(diffHours / 24);
+  const diffWeeks = Math.floor(diffDays / 7);
+  const diffMonths = Math.floor(diffDays / 30);
+  const diffYears = Math.floor(diffDays / 365);
+
+  if (diffSec < 45) {
+    return 'Đã hoạt động vài giây trước';
+  }
+  if (diffMin < 60) {
+    return `Đã hoạt động ${diffMin} phút trước`;
+  }
+  if (diffHours < 24) {
+    return `Đã hoạt động ${diffHours} giờ trước`;
+  }
+  if (diffDays < 7) {
+    return `Đã hoạt động ${diffDays} ngày trước`;
+  }
+  if (diffWeeks < 4) {
+    return `Đã hoạt động ${diffWeeks} tuần trước`;
+  }
+  if (diffMonths < 12) {
+    return `Đã hoạt động ${diffMonths} tháng trước`;
+  }
+  return `Đã hoạt động ${diffYears} năm trước`;
+};
+
 const INITIAL_CONVERSATIONS: Conversation[] = [
   {
     id: 'conv-1',
+    customerId: 'cust-1',
     customerName: 'Charlotte Vane',
     customerEmail: 'charlotte.vane@patron.atelierverite.com',
     category: 'tailoring',
-    lastMessage: 'Tôi muốn tư vấn kích thước áo dạ Biella số đo vòng ngực 86cm.',
+    lastMessage: 'Tôi có thể yêu cầu may đo chỉnh độ dài tay áo ngắn lại 1.5cm được không?',
+    lastMessageSender: 'customer',
+    customerMessageCount: 3,
     updatedAt: '14:25',
     unreadCount: 1,
     isOnline: true,
+    lastActiveAt: new Date().toISOString(),
     messages: [
       {
         id: 'm-1',
@@ -89,13 +150,17 @@ const INITIAL_CONVERSATIONS: Conversation[] = [
   },
   {
     id: 'conv-2',
+    customerId: 'cust-2',
     customerName: 'Jean-Luc Moreau',
     customerEmail: 'moreau.jl@luxury.paris',
     category: 'order',
-    lastMessage: 'Xin cho hỏi thời gian hoàn thiện may đo đơn ORD-8923?',
+    lastMessage: 'Kính chào Ông Jean-Luc, đơn hàng ORD-8923 hiện đã hoàn tất công đoạn cắt mẫu rập và nghệ nhân đang thực hiện khâu đính cúc sừng thủ công.',
+    lastMessageSender: 'admin',
+    customerMessageCount: 1,
     updatedAt: '12:40',
     unreadCount: 0,
     isOnline: true,
+    lastActiveAt: new Date(Date.now() - 3 * 60 * 1000).toISOString(),
     messages: [
       {
         id: 'm-201',
@@ -113,13 +178,17 @@ const INITIAL_CONVERSATIONS: Conversation[] = [
   },
   {
     id: 'conv-3',
+    customerId: 'cust-3',
     customerName: 'Victoria Sterling',
     customerEmail: 'victoria.sterling@haute.uk',
     category: 'general',
-    lastMessage: 'Tôi đã nhận được kiện hàng hộp gỗ tuyết tùng, vô cùng ưng ý!',
+    lastMessage: 'Atelier Vérité xin chân thành cảm ơn những lời khen ngợi quý báu của Bà Victoria.',
+    lastMessageSender: 'admin',
+    customerMessageCount: 2,
     updatedAt: 'Hôm qua',
     unreadCount: 0,
     isOnline: false,
+    lastActiveAt: new Date(Date.now() - 42 * 60 * 1000).toISOString(), // 42 minutes ago
     messages: [
       {
         id: 'm-301',
@@ -143,13 +212,17 @@ const INITIAL_CONVERSATIONS: Conversation[] = [
   },
   {
     id: 'conv-4',
+    customerId: 'cust-4',
     customerName: 'Alexander Wright',
     customerEmail: 'a.wright@manhattan.com',
     category: 'tailoring',
-    lastMessage: 'Cho tôi hỏi ve áo Tuxedo sử dụng lụa Satin loại nào?',
+    lastMessage: 'Xin chào, bộ Tuxedo Ve Nhọn Peak Lapel có thể đổi chất liệu ve áo sang lụa Satin hữu cơ Como không?',
+    lastMessageSender: 'customer',
+    customerMessageCount: 1,
     updatedAt: '18/11',
-    unreadCount: 0,
+    unreadCount: 1,
     isOnline: false,
+    lastActiveAt: new Date(Date.now() - 4 * 3600 * 1000).toISOString(), // 4 hours ago
     messages: [
       {
         id: 'm-401',
@@ -161,13 +234,17 @@ const INITIAL_CONVERSATIONS: Conversation[] = [
   },
   {
     id: 'conv-5',
+    customerId: 'cust-5',
     customerName: 'Eleanor Vance',
     customerEmail: 'eleanor.v@geneva.ch',
     category: 'general',
-    lastMessage: 'Tôi muốn đặt lịch hẹn tư vấn riêng tại Private Lounge.',
+    lastMessage: 'Tôi có kế hoạch đến Việt Nam vào tuần tới và muốn đặt lịch hẹn thử trang phục tại Private Salon của Atelier.',
+    lastMessageSender: 'customer',
+    customerMessageCount: 1,
     updatedAt: '17/11',
-    unreadCount: 0,
+    unreadCount: 1,
     isOnline: false,
+    lastActiveAt: new Date(Date.now() - 2 * 24 * 3600 * 1000).toISOString(), // 2 days ago
     messages: [
       {
         id: 'm-501',
@@ -193,7 +270,6 @@ export const AdminChatPage: React.FC = () => {
   const [conversations, setConversations] = useState<Conversation[]>(INITIAL_CONVERSATIONS);
   const [selectedConvId, setSelectedConvId] = useState<string>(INITIAL_CONVERSATIONS[0].id);
   const [searchQuery, setSearchQuery] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState<'all' | 'tailoring' | 'order' | 'general'>('all');
   const [replyText, setReplyText] = useState('');
   const [isSending, setIsSending] = useState(false);
   const isSendingRef = useRef(false);
@@ -202,6 +278,15 @@ export const AdminChatPage: React.FC = () => {
   const [showScrollBottomBtn, setShowScrollBottomBtn] = useState(false);
   const [isCustomerTyping, setIsCustomerTyping] = useState(false);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+
+  // Periodic ticker to recalculate relative elapsed time ("xx phút trước")
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTick((t) => t + 1);
+    }, 30000);
+    return () => clearInterval(timer);
+  }, []);
 
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -214,24 +299,58 @@ export const AdminChatPage: React.FC = () => {
       const res: any = await communicationApi.getAdminConversations({ page: 1, limit: 50 });
       const list = res?.data?.conversations || res?.conversations || res?.data?.items || res?.data || [];
       if (Array.isArray(list) && list.length > 0) {
-        const mapped: Conversation[] = list.map((c: any) => ({
-          id: String(c._id || c.id),
-          customerName: c.guestInfo?.name || c.customerId?.fullName || c.customerName || 'Khách Hàng',
-          customerEmail: c.guestInfo?.email || c.customerId?.email || c.customerEmail || 'Chưa cung cấp email',
-          category: (c.category || (c.type === 'support' ? 'tailoring' : 'general')) as any,
-          lastMessage: c.lastMessage || 'Bắt đầu cuộc trò chuyện',
-          updatedAt: new Date(c.lastMessageAt || c.updatedAt || Date.now()).toLocaleTimeString('vi-VN', {
-            hour: '2-digit',
-            minute: '2-digit',
-          }),
-          unreadCount: c.unreadCount || (c.status === 'waiting_admin' ? 1 : 0),
-          isOnline: true,
-          status: c.status || 'open',
-          assignedAdminId: c.assignedAdminId?._id || c.assignedAdminId || null,
-          assignedAdminName: c.assignedAdminId?.fullName || null,
-          metadata: c.metadata,
-          messages: [],
-        }));
+        const mapped: Conversation[] = list.map((c: any) => {
+          const rawSender =
+            c.lastMessageSender || (c.status === 'waiting_admin' ? 'customer' : undefined);
+          const normalizedSender: 'customer' | 'admin' | 'system' | 'ai' | undefined =
+            rawSender === 'user' || rawSender === 'guest' || rawSender === 'customer'
+              ? 'customer'
+              : rawSender === 'admin'
+              ? 'admin'
+              : rawSender === 'ai'
+              ? 'ai'
+              : rawSender === 'system'
+              ? 'system'
+              : undefined;
+
+          const lastMsg =
+            c.lastMessage && !c.lastMessage.startsWith('⚠️ Thao tác không hợp lệ')
+              ? c.lastMessage
+              : c.messages && c.messages.length > 0
+              ? c.messages[c.messages.length - 1].content || c.messages[c.messages.length - 1].text
+              : 'Chưa có tin nhắn';
+
+          const unread =
+            typeof c.unreadCount === 'number'
+              ? c.unreadCount
+              : c.status === 'waiting_admin'
+              ? 1
+              : 0;
+
+          return {
+            id: String(c._id || c.id),
+            customerId: c.customerId?._id ? String(c.customerId._id) : (c.customerId ? String(c.customerId) : null),
+            guestId: c.guestId || c.metadata?.visitorId || null,
+            customerName: c.guestInfo?.name || c.customerId?.fullName || c.customerName || 'Khách Hàng',
+            customerEmail: c.guestInfo?.email || c.customerId?.email || c.customerEmail || 'Chưa cung cấp email',
+            category: (c.category || (c.type === 'support' ? 'tailoring' : 'general')) as any,
+            lastMessage: lastMsg,
+            lastMessageSender: normalizedSender,
+            customerMessageCount: typeof c.customerMessageCount === 'number' ? c.customerMessageCount : 0,
+            updatedAt: new Date(c.lastMessageAt || c.updatedAt || Date.now()).toLocaleTimeString('vi-VN', {
+              hour: '2-digit',
+              minute: '2-digit',
+            }),
+            unreadCount: unread,
+            isOnline: Boolean(c.isOnline),
+            lastActiveAt: c.lastActiveAt || c.lastMessageAt || c.updatedAt || c.createdAt || null,
+            status: c.status || 'open',
+            assignedAdminId: c.assignedAdminId?._id ? String(c.assignedAdminId._id) : (c.assignedAdminId ? String(c.assignedAdminId) : null),
+            assignedAdminName: c.assignedAdminId?.fullName || c.assignedAdminId?.name || c.assignedAdminName || null,
+            metadata: c.metadata,
+            messages: [],
+          };
+        });
 
         setConversations((prev) =>
           mapped.map((newConv) => {
@@ -264,14 +383,43 @@ export const AdminChatPage: React.FC = () => {
         const mappedMsgs: MessageItem[] = [];
 
         for (const m of rawList) {
+          // Chỉ hiển thị cho khách hàng, không gửi / không hiển thị cho nhân viên các lỗi thao tác không hợp lệ
+          const isInvalidCustomerAction =
+            Boolean(m.metadata?.isEphemeral) ||
+            m.metadata?.actionResult?.code === 'CROSS_USER_FORBIDDEN' ||
+            m.metadata?.actionResult?.code === 'REPLAY_BLOCKED' ||
+            m.metadata?.actionResult?.code === 'EXPIRED' ||
+            m.metadata?.actionResult?.code === 'INVALID_ACTION_TOKEN' ||
+            m.metadata?.actionResult?.code === 'AUTH_REQUIRED' ||
+            m.metadata?.actionResult?.code === 'FORBIDDEN_ROLE' ||
+            m.content?.startsWith('⚠️ Thao tác không hợp lệ') ||
+            m.content?.startsWith('⚠️ Thao tác thêm vào giỏ hàng này đã được thực thi') ||
+            m.content?.startsWith('⚠️ Chữ ký xác thực hành động không hợp lệ') ||
+            m.content?.startsWith('⚠️ Yêu cầu xác nhận thêm giỏ hàng đã hết hạn') ||
+            m.content?.startsWith('⚠️ Không thể thêm vào giỏ hàng');
+
+          if (isInvalidCustomerAction) continue;
+
           const msgId = String(m._id || m.id || m.clientMessageId);
           if (seenIds.has(msgId)) continue;
           seenIds.add(msgId);
 
+          const isSys =
+            m.senderType === 'system' ||
+            m.messageType === 'system' ||
+            m.metadata?.action === 'staff_joined' ||
+            m.metadata?.action === 'conversation_closed' ||
+            m.metadata?.action === 'conversation_reopened';
+          const sender: MessageItem['sender'] = isSys
+            ? 'system'
+            : m.senderType === 'admin'
+            ? 'admin'
+            : 'customer';
+
           mappedMsgs.push({
             id: msgId,
             clientMessageId: m.clientMessageId,
-            sender: (m.senderType === 'admin' ? 'admin' : 'customer') as any,
+            sender,
             text: m.content || '',
             timestamp: new Date(m.createdAt || Date.now()).toLocaleTimeString('vi-VN', {
               hour: '2-digit',
@@ -281,8 +429,20 @@ export const AdminChatPage: React.FC = () => {
           });
         }
 
+        const lastMsg = mappedMsgs.length > 0 ? mappedMsgs[mappedMsgs.length - 1] : null;
+
         setConversations((prev) =>
-          prev.map((c) => (c.id === convId ? { ...c, messages: mappedMsgs } : c))
+          prev.map((c) => {
+            if (c.id === convId) {
+              return {
+                ...c,
+                messages: mappedMsgs,
+                lastMessage: lastMsg ? lastMsg.text : c.lastMessage,
+                lastMessageSender: lastMsg ? lastMsg.sender : c.lastMessageSender,
+              };
+            }
+            return c;
+          })
         );
       }
     } catch {
@@ -300,14 +460,39 @@ export const AdminChatPage: React.FC = () => {
     // Listen to real-time incoming messages
     const unsubMsg = socketService.onMessageNew((payload) => {
       const { message } = payload;
+      // Không gửi / hiển thị cho nhân viên các lỗi thao tác không hợp lệ của khách hàng
+      const isInvalidCustomerAction =
+        Boolean(message.metadata?.isEphemeral) ||
+        message.metadata?.actionResult?.code === 'CROSS_USER_FORBIDDEN' ||
+        message.metadata?.actionResult?.code === 'REPLAY_BLOCKED' ||
+        message.metadata?.actionResult?.code === 'EXPIRED' ||
+        message.metadata?.actionResult?.code === 'INVALID_ACTION_TOKEN' ||
+        message.metadata?.actionResult?.code === 'AUTH_REQUIRED' ||
+        message.metadata?.actionResult?.code === 'FORBIDDEN_ROLE' ||
+        message.content?.startsWith('⚠️ Thao tác không hợp lệ') ||
+        message.content?.startsWith('⚠️ Thao tác thêm vào giỏ hàng này đã được thực thi') ||
+        message.content?.startsWith('⚠️ Chữ ký xác thực hành động không hợp lệ') ||
+        message.content?.startsWith('⚠️ Yêu cầu xác nhận thêm giỏ hàng đã hết hạn') ||
+        message.content?.startsWith('⚠️ Không thể thêm vào giỏ hàng');
+
+      if (isInvalidCustomerAction) return;
+
       const convId = message.conversationId;
       const incomingId = String(message._id || message.id || `m_${Date.now()}`);
       const clientMessageId = message.clientMessageId;
+      const isCloseAction = message.metadata?.action === 'conversation_closed';
+      const isReopenAction = message.metadata?.action === 'conversation_reopened';
+      const isSys =
+        message.senderType === 'system' ||
+        (message as any).messageType === 'system' ||
+        message.metadata?.action === 'staff_joined' ||
+        isCloseAction ||
+        isReopenAction;
 
       const newMsg: MessageItem = {
         id: incomingId,
         clientMessageId,
-        sender: message.senderType === 'admin' ? 'admin' : 'customer',
+        sender: isSys ? 'system' : message.senderType === 'admin' ? 'admin' : 'customer',
         text: message.content,
         timestamp: new Date(message.createdAt || Date.now()).toLocaleTimeString('vi-VN', {
           hour: '2-digit',
@@ -343,11 +528,23 @@ export const AdminChatPage: React.FC = () => {
               nextMessages = [...c.messages, newMsg];
             }
 
+            const isCustomer = newMsg.sender === 'customer';
             return {
               ...c,
+              status: isCloseAction ? 'closed' : isReopenAction ? 'open' : c.status,
               lastMessage: newMsg.text,
+              lastMessageSender: newMsg.sender,
               updatedAt: newMsg.timestamp,
-              unreadCount: c.id === selectedConvId ? 0 : (c.unreadCount || 0) + 1,
+              unreadCount:
+                isCustomer
+                  ? c.id === selectedConvId
+                    ? 0
+                    : (c.unreadCount || 0) + 1
+                  : (c.unreadCount || 0),
+              customerMessageCount:
+                isCustomer
+                  ? (c.customerMessageCount || 0) + 1
+                  : (c.customerMessageCount || 0),
               messages: nextMessages,
             };
           }
@@ -378,15 +575,61 @@ export const AdminChatPage: React.FC = () => {
       loadConversations();
     });
 
+    // Listen to real-time presence events (customer active / idle / leave)
+    const unsubPresenceUpdated = socketService.onPresenceUpdated((presenceData: any) => {
+      if (!presenceData) return;
+      const targetUserId = presenceData.userId ? String(presenceData.userId) : null;
+      const targetVisitorId = presenceData.visitorId || presenceData.sessionId || presenceData.anonymousId || null;
+      const isOnline = ['active', 'idle', 'away', 'background', 'passive_viewing'].includes(
+        (presenceData.status || '').toLowerCase()
+      );
+      const lastActiveAt = presenceData.lastSeen || presenceData.lastHeartbeatAt || new Date().toISOString();
+
+      setConversations((prev) =>
+        prev.map((c) => {
+          const matchUser = Boolean(targetUserId && c.customerId && String(c.customerId) === targetUserId);
+          const matchGuest = Boolean(targetVisitorId && c.guestId && String(c.guestId) === String(targetVisitorId));
+          if (matchUser || matchGuest) {
+            return {
+              ...c,
+              isOnline,
+              lastActiveAt,
+            };
+          }
+          return c;
+        })
+      );
+    });
+
+    const unsubPresenceLeave = socketService.onPresenceLeave((data: any) => {
+      if (!data) return;
+      const targetSessionId = data.sessionId ? String(data.sessionId) : null;
+      const targetVisitorId = data.visitorId ? String(data.visitorId) : null;
+      setConversations((prev) =>
+        prev.map((c) => {
+          const matchGuest =
+            (targetSessionId && c.guestId && String(c.guestId) === targetSessionId) ||
+            (targetVisitorId && c.guestId && String(c.guestId) === targetVisitorId);
+          if (matchGuest) {
+            return {
+              ...c,
+              isOnline: false,
+              lastActiveAt: new Date().toISOString(),
+            };
+          }
+          return c;
+        })
+      );
+    });
+
     return () => {
       unsubMsg();
       unsubTypingStart();
       unsubTypingStop();
-      unconvUpdated();
-    };
-    function unconvUpdated() {
       unsubConvUpdated();
-    }
+      unsubPresenceUpdated();
+      unsubPresenceLeave();
+    };
   }, [loadConversations, selectedConvId]);
 
   // When selected conversation changes, fetch its messages and join its room
@@ -406,8 +649,7 @@ export const AdminChatPage: React.FC = () => {
       conv.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       conv.lastMessage.toLowerCase().includes(searchQuery.toLowerCase()) ||
       conv.customerEmail.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = categoryFilter === 'all' || conv.category === categoryFilter;
-    return matchesSearch && matchesCategory;
+    return matchesSearch;
   });
 
   // Smooth scroll helper
@@ -485,7 +727,10 @@ export const AdminChatPage: React.FC = () => {
         if (c.id === selectedConvId) {
           return {
             ...c,
+            status: 'open',
             lastMessage: newMsg.text,
+            lastMessageSender: 'admin',
+            unreadCount: 0,
             updatedAt: newMsg.timestamp,
             messages: [...c.messages, newMsg],
           };
@@ -556,16 +801,49 @@ export const AdminChatPage: React.FC = () => {
       addToast('Không tìm thấy thông tin quản trị viên.', 'error');
       return;
     }
+    const rawStaffName = (user?.name || (user as any)?.fullName || '').trim();
+    const staffName = rawStaffName
+      ? (rawStaffName.toLowerCase().startsWith('nhân viên') ? rawStaffName : `Nhân viên ${rawStaffName}`)
+      : 'Nhân viên tư vấn';
+    const notificationText = staffName.toLowerCase().startsWith('nhân viên')
+      ? `${staffName} đã tham gia cuộc trò chuyện`
+      : `Nhân viên ${staffName} đã tham gia cuộc trò chuyện`;
+
     try {
       if (!selectedConvId.startsWith('conv-')) {
         await communicationApi.assignConversation(selectedConvId, adminId);
       }
       setConversations((prev) =>
-        prev.map((c) =>
-          c.id === selectedConvId
-            ? { ...c, assignedAdminId: adminId, assignedAdminName: user?.name || (user as any)?.fullName || 'Tôi' }
-            : c
-        )
+        prev.map((c) => {
+          if (c.id === selectedConvId) {
+            const alreadyHasJoinMsg = c.messages.some(
+              (m) => m.sender === 'system' && m.text.includes(staffName)
+            );
+            const newMessages = alreadyHasJoinMsg
+              ? c.messages
+              : [
+                  ...c.messages,
+                  {
+                    id: `sys_${Date.now()}`,
+                    sender: 'system' as const,
+                    text: notificationText,
+                    timestamp: new Date().toLocaleTimeString('vi-VN', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    }),
+                  },
+                ];
+
+            return {
+              ...c,
+              assignedAdminId: adminId,
+              assignedAdminName: staffName,
+              messages: newMessages,
+              lastMessage: notificationText,
+            };
+          }
+          return c;
+        })
       );
       addToast('Đã gán cuộc trò chuyện cho bạn phụ trách!', 'success');
     } catch (err: any) {
@@ -573,20 +851,94 @@ export const AdminChatPage: React.FC = () => {
     }
   };
 
-  // Close conversation
+  // Close / End conversation session
   const handleCloseConversation = async () => {
     try {
       if (!selectedConvId.startsWith('conv-')) {
         await communicationApi.closeConversation(selectedConvId);
       }
+      const rawStaffName = (user?.name || (user as any)?.fullName || '').trim();
+      const staffName = rawStaffName
+        ? (rawStaffName.toLowerCase().startsWith('nhân viên') ? rawStaffName : `Nhân viên ${rawStaffName}`)
+        : 'Nhân viên tư vấn';
+      const notificationText = `${staffName} đã kết thúc phiên tư vấn`;
+
       setConversations((prev) =>
-        prev.map((c) =>
-          c.id === selectedConvId ? { ...c, status: 'closed' } : c
-        )
+        prev.map((c) => {
+          if (c.id === selectedConvId) {
+            const alreadyHasCloseMsg = c.messages.some(
+              (m) => m.sender === 'system' && m.text.includes('kết thúc phiên tư vấn')
+            );
+            const newMessages = alreadyHasCloseMsg
+              ? c.messages
+              : [
+                  ...c.messages,
+                  {
+                    id: `sys_close_${Date.now()}`,
+                    sender: 'system' as const,
+                    text: notificationText,
+                    timestamp: new Date().toLocaleTimeString('vi-VN', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    }),
+                  },
+                ];
+
+            return {
+              ...c,
+              status: 'closed' as const,
+              messages: newMessages,
+              lastMessage: notificationText,
+            };
+          }
+          return c;
+        })
       );
-      addToast('Đã đóng cuộc trò chuyện CSKH thành công!', 'info');
+      addToast('Đã kết thúc phiên tư vấn CSKH thành công!', 'success');
     } catch (err: any) {
-      addToast(err?.message || 'Không thể đóng cuộc trò chuyện', 'error');
+      addToast(err?.message || 'Không thể kết thúc phiên tư vấn', 'error');
+    }
+  };
+
+  // Reopen conversation session
+  const handleReopenConversation = async () => {
+    try {
+      if (!selectedConvId.startsWith('conv-')) {
+        await communicationApi.reopenConversation(selectedConvId);
+      }
+      const rawStaffName = (user?.name || (user as any)?.fullName || '').trim();
+      const staffName = rawStaffName
+        ? (rawStaffName.toLowerCase().startsWith('nhân viên') ? rawStaffName : `Nhân viên ${rawStaffName}`)
+        : 'Nhân viên tư vấn';
+      const notificationText = `${staffName} đã mở lại phiên tư vấn`;
+
+      setConversations((prev) =>
+        prev.map((c) => {
+          if (c.id === selectedConvId) {
+            return {
+              ...c,
+              status: 'open' as const,
+              messages: [
+                ...c.messages,
+                {
+                  id: `sys_reopen_${Date.now()}`,
+                  sender: 'system' as const,
+                  text: notificationText,
+                  timestamp: new Date().toLocaleTimeString('vi-VN', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  }),
+                },
+              ],
+              lastMessage: notificationText,
+            };
+          }
+          return c;
+        })
+      );
+      addToast('Đã mở lại phiên tư vấn thành công!', 'info');
+    } catch (err: any) {
+      addToast(err?.message || 'Không thể mở lại phiên tư vấn', 'error');
     }
   };
 
@@ -604,7 +956,7 @@ export const AdminChatPage: React.FC = () => {
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               <span className="font-mono text-[11px] uppercase tracking-wider text-emerald-600 dark:text-emerald-400 font-semibold">
-                WebSocket Trực Tuyến
+                Tư vấn trực tiếp
               </span>
             </div>
             <span className="text-[var(--border)] hidden sm:inline">|</span>
@@ -614,52 +966,17 @@ export const AdminChatPage: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="flex items-center bg-[var(--bg-card)] border border-[var(--border)] rounded-sm p-0.5 text-[11px] font-mono">
-              <button
-                type="button"
-                onClick={() => setCategoryFilter('all')}
-                className={`px-2.5 py-1 rounded-sm transition-colors ${
-                  categoryFilter === 'all'
-                    ? 'bg-[var(--accent)] text-[var(--accent-contrast)] font-semibold'
-                    : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                }`}
-              >
-                Tất cả
-              </button>
-              <button
-                type="button"
-                onClick={() => setCategoryFilter('tailoring')}
-                className={`px-2.5 py-1 rounded-sm transition-colors ${
-                  categoryFilter === 'tailoring'
-                    ? 'bg-[var(--accent)] text-[var(--accent-contrast)] font-semibold'
-                    : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                }`}
-              >
-                May đo
-              </button>
-              <button
-                type="button"
-                onClick={() => setCategoryFilter('order')}
-                className={`px-2.5 py-1 rounded-sm transition-colors ${
-                  categoryFilter === 'order'
-                    ? 'bg-[var(--accent)] text-[var(--accent-contrast)] font-semibold'
-                    : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                }`}
-              >
-                Đơn hàng
-              </button>
-            </div>
-
             <button
               type="button"
               onClick={() => {
                 loadConversations();
                 addToast('Đã làm mới danh sách hội thoại!', 'info');
               }}
-              className="p-1.5 text-[var(--text-muted)] hover:text-[var(--accent)] border border-[var(--border)] hover:border-[var(--accent)] rounded-sm transition-colors"
+              className="px-2.5 py-1 text-[var(--text-muted)] hover:text-[var(--accent)] border border-[var(--border)] hover:border-[var(--accent)] shadow-xs hover:shadow-sm active:scale-95 active:shadow-inner rounded-lg transition-all flex items-center gap-1.5 cursor-pointer"
               title="Làm mới danh sách phiên trò chuyện"
             >
               <RefreshCw className="w-3.5 h-3.5" />
+              <span className="text-[11px] font-mono tracking-wider">Làm mới</span>
             </button>
           </div>
         </div>
@@ -727,9 +1044,12 @@ export const AdminChatPage: React.FC = () => {
                         <div className="w-9 h-9 rounded-full bg-[var(--accent)]/20 border border-[var(--accent)]/40 flex items-center justify-center text-[var(--accent)] text-xs font-bold font-serif">
                           {conv.customerName.charAt(0)}
                         </div>
-                        {conv.isOnline && (
-                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-[var(--bg-card)] absolute -bottom-0.5 -right-0.5" />
-                        )}
+                        <span
+                          className={`w-2.5 h-2.5 rounded-full border-2 border-[var(--bg-card)] absolute -bottom-0.5 -right-0.5 ${
+                            conv.isOnline ? 'bg-emerald-500' : 'bg-zinc-400'
+                          }`}
+                          title={conv.isOnline ? 'Đang hoạt động' : formatLastActiveTime(conv.lastActiveAt)}
+                        />
                       </div>
 
                       {/* Conversation text info */}
@@ -743,37 +1063,69 @@ export const AdminChatPage: React.FC = () => {
                           </span>
                         </div>
 
-                        <p className="text-[11px] text-[var(--text-muted)] truncate mt-0.5 leading-relaxed">
-                          {conv.lastMessage}
-                        </p>
-
-                        <div className="flex items-center gap-1.5 mt-1.5">
+                        {/* Presence status indicator */}
+                        <div className="flex items-center gap-1.5 mt-0.5">
                           <span
-                            className={`text-[9px] uppercase tracking-wider font-mono px-1.5 py-0.2 rounded-sm border ${
-                              conv.category === 'tailoring'
-                                ? 'bg-amber-500/15 border-amber-500/30 text-amber-700 dark:text-amber-300'
-                                : conv.category === 'order'
-                                ? 'bg-blue-500/15 border-blue-500/30 text-blue-700 dark:text-blue-300'
-                                : 'bg-[var(--bg-card-muted)] border-[var(--border)] text-[var(--text-muted)]'
+                            className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                              conv.isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-zinc-400'
+                            }`}
+                          />
+                          <span
+                            className={`text-[10px] font-mono truncate ${
+                              conv.isOnline
+                                ? 'text-emerald-600 dark:text-emerald-400 font-medium'
+                                : 'text-[var(--text-muted)]'
                             }`}
                           >
-                            {conv.category === 'tailoring'
-                              ? 'May Đo'
-                              : conv.category === 'order'
-                              ? 'Đơn Hàng'
-                              : 'Chung'}
+                            {conv.isOnline ? 'Đang hoạt động' : formatLastActiveTime(conv.lastActiveAt)}
                           </span>
-
-                          {conv.status === 'closed' && (
-                            <span className="text-[9px] font-mono text-[var(--text-muted)] border border-[var(--border)] px-1 rounded">
-                              Đã đóng
-                            </span>
-                          )}
-
-                          {conv.unreadCount && conv.unreadCount > 0 ? (
-                            <span className="w-2 h-2 rounded-full bg-[var(--accent)] ml-auto shrink-0" />
-                          ) : null}
                         </div>
+
+                        {(() => {
+                          const isCustomer =
+                            conv.lastMessageSender === 'customer' ||
+                            (conv.unreadCount ?? 0) > 0 ||
+                            conv.status === 'waiting_admin';
+                          const customerCount =
+                            (conv.unreadCount ?? 0) > 0
+                              ? conv.unreadCount!
+                              : (conv.customerMessageCount ?? 0) > 0
+                              ? conv.customerMessageCount!
+                              : 1;
+                          const showCustomerBadge = isCustomer && customerCount > 0;
+
+                          return (
+                            <div className="flex items-center justify-between gap-2 mt-1 min-w-0">
+                              <p
+                                className={`text-[11px] truncate leading-relaxed flex-1 min-w-0 ${
+                                  isCustomer
+                                    ? 'font-bold text-[var(--text-primary)] dark:text-zinc-100'
+                                    : 'font-normal text-[var(--text-muted)]'
+                                }`}
+                              >
+                                {conv.lastMessageSender === 'admin' ? (
+                                  <span className="text-[10px] font-mono text-[var(--accent)] mr-1">
+                                    Bạn:
+                                  </span>
+                                ) : null}
+                                {conv.lastMessage || 'Chưa có tin nhắn'}
+                              </p>
+
+                              {showCustomerBadge ? (
+                                <span
+                                  className="px-1.5 py-0.5 min-w-[18px] h-[18px] text-[10px] font-bold font-mono rounded-full bg-[var(--accent)] text-[var(--accent-contrast)] shadow-sm shrink-0 flex items-center justify-center"
+                                  title={`${customerCount} tin nhắn từ khách hàng`}
+                                >
+                                  {customerCount}
+                                </span>
+                              ) : conv.status === 'closed' ? (
+                                <span className="text-[9px] font-mono text-[var(--text-muted)] border border-[var(--border)] px-1 rounded shrink-0">
+                                  Đã kết thúc
+                                </span>
+                              ) : null}
+                            </div>
+                          );
+                        })()}
                       </div>
                     </button>
                   );
@@ -797,15 +1149,23 @@ export const AdminChatPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setMobileView('list')}
-                  className="md:hidden p-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] border border-[var(--border)] rounded-sm shrink-0"
+                  className="md:hidden p-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] border border-[var(--border)] rounded-lg shadow-xs hover:shadow-sm shrink-0"
                   title="Quay lại danh sách hội thoại"
                   aria-label="Quay lại danh sách"
                 >
                   <ArrowLeft className="w-4 h-4" />
                 </button>
 
-                <div className="w-9 h-9 rounded-full bg-[var(--accent)]/20 border border-[var(--accent)]/40 flex items-center justify-center text-[var(--accent)] shrink-0 text-sm font-serif font-bold">
-                  {selectedConv.customerName.charAt(0)}
+                <div className="relative shrink-0">
+                  <div className="w-9 h-9 rounded-full bg-[var(--accent)]/20 border border-[var(--accent)]/40 flex items-center justify-center text-[var(--accent)] shrink-0 text-sm font-serif font-bold">
+                    {selectedConv.customerName.charAt(0)}
+                  </div>
+                  <span
+                    className={`w-2.5 h-2.5 rounded-full border-2 border-[var(--bg-card)] absolute -bottom-0.5 -right-0.5 ${
+                      selectedConv.isOnline ? 'bg-emerald-500' : 'bg-zinc-400'
+                    }`}
+                    title={selectedConv.isOnline ? 'Đang hoạt động' : formatLastActiveTime(selectedConv.lastActiveAt)}
+                  />
                 </div>
 
                 <div className="min-w-0">
@@ -818,39 +1178,70 @@ export const AdminChatPage: React.FC = () => {
                         ? `Phụ trách: ${selectedConv.assignedAdminName}`
                         : 'Chưa gán nhân viên'}
                     </span>
-                  </div>
-                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono flex items-center gap-1.5 mt-0.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    {isCustomerTyping ? (
-                      <span className="text-[var(--accent)] italic animate-pulse">Khách hàng đang nhập...</span>
-                    ) : (
-                      'Đang trực tuyến • Sẵn sàng phản hồi'
+                    {selectedConv.status === 'closed' && (
+                      <span className="px-2 py-0.5 rounded-full bg-zinc-500/15 text-zinc-400 border border-zinc-500/30 text-[9px] font-mono uppercase tracking-wider">
+                        Đã kết thúc
+                      </span>
                     )}
-                  </span>
+                  </div>
+                  {isCustomerTyping ? (
+                    <span className="text-[10px] text-[var(--accent)] italic font-mono flex items-center gap-1.5 mt-0.5 animate-pulse">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)]" />
+                      Khách hàng đang nhập...
+                    </span>
+                  ) : selectedConv.isOnline ? (
+                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono flex items-center gap-1.5 mt-0.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      Đang hoạt động
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-[var(--text-muted)] font-mono flex items-center gap-1.5 mt-0.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-zinc-400" />
+                      {formatLastActiveTime(selectedConv.lastActiveAt)}
+                    </span>
+                  )}
                 </div>
               </div>
 
-              {/* Action Buttons: Assign & Close */}
+              {/* Action Buttons: Assign / End Session */}
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleAssignToMe}
-                  className="px-2.5 py-1 text-[11px] font-mono bg-[var(--bg-card)] hover:bg-[var(--table-row-hover)] border border-[var(--border)] hover:border-[var(--accent)] text-[var(--text-secondary)] hover:text-[var(--accent)] rounded transition-colors flex items-center gap-1"
-                  title="Gán cuộc trò chuyện cho bạn phụ trách"
-                >
-                  <UserCheck className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Nhận xử lý</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleCloseConversation}
-                  className="px-2.5 py-1 text-[11px] font-mono bg-[var(--bg-card)] hover:bg-red-500/10 border border-[var(--border)] hover:border-red-500 text-[var(--text-secondary)] hover:text-red-600 dark:hover:text-red-400 rounded transition-colors flex items-center gap-1"
-                  title="Đóng hội thoại"
-                >
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Đóng</span>
-                </button>
+                {selectedConv.status === 'closed' ? (
+                  <div className="flex items-center gap-2">
+                    <span className="px-2.5 py-1 text-[11px] font-mono bg-zinc-500/10 border border-zinc-500/30 text-[var(--text-muted)] rounded-lg flex items-center gap-1.5 shadow-xs">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-zinc-400" />
+                      <span>Đã kết thúc</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleReopenConversation}
+                      className="px-2.5 py-1 text-[11px] font-mono bg-[var(--bg-card)] hover:bg-[var(--table-row-hover)] border border-[var(--border)] hover:border-[var(--accent)] text-[var(--text-secondary)] hover:text-[var(--accent)] shadow-xs hover:shadow-sm active:scale-95 active:shadow-inner rounded-lg transition-all flex items-center gap-1 cursor-pointer"
+                      title="Mở lại phiên tư vấn này"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Mở lại phiên</span>
+                    </button>
+                  </div>
+                ) : !selectedConv.assignedAdminId && !selectedConv.assignedAdminName ? (
+                  <button
+                    type="button"
+                    onClick={handleAssignToMe}
+                    className="px-3 py-1.5 text-xs font-mono bg-[var(--accent)] hover:brightness-105 text-[var(--accent-contrast)] border border-[var(--accent)] font-semibold shadow-xs hover:shadow-sm active:scale-95 active:shadow-inner rounded-lg transition-all flex items-center gap-1.5 cursor-pointer"
+                    title="Nhận cuộc trò chuyện này để bắt đầu tư vấn"
+                  >
+                    <UserCheck className="w-3.5 h-3.5" />
+                    <span>Nhận xử lý</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleCloseConversation}
+                    className="px-3 py-1.5 text-xs font-mono bg-[var(--bg-card)] hover:bg-rose-500/10 border border-[var(--border)] hover:border-rose-500 text-[var(--text-secondary)] hover:text-rose-600 dark:hover:text-rose-400 font-semibold shadow-xs hover:shadow-sm active:scale-95 active:shadow-inner rounded-lg transition-all flex items-center gap-1.5 cursor-pointer"
+                    title="Kết thúc phiên tư vấn với khách hàng này"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Kết thúc</span>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -880,6 +1271,30 @@ export const AdminChatPage: React.FC = () => {
               {/* Message Bubbles */}
               {messages.map((m) => {
                 const isAdmin = m.sender === 'admin';
+                const isSystem = m.sender === 'system';
+
+                if (isSystem) {
+                  const isClose = m.text.includes('kết thúc');
+                  return (
+                    <div key={m.id} className="flex justify-center my-3">
+                      <div
+                        className={`px-3.5 py-1.5 rounded-full border text-[11px] font-mono flex items-center gap-1.5 shadow-sm ${
+                          isClose
+                            ? 'bg-rose-500/10 border-rose-500/30 text-rose-600 dark:text-rose-400'
+                            : 'bg-[var(--bg-card)] border-[var(--border)] text-[var(--accent)]'
+                        }`}
+                      >
+                        {isClose ? (
+                          <CheckCircle2 className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                        ) : (
+                          <Headphones className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                        )}
+                        <span>{m.text}</span>
+                      </div>
+                    </div>
+                  );
+                }
+
                 return (
                   <div
                     key={m.id}
@@ -933,6 +1348,24 @@ export const AdminChatPage: React.FC = () => {
               )}
             </div>
 
+            {/* Session Ended Notice */}
+            {selectedConv.status === 'closed' && (
+              <div className="shrink-0 px-4 py-2 bg-zinc-500/10 border-t border-[var(--border)] flex items-center justify-between gap-2 text-xs text-[var(--text-muted)]">
+                <div className="flex items-center gap-1.5 font-mono text-[11px]">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-zinc-400" />
+                  <span>Phiên tư vấn này đã kết thúc. Gửi tin nhắn mới hoặc nhấn để mở lại phiên.</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleReopenConversation}
+                  className="px-2.5 py-1 text-[11px] font-mono text-[var(--accent)] hover:underline border border-[var(--accent)]/30 bg-[var(--accent)]/10 hover:bg-[var(--accent)]/20 rounded-md transition-all flex items-center gap-1 cursor-pointer"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  <span>Mở lại phiên</span>
+                </button>
+              </div>
+            )}
+
             {/* Quick Response Templates (Pinned above composer) */}
             <div className="shrink-0 px-3 py-1.5 bg-[var(--bg-card-muted)] border-t border-[var(--border)] flex items-center gap-1.5 overflow-x-auto text-[11px] scrollbar-none">
               <span className="text-[var(--text-muted)] font-mono uppercase tracking-wider text-[10px] shrink-0 mr-1 flex items-center gap-1">
@@ -943,7 +1376,7 @@ export const AdminChatPage: React.FC = () => {
                   key={idx}
                   type="button"
                   onClick={() => setReplyText(tmpl)}
-                  className="px-2.5 py-1 bg-[var(--bg-card)] hover:bg-[var(--table-row-hover)] hover:text-[var(--text-primary)] border border-[var(--border)] rounded-sm text-[var(--text-muted)] truncate max-w-[200px] shrink-0 transition-colors"
+                  className="px-2.5 py-1 bg-[var(--bg-card)] hover:bg-[var(--table-row-hover)] hover:text-[var(--text-primary)] border border-[var(--border)] hover:border-[var(--accent)] shadow-xs hover:shadow-sm active:scale-95 active:shadow-inner rounded-lg text-[var(--text-muted)] truncate max-w-[200px] shrink-0 transition-all cursor-pointer"
                   title={tmpl}
                 >
                   {tmpl}
@@ -963,12 +1396,12 @@ export const AdminChatPage: React.FC = () => {
                 onChange={(e) => setReplyText(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Nhập nội dung tư vấn gửi tới khách quý... (Enter để gửi, Shift+Enter xuống dòng)"
-                className="flex-1 px-3.5 py-2.5 text-xs bg-[var(--input-bg)] border border-[var(--border)] focus:border-[var(--accent)] focus:outline-none text-[var(--text-primary)] rounded-sm resize-none max-h-32 min-h-[40px] leading-relaxed placeholder-[var(--text-muted)]"
+                className="flex-1 px-3.5 py-2.5 text-xs bg-[var(--input-bg)] border border-[var(--border)] focus:border-[var(--accent)] focus:outline-none text-[var(--text-primary)] rounded-lg resize-none max-h-32 min-h-[40px] leading-relaxed placeholder-[var(--text-muted)]"
               />
               <button
                 type="submit"
                 disabled={!replyText.trim() || isSending}
-                className="px-4 py-2.5 bg-[var(--accent)] text-[var(--accent-contrast)] hover:opacity-90 transition-opacity disabled:opacity-40 text-xs font-semibold uppercase tracking-wider rounded-sm flex items-center gap-1.5 shrink-0 shadow-md"
+                className="px-4 py-2.5 bg-[var(--accent)] text-[var(--accent-contrast)] border border-[var(--accent)] font-bold font-mono hover:brightness-105 shadow-md hover:shadow-lg active:scale-95 active:shadow-inner transition-all disabled:opacity-40 text-xs uppercase tracking-wider rounded-lg flex items-center gap-1.5 shrink-0 cursor-pointer"
                 title="Gửi tin nhắn"
               >
                 <Send className="w-3.5 h-3.5" />

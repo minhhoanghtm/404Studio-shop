@@ -58,6 +58,8 @@ const corsOptions = {
     "x-anonymous-token",
     "x-session-id",
     "x-tab-id",
+    "x-visitor-id",
+    "visitor-id",
     "x-trace-id",
     "x-action-id",
     "x-frontend-route",

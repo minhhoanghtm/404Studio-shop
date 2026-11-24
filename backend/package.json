@@ -19,6 +19,7 @@
     "k6:run": "powershell -ExecutionPolicy Bypass -Command \"$n=$env:TEST; k6 run load-tests/$n.js; $t=Get-Date -Format 'yyyy-MM-dd_HH-mm'; Copy-Item load-tests/results/TEMPLATE.md load-tests/results/${n}_${t}.md; Write-Host 'Report: load-tests/results/${n}_${t}.md'\"",
     "wait": "wait-on http://localhost:5000/api/health",
     "seed:complete": "node src/scripts/seed-complete-dev-data.js",
+    "seed:qa": "node src/scripts/seed-qa-fixtures.js",
     "migrate:drop-legacy-sessions": "node src/scripts/drop-legacy-sessions-collection.js",
     "migrate:product-slugs": "node src/migrations/ensureProductSlugs.js",
     "migrate:variant-skus": "node src/migrations/migrateVariantSkus.js",

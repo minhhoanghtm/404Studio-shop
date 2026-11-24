@@ -143,7 +143,7 @@ export const OrderExportModal: React.FC<OrderExportModalProps> = ({
   return (
     <ModalPortal>
       <div
-        className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 pointer-events-auto"
+        className="fixed inset-0 bg-[rgba(26,26,23,0.55)] backdrop-blur-sm flex items-center justify-center p-4 pointer-events-auto"
         style={{ zIndex: overlayZIndex }}
         onClick={(e) => {
           if (e.target === e.currentTarget && !isExporting) onClose();
@@ -153,18 +153,18 @@ export const OrderExportModal: React.FC<OrderExportModalProps> = ({
         aria-label="Xuất Dữ Liệu Đơn Hàng Ra Excel"
       >
         <div
-          className="bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-primary)] rounded-sm w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-32px)]"
+          className="bg-[var(--surface)] border border-[var(--border)] text-[var(--text)] rounded-sm w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-32px)]"
           style={{ zIndex: contentZIndex }}
         >
           {/* Header */}
-          <div className="px-6 py-4 border-b border-[var(--border)] flex items-center justify-between bg-[var(--bg-card-muted)]">
+          <div className="px-6 py-4 border-b border-[var(--border)] flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <FileSpreadsheet className="w-5 h-5 text-[var(--accent)]" />
               <div>
-                <h3 className="text-sm font-semibold text-[var(--text-primary)] tracking-wide uppercase font-mono">
+                <h3 className="text-base font-semibold text-[var(--text)] tracking-wider uppercase font-display">
                   Xuất Dữ Liệu Đơn Hàng Ra Excel
                 </h3>
-                <p className="text-[11px] text-[var(--text-muted)]">
+                <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
                   Bảo vệ chống Spreadsheet Formula Injection (CWE-1236)
                 </p>
               </div>
@@ -173,9 +173,9 @@ export const OrderExportModal: React.FC<OrderExportModalProps> = ({
               type="button"
               onClick={onClose}
               aria-label="Đóng"
-              className="p-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors rounded-sm"
+              className="p-1 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors rounded-sm"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
           </div>
 
@@ -183,14 +183,14 @@ export const OrderExportModal: React.FC<OrderExportModalProps> = ({
           <div className="p-6 space-y-5 text-xs">
             {/* Scope selection */}
             <div className="space-y-2">
-              <label className="text-[var(--text-secondary)] font-medium block uppercase tracking-wider text-[11px]">
+              <label className="text-[var(--text)] font-mono uppercase tracking-wider text-[11px] block">
                 Chọn Phạm Vi Xuất Dữ Liệu:
               </label>
               <div className="space-y-2">
                 <label
                   className={`flex items-start gap-3 p-3 rounded-sm border cursor-pointer transition-colors ${scope === 'filtered_all'
                     ? 'border-[var(--accent)] bg-[var(--accent)]/10'
-                    : 'border-[var(--border)] hover:border-[var(--accent)]/50 bg-[var(--bg-card-muted)]'
+                    : 'border-[var(--border)] hover:border-[var(--accent)]/50 bg-[var(--bg-alt)]'
                     }`}
                 >
                   <input
@@ -202,7 +202,7 @@ export const OrderExportModal: React.FC<OrderExportModalProps> = ({
                     className="mt-0.5 text-[var(--accent)] focus:ring-[var(--accent)]"
                   />
                   <div className="flex-1">
-                    <div className="font-semibold text-[var(--text-primary)] flex items-center justify-between">
+                    <div className="font-semibold text-[var(--text)] flex items-center justify-between">
                       <span>Tất cả đơn phù hợp bộ lọc</span>
                       <span className="font-mono text-[var(--accent)] text-[11px]">
                         {totalFilteredCount} đơn hàng
@@ -217,7 +217,7 @@ export const OrderExportModal: React.FC<OrderExportModalProps> = ({
                 <label
                   className={`flex items-start gap-3 p-3 rounded-sm border cursor-pointer transition-colors ${scope === 'current_page'
                     ? 'border-[var(--accent)] bg-[var(--accent)]/10'
-                    : 'border-[var(--border)] hover:border-[var(--accent)]/50 bg-[var(--bg-card-muted)]'
+                    : 'border-[var(--border)] hover:border-[var(--accent)]/50 bg-[var(--bg-alt)]'
                     }`}
                 >
                   <input
@@ -229,9 +229,9 @@ export const OrderExportModal: React.FC<OrderExportModalProps> = ({
                     className="mt-0.5 text-[var(--accent)] focus:ring-[var(--accent)]"
                   />
                   <div className="flex-1">
-                    <div className="font-semibold text-[var(--text-primary)] flex items-center justify-between">
+                    <div className="font-semibold text-[var(--text)] flex items-center justify-between">
                       <span>Trang hiện tại</span>
-                      <span className="font-mono text-[var(--text-secondary)] text-[11px]">
+                      <span className="font-mono text-[var(--text-muted)] text-[11px]">
                         {currentPageOrders.length} đơn hàng
                       </span>
                     </div>
@@ -244,7 +244,7 @@ export const OrderExportModal: React.FC<OrderExportModalProps> = ({
                 <label
                   className={`flex items-start gap-3 p-3 rounded-sm border cursor-pointer transition-colors ${scope === 'selected'
                     ? 'border-[var(--accent)] bg-[var(--accent)]/10'
-                    : 'border-[var(--border)] hover:border-[var(--accent)]/50 bg-[var(--bg-card-muted)]'
+                    : 'border-[var(--border)] hover:border-[var(--accent)]/50 bg-[var(--bg-alt)]'
                     }`}
                 >
                   <input
@@ -257,11 +257,11 @@ export const OrderExportModal: React.FC<OrderExportModalProps> = ({
                     className="mt-0.5 text-[var(--accent)] focus:ring-[var(--accent)] disabled:opacity-40"
                   />
                   <div className="flex-1">
-                    <div className="font-semibold text-[var(--text-primary)] flex items-center justify-between">
-                      <span className={selectedOrders.length === 0 ? 'text-[var(--text-muted)]' : 'text-[var(--text-primary)]'}>
+                    <div className="font-semibold text-[var(--text)] flex items-center justify-between">
+                      <span className={selectedOrders.length === 0 ? 'text-[var(--text-muted)]' : 'text-[var(--text)]'}>
                         Các đơn hàng đã chọn
                       </span>
-                      <span className="font-mono text-[var(--text-secondary)] text-[11px]">
+                      <span className="font-mono text-[var(--text-muted)] text-[11px]">
                         {selectedOrders.length} đã chọn
                       </span>
                     </div>
@@ -276,9 +276,9 @@ export const OrderExportModal: React.FC<OrderExportModalProps> = ({
             </div>
 
             {/* Include items option */}
-            <div className="p-3 bg-[var(--bg-card-muted)] border border-[var(--border)] rounded-sm flex items-center justify-between">
+            <div className="p-3 bg-[var(--bg-alt)] border border-[var(--border)] rounded-sm flex items-center justify-between">
               <div>
-                <span className="font-medium text-[var(--text-primary)] block">Kèm Chi Tiết Sản Phẩm & Biến Thể</span>
+                <span className="font-medium text-[var(--text)] block">Kèm Chi Tiết Sản Phẩm & Biến Thể</span>
                 <span className="text-[11px] text-[var(--text-muted)]">
                   Xuất kèm Sheet 2 chứa SKU, màu sắc, kích cỡ, số lượng, đơn giá
                 </span>
@@ -292,10 +292,10 @@ export const OrderExportModal: React.FC<OrderExportModalProps> = ({
             </div>
 
             {/* Active filter summary */}
-            <div className="p-2.5 bg-[var(--bg-card-muted)] border border-[var(--border)] rounded-sm flex items-center gap-2 text-[11px] text-[var(--text-muted)]">
+            <div className="p-2.5 bg-[var(--bg-alt)] border border-[var(--border)] rounded-sm flex items-center gap-2 text-[11px] text-[var(--text-muted)]">
               <Filter className="w-3.5 h-3.5 text-[var(--accent)] shrink-0" />
               <span>
-                Bộ lọc: <strong className="text-[var(--text-primary)]">{currentFilterStatus === 'all' ? 'Tất cả trạng thái' : currentFilterStatus}</strong>
+                Bộ lọc: <strong className="text-[var(--text)]">{currentFilterStatus === 'all' ? 'Tất cả trạng thái' : currentFilterStatus}</strong>
                 {currentSearchQuery && <span> • Từ khóa: "{currentSearchQuery}"</span>}
               </span>
             </div>
@@ -322,7 +322,7 @@ export const OrderExportModal: React.FC<OrderExportModalProps> = ({
           </div>
 
           {/* Footer */}
-          <div className="px-6 py-4 border-t border-[var(--border)] bg-[var(--bg-card-muted)] flex items-center justify-between">
+          <div className="px-6 py-4 border-t border-[var(--border)] bg-[var(--surface)] flex items-center justify-between">
             <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)]">
               <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
               <span>Định dạng .xlsx • Khử trùng công thức</span>
@@ -332,7 +332,7 @@ export const OrderExportModal: React.FC<OrderExportModalProps> = ({
                 type="button"
                 onClick={onClose}
                 disabled={isExporting}
-                className="px-4 py-2 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] bg-[var(--bg-card)] hover:bg-[var(--table-row-hover)] border border-[var(--border)] rounded-sm transition-colors"
+                className="px-4 py-2 border border-[var(--border)] text-[var(--text)] rounded-sm text-xs font-mono uppercase tracking-wider hover:bg-[var(--bg-alt)] transition-colors"
               >
                 Hủy
               </button>
@@ -340,7 +340,7 @@ export const OrderExportModal: React.FC<OrderExportModalProps> = ({
                 type="button"
                 onClick={handleExport}
                 disabled={isExporting}
-                className="px-5 py-2 bg-[var(--accent)] text-[var(--accent-contrast)] text-xs font-semibold rounded-sm hover:opacity-90 transition-all shadow-md shadow-[var(--accent)]/10 flex items-center gap-1.5 disabled:opacity-50"
+                className="px-5 py-2 bg-[var(--accent)] text-[var(--accent-contrast)] text-xs font-mono font-semibold uppercase tracking-wider rounded-sm hover:bg-[var(--accent)]/90 transition-all shadow-sm flex items-center gap-1.5 disabled:opacity-50"
               >
                 {isExporting ? (
                   <>

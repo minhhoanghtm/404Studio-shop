@@ -315,7 +315,7 @@ export function buildCustomerLoyaltyProfile(
 
   return {
     customerId,
-    customerName: customerInfo?.name || 'Patron Thành Viên',
+    customerName: customerInfo?.name || 'Khách Hàng Thân Thiết',
     customerEmail: customerInfo?.email || '',
     customerPhone: customerInfo?.phone || '',
     qualifyingPoints,

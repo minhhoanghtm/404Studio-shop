@@ -2,13 +2,21 @@ import Voucher from "./voucher.model.js";
 import UserVoucher from "./userVoucher.model.js";
 import VoucherUsage from "./voucherUsage.model.js";
 import VoucherHistory from "./voucherHistory.model.js";
+import Product from "../products/product.model.js";
+import Category from "../categories/category.model.js";
 
 class VoucherRepository {
   // ==========================================
   // 1. Voucher Methods
   // ==========================================
   async find(query = {}, sort = { createdAt: -1 }, skip = 0, limit = 100) {
-    return await Voucher.find(query).sort(sort).skip(skip).limit(limit).lean();
+    return await Voucher.find(query)
+      .populate("applicableProducts", "_id name thumbnail price")
+      .populate("applicableCategories", "_id name")
+      .sort(sort)
+      .skip(skip)
+      .limit(limit)
+      .lean();
   }
 
   async findOne(query) {
@@ -16,7 +24,9 @@ class VoucherRepository {
   }
 
   async findById(id) {
-    return await Voucher.findById(id);
+    return await Voucher.findById(id)
+      .populate("applicableProducts", "_id name thumbnail price")
+      .populate("applicableCategories", "_id name");
   }
 
   async countDocuments(query = {}) {

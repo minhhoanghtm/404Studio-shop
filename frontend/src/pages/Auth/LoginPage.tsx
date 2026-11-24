@@ -90,10 +90,18 @@ export const LoginPage: React.FC = () => {
         addToast('Đăng nhập thành công! Chào mừng quý khách.', 'success');
         navigate(getRedirectDestination(), { replace: true });
       } else {
-        setError('Email hoặc mật khẩu không chính xác. Vui lòng kiểm tra lại.');
+        const fallbackMsg = 'Email hoặc mật khẩu không chính xác. Vui lòng kiểm tra lại.';
+        setError(fallbackMsg);
+        addToast(fallbackMsg, 'error');
       }
     } catch (err: any) {
-      setError(err?.message || 'Không thể đăng nhập. Vui lòng thử lại sau.');
+      const errorMsg =
+        err?.data?.message ||
+        err?.response?.data?.message ||
+        err?.message ||
+        'Không thể đăng nhập. Vui lòng thử lại sau.';
+      setError(errorMsg);
+      addToast(errorMsg, 'error');
     } finally {
       setIsLoading(false);
     }
@@ -108,10 +116,18 @@ export const LoginPage: React.FC = () => {
         addToast('Đăng nhập Google thành công!', 'success');
         navigate(getRedirectDestination(), { replace: true });
       } else {
-        setError('Đăng nhập Google không thành công. Vui lòng thử lại.');
+        const fallbackMsg = 'Đăng nhập Google không thành công. Vui lòng thử lại.';
+        setError(fallbackMsg);
+        addToast(fallbackMsg, 'error');
       }
     } catch (err: any) {
-      setError(err?.message || 'Xác thực Google thất bại.');
+      const errorMsg =
+        err?.data?.message ||
+        err?.response?.data?.message ||
+        err?.message ||
+        'Xác thực Google thất bại.';
+      setError(errorMsg);
+      addToast(errorMsg, 'error');
     } finally {
       setIsLoading(false);
     }

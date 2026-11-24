@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { AdminLayout } from '../Admin/AdminLayout';
 import { TrackingNav } from '../AdminTracking/components/TrackingNav';
+import { TablePagination } from '@/shared/components/TablePagination';
 import {
   adminTrackingApi,
   TrackingOverviewMetrics,
@@ -24,6 +25,13 @@ export const AdminTrackingProductsPage: React.FC = () => {
   const [funnel, setFunnel] = useState<FunnelAnalyticsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [pageProducts, setPageProducts] = useState(1);
+
+  const paginatedProducts = useMemo(() => {
+    const list = overview?.topViewedProducts || [];
+    const start = (pageProducts - 1) * 10;
+    return list.slice(start, start + 10);
+  }, [overview?.topViewedProducts, pageProducts]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -76,7 +84,7 @@ export const AdminTrackingProductsPage: React.FC = () => {
             type="button"
             onClick={fetchData}
             disabled={loading}
-            className="p-2 border border-white/15 hover:border-champagne text-platinum-dark hover:text-champagne rounded-sm transition-colors"
+            className="p-2 border border-white/15 hover:border-champagne text-platinum-dark hover:text-champagne rounded-lg shadow-xs hover:shadow-sm hover:-translate-y-0.5 active:translate-y-0 active:scale-95 active:shadow-inner transition-all duration-200 cursor-pointer"
             title="Làm mới"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -90,7 +98,7 @@ export const AdminTrackingProductsPage: React.FC = () => {
             <button
               type="button"
               onClick={fetchData}
-              className="px-3 py-1 bg-red-900/60 border border-red-400/40 rounded uppercase text-[10px]"
+              className="px-3 py-1 bg-red-900/60 border border-red-400/40 rounded-lg uppercase text-[10px] font-mono font-bold shadow-xs hover:shadow-sm active:scale-95 transition-all duration-150 cursor-pointer"
             >
               Thử lại
             </button>
@@ -100,7 +108,7 @@ export const AdminTrackingProductsPage: React.FC = () => {
         {/* Intelligence & AI Recommendation Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Recommendation Engine Card */}
-          <div className="p-6 bg-noir-900 border border-white/10 rounded-sm space-y-3">
+          <div className="p-6 bg-noir-900 border border-white/10 rounded-sm space-y-3 hover:border-white/25 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] transition-all duration-200 cursor-default">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-mono uppercase tracking-widest text-champagne">
                 Thuật Toán Gợi Ý Cá Nhân Hóa
@@ -124,7 +132,7 @@ export const AdminTrackingProductsPage: React.FC = () => {
           </div>
 
           {/* Stylist AI Assistant Engagement */}
-          <div className="p-6 bg-noir-900 border border-white/10 rounded-sm space-y-3">
+          <div className="p-6 bg-noir-900 border border-white/10 rounded-sm space-y-3 hover:border-white/25 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] transition-all duration-200 cursor-default">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-mono uppercase tracking-widest text-purple-400">
                 Trợ Lý Stylist AI Maison
@@ -152,7 +160,7 @@ export const AdminTrackingProductsPage: React.FC = () => {
           </div>
 
           {/* Funnel Conversion Quick Glance */}
-          <div className="p-6 bg-noir-900 border border-white/10 rounded-sm space-y-3">
+          <div className="p-6 bg-noir-900 border border-white/10 rounded-sm space-y-3 hover:border-white/25 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] transition-all duration-200 cursor-default">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-mono uppercase tracking-widest text-emerald-400">
                 Hiệu Quả Chuyển Đổi Mua Hàng
@@ -189,7 +197,7 @@ export const AdminTrackingProductsPage: React.FC = () => {
         </div>
 
         {/* Top Performing Silhouette Products Table */}
-        <div className="p-6 bg-noir-900 border border-white/10 rounded-sm space-y-4">
+        <div className="p-6 bg-noir-900 border border-white/10 rounded-sm space-y-4 hover:border-white/20 hover:shadow-md transition-all duration-200">
           <div className="flex items-center justify-between pb-3 border-b border-white/10">
             <div className="flex items-center gap-2">
               <Award className="w-4 h-4 text-champagne" />
@@ -207,17 +215,17 @@ export const AdminTrackingProductsPage: React.FC = () => {
               <table className="w-full text-left text-xs">
                 <thead className="bg-noir-950 text-platinum-dark text-[11px] uppercase font-mono border-b border-white/10">
                   <tr>
-                    <th className="px-5 py-3">Hạng</th>
+                    <th className="px-3 py-3 w-16 text-center">STT</th>
                     <th className="px-5 py-3">Sản Phẩm</th>
                     <th className="px-5 py-3 font-mono">Giá Niêm Yết</th>
                     <th className="px-5 py-3 text-right">Lượt Xem Thực</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5 font-sans">
-                  {overview.topViewedProducts.map((prod, idx) => (
+                  {paginatedProducts.map((prod, idx) => (
                     <tr key={prod._id || idx} className="hover:bg-white/[0.02] transition-colors">
-                      <td className="px-5 py-4 font-mono font-bold text-champagne">
-                        #{idx + 1}
+                      <td className="px-3 py-4 text-center font-mono font-bold text-champagne text-xs">
+                        {(pageProducts - 1) * 10 + idx + 1}
                       </td>
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
@@ -250,6 +258,14 @@ export const AdminTrackingProductsPage: React.FC = () => {
                   ))}
                 </tbody>
               </table>
+
+              <TablePagination
+                currentPage={pageProducts}
+                totalItems={overview.topViewedProducts.length}
+                pageSize={10}
+                onPageChange={setPageProducts}
+                itemName="sản phẩm"
+              />
             </div>
           ) : (
             <p className="text-xs text-platinum-dark italic py-8 text-center">

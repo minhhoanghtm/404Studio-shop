@@ -1,14 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import { AdminLayout } from './AdminLayout';
-import { DollarSign, ShoppingBag, Users, TrendingUp, ArrowUpRight, Clock, PackageCheck, AlertCircle } from 'lucide-react';
-import { adminApi } from '@/shared/api';
+import { DollarSign, ShoppingBag, Users, TrendingUp, ArrowUpRight, Clock, PackageCheck, AlertCircle, Sparkles, RefreshCw, ArrowRight as ArrowRightIcon } from 'lucide-react';
+import { adminApi, adminAiApi, AdminAiInsight } from '@/shared/api';
 import { formatCurrency, formatDate } from '@/shared/utils/formatters';
 import { AnalyticsExportButton } from '@/shared/components/excel/AnalyticsExportButton';
+import { useAdminAiStore } from '@/shared/stores/useAdminAiStore';
 
 export const AdminDashboardPage: React.FC = () => {
   const [stats, setStats] = useState({ totalRevenue: 0, totalOrders: 0, totalCustomers: 0, conversionRate: 0 });
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [insights, setInsights] = useState<AdminAiInsight[]>([]);
+  const [isScanningInsights, setIsScanningInsights] = useState(false);
+  const { openSidebar, sendMessage } = useAdminAiStore();
+
+  const loadInsights = async () => {
+    setIsScanningInsights(true);
+    try {
+      const res = await adminAiApi.getInsights();
+      if (res?.data?.insights) {
+        setInsights(res.data.insights);
+      }
+    } catch {
+      // silent
+    } finally {
+      setIsScanningInsights(false);
+    }
+  };
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -39,6 +57,7 @@ export const AdminDashboardPage: React.FC = () => {
     };
 
     fetchDashboardData();
+    loadInsights();
   }, []);
 
   const metricCards = [
@@ -117,6 +136,94 @@ export const AdminDashboardPage: React.FC = () => {
           })}
         </div>
 
+        {/* Proactive AI Business Insights */}
+        <div className="bg-[var(--bg-card)] border border-[var(--border)] p-6 rounded-sm space-y-4 shadow-sm relative overflow-hidden">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--border)] pb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-[var(--accent)]/15 border border-[var(--accent)]/40 flex items-center justify-center text-[var(--accent)]">
+                <Sparkles className="w-4 h-4 animate-pulse" />
+              </div>
+              <div>
+                <h2 className="font-display text-base tracking-wide text-[var(--text-primary)] flex items-center gap-2">
+                  <span>AI Business Insights — Khuyến Nghị Chủ Động</span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--accent)]/15 text-[var(--accent)] border border-[var(--accent)]/30">
+                    {insights.length} Phát Hiện
+                  </span>
+                </h2>
+                <p className="text-xs text-[var(--text-muted)] mt-0.5">
+                  Phân tích tự động từ CSDL đơn hàng, tồn kho và sản phẩm thời gian thực
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={loadInsights}
+                disabled={isScanningInsights}
+                className="px-3 py-1.5 bg-[var(--surface)] hover:bg-[var(--bg-alt)] border border-[var(--border)] text-xs text-[var(--text)] rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isScanningInsights ? 'animate-spin' : ''}`} />
+                <span>Quét Lại</span>
+              </button>
+
+              <a
+                href="/admin/ai-assistant"
+                className="px-3 py-1.5 bg-[var(--accent)] hover:bg-[#9E7B15] text-[var(--accent-contrast)] text-xs font-bold rounded-lg flex items-center gap-1.5 transition-colors shadow-xs"
+              >
+                <span>Mở Workspace</span>
+                <ArrowRightIcon className="w-3.5 h-3.5" />
+              </a>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {insights.map((ins, idx) => (
+              <div
+                key={idx}
+                className="p-4 rounded-xl bg-[var(--surface)] border border-[var(--border)] hover:border-[var(--accent)]/60 transition-all flex flex-col justify-between space-y-3"
+              >
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span
+                      className={`text-[9px] font-mono font-bold uppercase tracking-widest px-2 py-0.5 rounded ${
+                        ins.severity === 'high' || ins.severity === 'critical'
+                          ? 'bg-red-500/20 text-red-500'
+                          : 'bg-amber-500/20 text-amber-500'
+                      }`}
+                    >
+                      {ins.severity.toUpperCase()}
+                    </span>
+                    <span className="text-[10px] text-[var(--text-muted)] font-mono">Real-time</span>
+                  </div>
+                  <h3 className="font-bold text-xs text-[var(--text)]">{ins.title}</h3>
+                  <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">{ins.explanation}</p>
+                </div>
+
+                {ins.recommendedAction && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      openSidebar();
+                      sendMessage(ins.recommendedAction?.suggestedPrompt || ins.title);
+                    }}
+                    className="w-full py-2 px-3 rounded-lg bg-[var(--accent)]/15 hover:bg-[var(--accent)] text-[var(--accent)] hover:text-[var(--accent-contrast)] text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                  >
+                    <span>{ins.recommendedAction.label || 'Hỏi AI'}</span>
+                    <ArrowRightIcon className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            ))}
+
+            {insights.length === 0 && !isScanningInsights && (
+              <div className="col-span-3 py-6 text-center text-xs text-[var(--text-muted)]">
+                ✅ Hệ thống vận hành ổn định. Chưa ghi nhận cảnh báo bất thường trong kho và đơn hàng.
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Recent Orders Table */}
         <div className="bg-[var(--bg-card)] border border-[var(--border)] p-6 rounded-sm space-y-4 shadow-sm">
           <div className="flex items-center justify-between">
@@ -140,6 +247,7 @@ export const AdminDashboardPage: React.FC = () => {
             <table className="w-full text-left text-xs">
               <thead>
                 <tr className="border-b border-[var(--border)] text-[var(--text-secondary)] uppercase tracking-wider bg-[var(--bg-card-muted)]">
+                  <th className="py-3 px-3 w-12 text-center">STT</th>
                   <th className="py-3 px-3">Mã Đơn</th>
                   <th className="py-3 px-3">Khách Quý Patron</th>
                   <th className="py-3 px-3">Thời Gian</th>
@@ -151,12 +259,12 @@ export const AdminDashboardPage: React.FC = () => {
               <tbody className="divide-y divide-[var(--border)]">
                 {recentOrders.length === 0 && !isLoading && (
                   <tr>
-                    <td colSpan={6} className="py-8 text-center text-[var(--text-muted)] text-xs font-mono">
+                    <td colSpan={7} className="py-8 text-center text-[var(--text-muted)] text-xs font-mono">
                       Chưa có đơn hàng gần đây
                     </td>
                   </tr>
                 )}
-                {recentOrders.map((ord) => {
+                {recentOrders.map((ord, idx) => {
                   const orderCode =
                     ord.orderCode || ord.order_code || (ord._id ? `ORD-${ord._id.slice(-6).toUpperCase()}` : 'ORD-VERITE');
                   const customerName =
@@ -168,6 +276,9 @@ export const AdminDashboardPage: React.FC = () => {
 
                   return (
                     <tr key={ord._id || ord.id || orderCode} className="hover:bg-[var(--table-row-hover)] transition-colors">
+                      <td className="py-3.5 px-3 text-center font-mono text-xs text-[var(--text-muted)]">
+                        {idx + 1}
+                      </td>
                       <td className="py-3.5 px-3 font-mono font-bold text-[var(--accent)]">
                         {orderCode}
                       </td>

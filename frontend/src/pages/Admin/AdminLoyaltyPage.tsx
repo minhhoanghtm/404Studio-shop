@@ -30,7 +30,7 @@ export const AdminLoyaltyPage: React.FC = () => {
   return (
     <AdminLayout
       title="Khách Hàng Thân Thiết & Điểm Thưởng"
-      subtitle="Quản lý hệ thống 12 cấp hạng Patron, tỷ lệ tích điểm và sổ cái giao dịch"
+      subtitle="Quản lý hệ thống 12 cấp hạng thành viên thân thiết, tỷ lệ tích điểm và sổ cái giao dịch"
     >
       <div className="space-y-8">
         <AdminLoyaltyNav />
@@ -49,7 +49,7 @@ export const AdminLoyaltyPage: React.FC = () => {
                 </span>
               </div>
               <p className="text-xs text-[var(--text-muted)] mt-0.5 font-sans">
-                Tất cả điểm số và cấp hạng được tính toán tự động dựa trên các đơn hàng hoàn tất (`delivered`) và đã thanh toán (`paid`) từ Backend MongoDB.
+                Tất cả điểm số và cấp hạng được tính toán tự động dựa trên các đơn hàng hoàn tất.
               </p>
             </div>
           </div>
@@ -58,7 +58,7 @@ export const AdminLoyaltyPage: React.FC = () => {
             type="button"
             onClick={() => refetch()}
             disabled={isLoading}
-            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-sm border border-[var(--border)] hover:border-[var(--accent)] text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors shrink-0 bg-[var(--bg-card-muted)]"
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-[var(--border)] hover:border-[var(--accent)] text-xs font-mono uppercase tracking-wider text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all shrink-0 bg-[var(--bg-card)] shadow-xs hover:shadow-sm cursor-pointer"
           >
             <RefreshCw className={`w-3.5 h-3.5 text-[var(--accent)] ${isLoading ? 'animate-spin' : ''}`} />
             <span>Đồng bộ lại</span>
@@ -85,7 +85,7 @@ export const AdminLoyaltyPage: React.FC = () => {
             <p className="font-mono text-2xl font-bold text-[var(--text-primary)]">
               {totalMembers.toLocaleString('vi-VN')}
             </p>
-            <span className="text-[11px] text-[var(--text-muted)]">Đã ghi danh Patron</span>
+            <span className="text-[11px] text-[var(--text-muted)] font-sans">Đã đăng ký thành viên</span>
           </div>
 
           <div className="p-5 rounded-xl bg-[var(--bg-card)] border border-[var(--border)] space-y-1 shadow-sm">
@@ -96,7 +96,7 @@ export const AdminLoyaltyPage: React.FC = () => {
             <p className="font-mono text-2xl font-bold text-emerald-600 dark:text-emerald-400">
               +{totalPointsIssued.toLocaleString('vi-VN')}
             </p>
-            <span className="text-[11px] text-[var(--text-muted)]">Tỷ lệ 10.000 ₫ = 1 pt</span>
+            <span className="text-[11px] text-[var(--text-muted)] font-sans">Tỷ lệ 10.000 ₫ = 1 điểm</span>
           </div>
 
           <div className="p-5 rounded-xl bg-[var(--bg-card)] border border-[var(--border)] space-y-1 shadow-sm">
@@ -107,7 +107,7 @@ export const AdminLoyaltyPage: React.FC = () => {
             <p className="font-mono text-2xl font-bold text-amber-600 dark:text-amber-400">
               -{totalPointsReversed.toLocaleString('vi-VN')}
             </p>
-            <span className="text-[11px] text-[var(--text-muted)]">Từ đơn hoàn tiền</span>
+            <span className="text-[11px] text-[var(--text-muted)] font-sans">Từ đơn hoàn tiền</span>
           </div>
 
           <div className="p-5 rounded-xl bg-[var(--bg-card)] border border-[var(--border)] space-y-1 shadow-sm">
@@ -118,7 +118,7 @@ export const AdminLoyaltyPage: React.FC = () => {
             <p className="font-mono text-2xl font-bold text-[var(--text-primary)]">
               {activeBalance.toLocaleString('vi-VN')}
             </p>
-            <span className="text-[11px] text-[var(--text-muted)]">Đang lưu thông</span>
+            <span className="text-[11px] text-[var(--text-muted)] font-sans">Đang lưu thông</span>
           </div>
         </div>
 
@@ -128,7 +128,9 @@ export const AdminLoyaltyPage: React.FC = () => {
             <div>
               <div className="flex items-center gap-2">
                 <Layers className="w-4 h-4 text-[var(--accent)]" />
-                <h3 className="font-display text-lg text-[var(--text-primary)]">Phân Bổ Khách Hàng Theo 12 Cấp Hạng</h3>
+                <h3 className="text-base sm:text-lg font-semibold text-[var(--text-primary)] font-sans">
+                  Phân Bổ Khách Hàng Theo 12 Cấp Hạng
+                </h3>
               </div>
               <p className="text-xs text-[var(--text-muted)] font-sans mt-0.5">
                 Cấu hình ngưỡng tăng nghiêm ngặt: Đồng (0 - 250), Bạc (500 - 1400), Vàng (2000 - 4500), Kim Cương (6500 - 12000).
@@ -162,8 +164,8 @@ export const AdminLoyaltyPage: React.FC = () => {
                     <span className="text-xl font-mono font-bold text-[var(--text-primary)] block">
                       {count}
                     </span>
-                    <span className="text-[10px] text-[var(--text-muted)] font-mono block">
-                      $\ge$ {tier.minPoints.toLocaleString('vi-VN')} pts
+                    <span className="text-[10px] text-[var(--text-muted)] font-sans block">
+                      ≥ {tier.minPoints.toLocaleString('vi-VN')} điểm
                     </span>
                   </div>
                   <div className="w-full bg-[var(--track-bar)] h-1 rounded-full overflow-hidden">
@@ -178,15 +180,15 @@ export const AdminLoyaltyPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Two-Column Lower Section: Top Patrons & Recent Ledger Activity */}
+        {/* Two-Column Lower Section: Top Customers & Recent Ledger Activity */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* Top Patrons by Qualifying Points */}
+          {/* Top Customers by Qualifying Points */}
           <div className="lg:col-span-7 p-6 rounded-2xl bg-[var(--bg-card)] border border-[var(--border)] space-y-4 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-display text-base text-[var(--text-primary)] flex items-center gap-2">
+                <h3 className="text-base font-semibold text-[var(--text-primary)] font-sans flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-[var(--accent)]" />
-                  <span>Khách Hàng Patron Tiêu Biểu</span>
+                  <span>Khách Hàng Thân Thiết Tiêu Biểu</span>
                 </h3>
                 <p className="text-xs text-[var(--text-muted)] mt-0.5">Xếp hạng theo điểm xét hạng tích lũy</p>
               </div>
@@ -203,6 +205,7 @@ export const AdminLoyaltyPage: React.FC = () => {
                 <table className="w-full text-left text-xs font-sans">
                   <thead>
                     <tr className="border-b border-[var(--border)] text-[var(--text-muted)] text-[10px] uppercase font-mono">
+                      <th className="pb-2.5 px-2 w-10 text-center">STT</th>
                       <th className="pb-2.5 px-2">Khách hàng</th>
                       <th className="pb-2.5 px-2">Cấp Hạng</th>
                       <th className="pb-2.5 px-2 text-right">Đơn</th>
@@ -212,10 +215,10 @@ export const AdminLoyaltyPage: React.FC = () => {
                   <tbody className="divide-y divide-[var(--border)]">
                     {profiles.slice(0, 6).map((p, idx) => (
                       <tr key={p.customerId} className="hover:bg-[var(--table-row-hover)] transition-colors">
-                        <td className="py-2.5 px-2 font-medium text-[var(--text-primary)] flex items-center gap-2">
-                          <span className="w-5 h-5 rounded-full bg-[var(--border)] text-[10px] font-mono flex items-center justify-center text-[var(--text-secondary)] shrink-0">
-                            {idx + 1}
-                          </span>
+                        <td className="py-2.5 px-2 text-center font-mono text-xs text-[var(--text-muted)]">
+                          {idx + 1}
+                        </td>
+                        <td className="py-2.5 px-2 font-medium text-[var(--text-primary)]">
                           <div className="truncate max-w-[160px]">
                             <p className="truncate text-[var(--text-primary)]">{p.customerName}</p>
                             <p className="text-[10px] text-[var(--text-muted)] truncate">{p.customerEmail || p.customerPhone}</p>
@@ -230,7 +233,7 @@ export const AdminLoyaltyPage: React.FC = () => {
                           {p.eligibleOrdersCount}
                         </td>
                         <td className="py-2.5 px-2 text-right font-mono font-bold text-[var(--accent)] whitespace-nowrap">
-                          {p.qualifyingPoints.toLocaleString('vi-VN')} pts
+                          {p.qualifyingPoints.toLocaleString('vi-VN')} điểm
                         </td>
                       </tr>
                     ))}
@@ -246,7 +249,7 @@ export const AdminLoyaltyPage: React.FC = () => {
           <div className="lg:col-span-5 p-6 rounded-2xl bg-[var(--bg-card)] border border-[var(--border)] space-y-4 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-display text-base text-[var(--text-primary)] flex items-center gap-2">
+                <h3 className="text-base font-semibold text-[var(--text-primary)] font-sans flex items-center gap-2">
                   <Clock className="w-4 h-4 text-[var(--accent)]" />
                   <span>Biến Động Điểm Gần Đây</span>
                 </h3>
@@ -289,7 +292,7 @@ export const AdminLoyaltyPage: React.FC = () => {
                           tx.pointsDelta > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'
                         }`}
                       >
-                        {tx.pointsDelta > 0 ? `+${tx.pointsDelta}` : tx.pointsDelta} pts
+                        {tx.pointsDelta > 0 ? `+${tx.pointsDelta.toLocaleString('vi-VN')}` : tx.pointsDelta.toLocaleString('vi-VN')} điểm
                       </span>
                       <span className="text-[10px] text-[var(--text-muted)] font-mono block">
                         {formatDate(tx.createdAt)}

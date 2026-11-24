@@ -1,5 +1,5 @@
 import express from "express";
-import { protectedRoute, adminOnly } from "../../middlewares/auth.middleware.js";
+import { protectedRoute, adminOnly, staffOrAdmin } from "../../middlewares/auth.middleware.js";
 import { successResponse } from "../../common/responses/index.js";
 import { Order } from "../orders/order.model.js";
 import User from "../users/user.model.js";
@@ -34,9 +34,9 @@ const profileFromOrders = async (userId, user = null) => {
 router.get("/profile", protectedRoute, async (req, res, next) => { try { const user = await User.findById(req.user.userId).lean(); return successResponse(res, await profileFromOrders(req.user.userId, user)); } catch (error) { next(error); } });
 router.get("/transactions", protectedRoute, async (req, res, next) => { try { const user = await User.findById(req.user.userId).lean(); return successResponse(res, (await profileFromOrders(req.user.userId, user)).transactions); } catch (error) { next(error); } });
 router.get("/tiers", (_req, res) => successResponse(res, tiers.map(([id, nameVi, minPoints]) => ({ id, nameVi, minPoints }))));
-router.get("/admin/stats", protectedRoute, adminOnly, async (_req, res, next) => { try { const users = await User.find({}).select("_id fullName email phone").lean(); const profiles = await Promise.all(users.map((user) => profileFromOrders(user._id, user))); return successResponse(res, { totalMembers: profiles.length, activeBalance: profiles.reduce((sum, item) => sum + item.currentBalance, 0), profiles }); } catch (error) { next(error); } });
-router.get("/admin/customers", protectedRoute, adminOnly, async (_req, res, next) => { try { const users = await User.find({}).select("_id fullName email phone").lean(); return successResponse(res, await Promise.all(users.map((user) => profileFromOrders(user._id, user)))); } catch (error) { next(error); } });
-router.get("/admin/transactions", protectedRoute, adminOnly, async (_req, res, next) => { try { const users = await User.find({}).select("_id fullName email phone").lean(); const profiles = await Promise.all(users.map((user) => profileFromOrders(user._id, user))); return successResponse(res, profiles.flatMap((profile) => profile.transactions)); } catch (error) { next(error); } });
+router.get("/admin/stats", protectedRoute, staffOrAdmin, async (_req, res, next) => { try { const users = await User.find({}).select("_id fullName email phone").lean(); const profiles = await Promise.all(users.map((user) => profileFromOrders(user._id, user))); return successResponse(res, { totalMembers: profiles.length, activeBalance: profiles.reduce((sum, item) => sum + item.currentBalance, 0), profiles }); } catch (error) { next(error); } });
+router.get("/admin/customers", protectedRoute, staffOrAdmin, async (_req, res, next) => { try { const users = await User.find({}).select("_id fullName email phone").lean(); return successResponse(res, await Promise.all(users.map((user) => profileFromOrders(user._id, user)))); } catch (error) { next(error); } });
+router.get("/admin/transactions", protectedRoute, staffOrAdmin, async (_req, res, next) => { try { const users = await User.find({}).select("_id fullName email phone").lean(); const profiles = await Promise.all(users.map((user) => profileFromOrders(user._id, user))); return successResponse(res, profiles.flatMap((profile) => profile.transactions)); } catch (error) { next(error); } });
 router.put("/admin/tiers", protectedRoute, adminOnly, (_req, res) => successResponse(res, tiers.map(([id, nameVi, minPoints]) => ({ id, nameVi, minPoints })), "Tier configuration is read-only in this release"));
 
 export default router;

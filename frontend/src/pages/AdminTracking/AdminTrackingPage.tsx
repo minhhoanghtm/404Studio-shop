@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { AdminLayout } from '../Admin/AdminLayout';
 import { TrackingNav } from './components/TrackingNav';
 import { AnalyticsExportButton } from '@/shared/components/excel/AnalyticsExportButton';
+import { TablePagination } from '@/shared/components/TablePagination';
 import {
   adminTrackingApi,
   TrackingOverviewMetrics,
@@ -91,6 +92,34 @@ export const AdminTrackingPage: React.FC = () => {
 
   const maxEventCount = eventStatsList.length > 0 ? Math.max(...eventStatsList.map((e) => e.count)) : 1;
 
+  // Table Pagination States (Max 10 rows per page)
+  const [pageEvents, setPageEvents] = useState(1);
+  const [pageProducts, setPageProducts] = useState(1);
+  const [pageSearches, setPageSearches] = useState(1);
+
+  useEffect(() => {
+    setPageEvents(1);
+    setPageProducts(1);
+    setPageSearches(1);
+  }, [dateRange]);
+
+  const paginatedEventStats = useMemo(() => {
+    const start = (pageEvents - 1) * 10;
+    return eventStatsList.slice(start, start + 10);
+  }, [eventStatsList, pageEvents]);
+
+  const paginatedProducts = useMemo(() => {
+    const list = overview?.topViewedProducts || [];
+    const start = (pageProducts - 1) * 10;
+    return list.slice(start, start + 10);
+  }, [overview?.topViewedProducts, pageProducts]);
+
+  const paginatedSearches = useMemo(() => {
+    const list = overview?.topSearches || [];
+    const start = (pageSearches - 1) * 10;
+    return list.slice(start, start + 10);
+  }, [overview?.topSearches, pageSearches]);
+
   return (
     <AdminLayout
       title="Bảng Phân Tích Hành Vi & Tracking Người Dùng"
@@ -105,14 +134,14 @@ export const AdminTrackingPage: React.FC = () => {
           <div className="flex items-center gap-2">
             <Calendar className="w-4 h-4 text-[var(--accent)] shrink-0" />
             <span className="text-xs uppercase tracking-wider text-[var(--text-muted)] font-medium">Khoảng thời gian:</span>
-            <div className="flex items-center p-1 bg-[var(--bg-card-muted)] border border-[var(--border)] rounded-sm text-xs">
+            <div className="flex items-center p-1 bg-[var(--bg-card-muted)] border border-[var(--border)] rounded-lg text-xs">
               <button
                 type="button"
                 onClick={() => setDateRange('today')}
-                className={`px-3 py-1 rounded-sm uppercase tracking-wider text-[11px] font-medium transition-colors ${
+                className={`px-3 py-1 rounded-md uppercase tracking-wider text-[11px] font-medium border transition-all duration-200 cursor-pointer ${
                   dateRange === 'today'
-                    ? 'bg-[var(--accent)] text-[var(--accent-contrast)] font-semibold'
-                    : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                    ? 'bg-[var(--accent)] text-[var(--accent-contrast)] font-bold border-[var(--accent)] shadow-md shadow-[var(--accent)]/20'
+                    : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--border)] hover:bg-[var(--table-row-hover)] hover:shadow-sm active:scale-95'
                 }`}
               >
                 Hôm Nay
@@ -120,10 +149,10 @@ export const AdminTrackingPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setDateRange('7days')}
-                className={`px-3 py-1 rounded-sm uppercase tracking-wider text-[11px] font-medium transition-colors ${
+                className={`px-3 py-1 rounded-md uppercase tracking-wider text-[11px] font-medium border transition-all duration-200 cursor-pointer ${
                   dateRange === '7days'
-                    ? 'bg-[var(--accent)] text-[var(--accent-contrast)] font-semibold'
-                    : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                    ? 'bg-[var(--accent)] text-[var(--accent-contrast)] font-bold border-[var(--accent)] shadow-md shadow-[var(--accent)]/20'
+                    : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--border)] hover:bg-[var(--table-row-hover)] hover:shadow-sm active:scale-95'
                 }`}
               >
                 7 Ngày Qua
@@ -131,10 +160,10 @@ export const AdminTrackingPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setDateRange('30days')}
-                className={`px-3 py-1 rounded-sm uppercase tracking-wider text-[11px] font-medium transition-colors ${
+                className={`px-3 py-1 rounded-md uppercase tracking-wider text-[11px] font-medium border transition-all duration-200 cursor-pointer ${
                   dateRange === '30days'
-                    ? 'bg-[var(--accent)] text-[var(--accent-contrast)] font-semibold'
-                    : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                    ? 'bg-[var(--accent)] text-[var(--accent-contrast)] font-bold border-[var(--accent)] shadow-md shadow-[var(--accent)]/20'
+                    : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--border)] hover:bg-[var(--table-row-hover)] hover:shadow-sm active:scale-95'
                 }`}
               >
                 30 Ngày Qua
@@ -142,10 +171,10 @@ export const AdminTrackingPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setDateRange('all')}
-                className={`px-3 py-1 rounded-sm uppercase tracking-wider text-[11px] font-medium transition-colors ${
+                className={`px-3 py-1 rounded-md uppercase tracking-wider text-[11px] font-medium border transition-all duration-200 cursor-pointer ${
                   dateRange === 'all'
-                    ? 'bg-[var(--accent)] text-[var(--accent-contrast)] font-semibold'
-                    : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                    ? 'bg-[var(--accent)] text-[var(--accent-contrast)] font-bold border-[var(--accent)] shadow-md shadow-[var(--accent)]/20'
+                    : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--border)] hover:bg-[var(--table-row-hover)] hover:shadow-sm active:scale-95'
                 }`}
               >
                 Toàn Bộ
@@ -162,7 +191,7 @@ export const AdminTrackingPage: React.FC = () => {
               type="button"
               onClick={() => fetchData()}
               disabled={loading}
-              className="p-2 border border-[var(--border)] hover:border-[var(--accent)] text-[var(--text-muted)] hover:text-[var(--accent)] rounded-sm transition-colors bg-[var(--bg-card-muted)]"
+              className="p-2 border border-[var(--border)] hover:border-[var(--accent)] text-[var(--text-muted)] hover:text-[var(--accent)] rounded-lg transition-all duration-200 bg-[var(--bg-card-muted)] shadow-xs hover:shadow-sm hover:-translate-y-0.5 active:translate-y-0 active:scale-95 active:shadow-inner cursor-pointer"
               title="Cập nhật lại số liệu"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -215,7 +244,7 @@ export const AdminTrackingPage: React.FC = () => {
             <button
               type="button"
               onClick={() => fetchData()}
-              className="px-3 py-1 bg-red-500/20 border border-red-500/40 rounded uppercase text-[10px]"
+              className="px-3 py-1 bg-red-500/20 border border-red-500/40 rounded-lg uppercase text-[10px] font-mono font-bold shadow-xs hover:shadow-sm active:scale-95 cursor-pointer"
             >
               Thử lại
             </button>
@@ -224,7 +253,7 @@ export const AdminTrackingPage: React.FC = () => {
 
         {/* Key KPI Metric Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          <div className="p-5 rounded-sm bg-[var(--bg-card)] border border-[var(--border)] flex flex-col justify-between shadow-sm">
+          <div className="p-5 rounded-sm bg-[var(--bg-card)] border border-[var(--border)] dark:border-white/10 flex flex-col justify-between shadow-sm hover:shadow-md hover:border-[var(--accent)]/60 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] transition-all duration-200 cursor-default">
             <span className="text-[11px] font-mono uppercase tracking-widest text-[var(--text-muted)]">
               Tổng Sự Kiện Thu Thập
             </span>
@@ -239,7 +268,7 @@ export const AdminTrackingPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="p-5 rounded-sm bg-[var(--bg-card)] border border-[var(--border)] flex flex-col justify-between shadow-sm">
+          <div className="p-5 rounded-sm bg-[var(--bg-card)] border border-[var(--border)] dark:border-white/10 flex flex-col justify-between shadow-sm hover:shadow-md hover:border-[var(--accent)]/60 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] transition-all duration-200 cursor-default">
             <span className="text-[11px] font-mono uppercase tracking-widest text-[var(--text-muted)]">
               Người Dùng Tương Tác
             </span>
@@ -254,7 +283,7 @@ export const AdminTrackingPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="p-5 rounded-sm bg-[var(--bg-card)] border border-[var(--border)] flex flex-col justify-between shadow-sm">
+          <div className="p-5 rounded-sm bg-[var(--bg-card)] border border-[var(--border)] dark:border-white/10 flex flex-col justify-between shadow-sm hover:shadow-md hover:border-[var(--accent)]/60 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] transition-all duration-200 cursor-default">
             <span className="text-[11px] font-mono uppercase tracking-widest text-[var(--text-muted)]">
               Phiên Truy Cập Hệ Thống
             </span>
@@ -269,7 +298,7 @@ export const AdminTrackingPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="p-5 rounded-sm bg-[var(--bg-card)] border border-[var(--border)] flex flex-col justify-between shadow-sm">
+          <div className="p-5 rounded-sm bg-[var(--bg-card)] border border-[var(--border)] dark:border-white/10 flex flex-col justify-between shadow-sm hover:shadow-md hover:border-[var(--accent)]/60 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] transition-all duration-200 cursor-default">
             <span className="text-[11px] font-mono uppercase tracking-widest text-[var(--text-muted)]">
               Tỷ Lệ Nhấp Gợi Ý (CTR)
             </span>
@@ -286,7 +315,7 @@ export const AdminTrackingPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="p-5 rounded-sm bg-[var(--bg-card)] border border-[var(--border)] flex flex-col justify-between shadow-sm">
+          <div className="p-5 rounded-sm bg-[var(--bg-card)] border border-[var(--border)] dark:border-white/10 flex flex-col justify-between shadow-sm hover:shadow-md hover:border-[var(--accent)]/60 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] transition-all duration-200 cursor-default">
             <span className="text-[11px] font-mono uppercase tracking-widest text-[var(--text-muted)]">
               Stylist AI Tương Tác
             </span>
@@ -307,52 +336,63 @@ export const AdminTrackingPage: React.FC = () => {
         {/* Charts & Analytics Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Chart 1: Event Volume by Type */}
-          <div className="p-6 bg-[var(--bg-card)] border border-[var(--border)] rounded-sm space-y-4 shadow-sm">
-            <div className="flex items-center justify-between pb-3 border-b border-[var(--border)]">
-              <div className="flex items-center gap-2">
-                <Activity className="w-4 h-4 text-[var(--accent)]" />
-                <h3 className="text-xs uppercase tracking-wider text-[var(--text-primary)] font-semibold">
-                  Phân Bổ Khối Lượng Sự Kiện Hệ Thống
-                </h3>
+          <div className="p-6 bg-[var(--bg-card)] border border-[var(--border)] dark:border-white/10 rounded-sm shadow-sm hover:shadow-md hover:border-[var(--accent)]/40 transition-all duration-200 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between pb-3 border-b border-[var(--border)]">
+                <div className="flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-[var(--accent)]" />
+                  <h3 className="text-xs uppercase tracking-wider text-[var(--text-primary)] font-semibold">
+                    Phân Bổ Khối Lượng Sự Kiện Hệ Thống
+                  </h3>
+                </div>
+                <span className="text-[11px] font-mono text-[var(--text-muted)]">
+                  {eventStatsList.length} Loại sự kiện
+                </span>
               </div>
-              <span className="text-[11px] font-mono text-[var(--text-muted)]">
-                {eventStatsList.length} Loại sự kiện
-              </span>
-            </div>
 
-            {loading ? (
-              <div className="py-12 text-center text-xs text-[var(--text-muted)]">Đang tổng hợp dữ liệu sự kiện...</div>
-            ) : eventStatsList.length === 0 ? (
-              <div className="py-12 text-center text-xs text-[var(--text-muted)]">Không có sự kiện nào trong khoảng thời gian này.</div>
-            ) : (
-              <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
-                {eventStatsList.map((item) => {
-                  const percentage = Math.round((item.count / (overview?.totalEvents || 1)) * 100);
-                  const barWidth = Math.round((item.count / maxEventCount) * 100);
-                  return (
-                    <div key={item.type} className="space-y-1">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="font-mono text-[var(--text-primary)] truncate max-w-xs">{item.type}</span>
-                        <div className="flex items-center gap-2 font-mono text-[11px]">
-                          <span className="text-[var(--accent)] font-semibold">{item.count.toLocaleString('vi-VN')}</span>
-                          <span className="text-[var(--text-muted)]">({percentage}%)</span>
+              {loading ? (
+                <div className="py-12 text-center text-xs text-[var(--text-muted)]">Đang tổng hợp dữ liệu sự kiện...</div>
+              ) : eventStatsList.length === 0 ? (
+                <div className="py-12 text-center text-xs text-[var(--text-muted)]">Không có sự kiện nào trong khoảng thời gian này.</div>
+              ) : (
+                <div className="space-y-3 pt-3">
+                  {paginatedEventStats.map((item) => {
+                    const percentage = Math.round((item.count / (overview?.totalEvents || 1)) * 100);
+                    const barWidth = Math.round((item.count / maxEventCount) * 100);
+                    return (
+                      <div key={item.type} className="space-y-1">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-mono text-[var(--text-primary)] truncate max-w-xs">{item.type}</span>
+                          <div className="flex items-center gap-2 font-mono text-[11px]">
+                            <span className="text-[var(--accent)] font-semibold">{item.count.toLocaleString('vi-VN')}</span>
+                            <span className="text-[var(--text-muted)]">({percentage}%)</span>
+                          </div>
+                        </div>
+                        <div className="w-full h-2 bg-[var(--track-bar)] rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-[var(--accent)] rounded-full transition-all duration-500"
+                            style={{ width: `${Math.max(barWidth, 2)}%` }}
+                          />
                         </div>
                       </div>
-                      <div className="w-full h-2 bg-[var(--track-bar)] rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-[var(--accent)] rounded-full transition-all duration-500"
-                          style={{ width: `${Math.max(barWidth, 2)}%` }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <TablePagination
+              currentPage={pageEvents}
+              totalItems={eventStatsList.length}
+              pageSize={10}
+              onPageChange={setPageEvents}
+              itemName="loại sự kiện"
+              className="-mx-6 -mb-6 mt-4"
+            />
           </div>
 
           {/* Chart 2: Sequential Cohort Conversion Funnel */}
-          <div className="p-6 bg-[var(--bg-card)] border border-[var(--border)] rounded-sm space-y-4 shadow-sm">
+          <div className="p-6 bg-[var(--bg-card)] border border-[var(--border)] dark:border-white/10 rounded-sm space-y-4 shadow-sm hover:shadow-md hover:border-[var(--accent)]/40 transition-all duration-200">
             <div className="flex items-center justify-between pb-3 border-b border-[var(--border)]">
               <div className="flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
@@ -382,7 +422,7 @@ export const AdminTrackingPage: React.FC = () => {
                   };
 
                   return (
-                    <div key={step.stage} className="space-y-1.5 p-3 rounded bg-[var(--bg-card-muted)] border border-[var(--border)]">
+                    <div key={step.stage} className="space-y-1.5 p-3 rounded-sm bg-[var(--bg-card-muted)] border border-[var(--border)] dark:border-white/10 hover:border-[var(--accent)]/50 hover:shadow-md transition-all duration-200">
                       <div className="flex items-center justify-between text-xs">
                         <span className="font-medium text-[var(--text-primary)]">{stageLabels[step.stage] || step.stage}</span>
                         <div className="flex items-center gap-3 font-mono text-xs">
@@ -415,86 +455,118 @@ export const AdminTrackingPage: React.FC = () => {
         {/* Tables: Top Viewed Products & Top Searches */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Top Viewed Products */}
-          <div className="p-6 bg-[var(--bg-card)] border border-[var(--border)] rounded-sm space-y-4 shadow-sm">
-            <div className="flex items-center justify-between pb-3 border-b border-[var(--border)]">
-              <div className="flex items-center gap-2">
-                <Eye className="w-4 h-4 text-[var(--accent)]" />
-                <h3 className="text-xs uppercase tracking-wider text-[var(--text-primary)] font-semibold">
-                  Sản Phẩm Được Quan Tâm Nhất
-                </h3>
+          <div className="p-6 bg-[var(--bg-card)] border border-[var(--border)] dark:border-white/10 rounded-sm shadow-sm hover:shadow-md hover:border-[var(--accent)]/40 transition-all duration-200 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between pb-3 border-b border-[var(--border)]">
+                <div className="flex items-center gap-2">
+                  <Eye className="w-4 h-4 text-[var(--accent)]" />
+                  <h3 className="text-xs uppercase tracking-wider text-[var(--text-primary)] font-semibold">
+                    Sản Phẩm Được Quan Tâm Nhất
+                  </h3>
+                </div>
+                <span className="text-[11px] font-mono text-[var(--text-muted)]">
+                  {overview?.topViewedProducts?.length || 0} Sản phẩm
+                </span>
               </div>
-              <span className="text-[11px] font-mono text-[var(--text-muted)]">Top 10 theo lượt xem</span>
+
+              {overview?.topViewedProducts && overview.topViewedProducts.length > 0 ? (
+                <div className="divide-y divide-[var(--border)]">
+                  {paginatedProducts.map((p, idx) => {
+                    const rank = (pageProducts - 1) * 10 + idx + 1;
+                    return (
+                      <div key={p._id || idx} className="py-3 flex items-center justify-between gap-3 text-xs">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <span className="font-mono text-[var(--text-muted)] text-xs w-5 font-bold">#{rank}</span>
+                          {p.image ? (
+                            <img
+                              src={p.image}
+                              alt={p.name}
+                              className="w-10 h-10 object-cover rounded-sm border border-[var(--border)] shrink-0"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 bg-[var(--bg-card-muted)] rounded-sm border border-[var(--border)] flex items-center justify-center text-[var(--text-muted)] shrink-0">
+                              <ShoppingBag className="w-4 h-4" />
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <h4 className="text-[var(--text-primary)] font-medium truncate">{p.name || 'Sản phẩm Atelier'}</h4>
+                            <p className="text-[11px] font-mono text-[var(--accent)]">{formatPrice(p.price)}</p>
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className="font-mono text-sm text-[var(--text-primary)] font-semibold">
+                            {p.views?.toLocaleString('vi-VN')}
+                          </span>
+                          <span className="block text-[10px] text-[var(--text-muted)] font-mono">lượt xem</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-xs text-[var(--text-muted)] italic py-8 text-center">
+                  Chưa ghi nhận sự kiện xem sản phẩm nào.
+                </p>
+              )}
             </div>
 
-            {overview?.topViewedProducts && overview.topViewedProducts.length > 0 ? (
-              <div className="divide-y divide-[var(--border)]">
-                {overview.topViewedProducts.map((p, idx) => (
-                  <div key={p._id || idx} className="py-3 flex items-center justify-between gap-3 text-xs">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <span className="font-mono text-[var(--text-muted)] text-xs w-4">#{idx + 1}</span>
-                      {p.image ? (
-                        <img
-                          src={p.image}
-                          alt={p.name}
-                          className="w-10 h-10 object-cover rounded-sm border border-[var(--border)] shrink-0"
-                        />
-                      ) : (
-                        <div className="w-10 h-10 bg-[var(--bg-card-muted)] rounded-sm border border-[var(--border)] flex items-center justify-center text-[var(--text-muted)] shrink-0">
-                          <ShoppingBag className="w-4 h-4" />
-                        </div>
-                      )}
-                      <div className="min-w-0">
-                        <h4 className="text-[var(--text-primary)] font-medium truncate">{p.name || 'Sản phẩm Atelier'}</h4>
-                        <p className="text-[11px] font-mono text-[var(--accent)]">{formatPrice(p.price)}</p>
-                      </div>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <span className="font-mono text-sm text-[var(--text-primary)] font-semibold">
-                        {p.views?.toLocaleString('vi-VN')}
-                      </span>
-                      <span className="block text-[10px] text-[var(--text-muted)] font-mono">lượt xem</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-xs text-[var(--text-muted)] italic py-8 text-center">
-                Chưa ghi nhận sự kiện xem sản phẩm nào.
-              </p>
-            )}
+            <TablePagination
+              currentPage={pageProducts}
+              totalItems={overview?.topViewedProducts?.length || 0}
+              pageSize={10}
+              onPageChange={setPageProducts}
+              itemName="sản phẩm"
+              className="-mx-6 -mb-6 mt-4"
+            />
           </div>
 
           {/* Top Searches */}
-          <div className="p-6 bg-[var(--bg-card)] border border-[var(--border)] rounded-sm space-y-4 shadow-sm">
-            <div className="flex items-center justify-between pb-3 border-b border-[var(--border)]">
-              <div className="flex items-center gap-2">
-                <Search className="w-4 h-4 text-[var(--accent)]" />
-                <h3 className="text-xs uppercase tracking-wider text-[var(--text-primary)] font-semibold">
-                  Xu Hướng Tìm Kiếm Phổ Biến
-                </h3>
+          <div className="p-6 bg-[var(--bg-card)] border border-[var(--border)] dark:border-white/10 rounded-sm shadow-sm hover:shadow-md hover:border-[var(--accent)]/40 transition-all duration-200 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between pb-3 border-b border-[var(--border)]">
+                <div className="flex items-center gap-2">
+                  <Search className="w-4 h-4 text-[var(--accent)]" />
+                  <h3 className="text-xs uppercase tracking-wider text-[var(--text-primary)] font-semibold">
+                    Xu Hướng Tìm Kiếm Phổ Biến
+                  </h3>
+                </div>
+                <span className="text-[11px] font-mono text-[var(--text-muted)]">
+                  {overview?.topSearches?.length || 0} Từ khóa
+                </span>
               </div>
-              <span className="text-[11px] font-mono text-[var(--text-muted)]">Từ khóa thực tế</span>
+
+              {overview?.topSearches && overview.topSearches.length > 0 ? (
+                <div className="divide-y divide-[var(--border)]">
+                  {paginatedSearches.map((s, idx) => {
+                    const rank = (pageSearches - 1) * 10 + idx + 1;
+                    return (
+                      <div key={idx} className="py-3 flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-3">
+                          <span className="font-mono text-[var(--text-muted)] text-xs w-5 font-bold">#{rank}</span>
+                          <span className="font-medium text-[var(--text-primary)]">"{s.query}"</span>
+                        </div>
+                        <span className="font-mono text-[var(--accent)] font-semibold">
+                          {s.count?.toLocaleString('vi-VN')} lượt
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-xs text-[var(--text-muted)] italic py-8 text-center">
+                  Chưa ghi nhận lượt tìm kiếm nào trong khoảng thời gian này.
+                </p>
+              )}
             </div>
 
-            {overview?.topSearches && overview.topSearches.length > 0 ? (
-              <div className="divide-y divide-[var(--border)]">
-                {overview.topSearches.map((s, idx) => (
-                  <div key={idx} className="py-3 flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-3">
-                      <span className="font-mono text-[var(--text-muted)] text-xs w-4">#{idx + 1}</span>
-                      <span className="font-medium text-[var(--text-primary)]">"{s.query}"</span>
-                    </div>
-                    <span className="font-mono text-[var(--accent)] font-semibold">
-                      {s.count?.toLocaleString('vi-VN')} lượt
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-xs text-[var(--text-muted)] italic py-8 text-center">
-                Chưa ghi nhận lượt tìm kiếm nào trong khoảng thời gian này.
-              </p>
-            )}
+            <TablePagination
+              currentPage={pageSearches}
+              totalItems={overview?.topSearches?.length || 0}
+              pageSize={10}
+              onPageChange={setPageSearches}
+              itemName="từ khóa"
+              className="-mx-6 -mb-6 mt-4"
+            />
           </div>
         </div>
 

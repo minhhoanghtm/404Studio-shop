@@ -19,7 +19,11 @@ import { useAuthStore } from './shared/stores/useAuthStore';
 import { useToastStore } from './shared/stores/useToastStore';
 import { ProtectedRoute } from './shared/components/ProtectedRoute';
 import { setupMultiTabAuthSync } from './shared/utils/authSync';
-import { Sparkles } from 'lucide-react';
+import { usePresenceTracker } from './shared/tracking';
+import { useHeaderScroll } from './shared/hooks/useHeaderScroll';
+import { MaintenancePage } from './pages/Maintenance';
+import { useWebsiteSettingsStore } from './shared/stores/useWebsiteSettingsStore';
+import { Sparkles, ShieldAlert } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
 
 // Direct import for immediate zero-latency hero rendering
@@ -88,6 +92,7 @@ const AdminLoyaltyPage = lazy(() => import('./pages/Admin').then(m => ({ default
 const AdminLoyaltyCustomersPage = lazy(() => import('./pages/Admin').then(m => ({ default: m.AdminLoyaltyCustomersPage })));
 const AdminLoyaltyTransactionsPage = lazy(() => import('./pages/Admin').then(m => ({ default: m.AdminLoyaltyTransactionsPage })));
 const AdminLoyaltySettingsPage = lazy(() => import('./pages/Admin').then(m => ({ default: m.AdminLoyaltySettingsPage })));
+const AdminAiWorkspacePage = lazy(() => import('./pages/Admin').then(m => ({ default: m.AdminAiWorkspacePage })));
 
 // Admin Enterprise Policy Management Pages
 const AdminPoliciesPage = lazy(() => import('./pages/AdminPolicies').then(m => ({ default: m.AdminPoliciesPage })));
@@ -177,14 +182,52 @@ const RootLayout: React.FC = () => {
   const location = useLocation();
   const isHomeRoute = location.pathname === '/';
   const validateCartWithBackend = useCartStore((s) => s.validateCartWithBackend);
+  const isHeaderVisible = useHeaderScroll();
+
+  const { maintenanceMode } = useWebsiteSettingsStore();
+  const { user, isAuthenticated } = useAuthStore();
+  const isAdmin = isAuthenticated && user?.role === 'admin';
 
   useEffect(() => {
-    void validateCartWithBackend();
-  }, [validateCartWithBackend]);
+    if (!maintenanceMode || isAdmin) {
+      void validateCartWithBackend();
+    }
+  }, [validateCartWithBackend, maintenanceMode, isAdmin]);
+
+  useEffect(() => {
+    const handleOpenAi = () => {
+      setIsAiOpen(true);
+    };
+    window.addEventListener('open-stylist-ai', handleOpenAi);
+    return () => window.removeEventListener('open-stylist-ai', handleOpenAi);
+  }, []);
+
+  // If maintenance mode is active and user is NOT an admin: show MaintenancePage
+  if (maintenanceMode && !isAdmin) {
+    return <MaintenancePage />;
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-[var(--bg)] text-[var(--text)] selection:bg-[var(--accent)]/30 selection:text-[var(--text)] relative transition-colors duration-300">
-      <div className="site-chrome">
+      {/* Admin Notice Banner when maintenance is active */}
+      {maintenanceMode && isAdmin && (
+        <div className="bg-amber-600 dark:bg-amber-700 text-white px-4 py-2 text-xs font-mono flex flex-wrap items-center justify-between gap-2 shadow-md z-[9999] relative">
+          <div className="flex items-center gap-2">
+            <span className="inline-block w-2 h-2 rounded-full bg-red-400 animate-pulse" />
+            <span>
+              <strong>CHẾ ĐỘ BẢO TRÌ ĐANG BẬT:</strong> Toàn bộ khách vãng lai và thành viên thông thường đều thấy màn hình bảo trì. Chỉ Quản trị viên mới xem được nội dung.
+            </span>
+          </div>
+          <a
+            href="/admin/settings"
+            className="bg-white/20 hover:bg-white/30 text-white px-2.5 py-1 rounded text-[11px] underline transition-colors"
+          >
+            Cấu hình / Tắt bảo trì →
+          </a>
+        </div>
+      )}
+
+      <div className={`site-chrome ${isHeaderVisible ? 'site-chrome-visible' : 'site-chrome-hidden'}`}>
         <AnnouncementBar />
         <Header />
       </div>
@@ -223,8 +266,13 @@ const RootLayout: React.FC = () => {
 const AppInitializer: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const hydrateSession = useAuthStore((s) => s.hydrateSession);
 
+  // Global Real-Time Redis Presence Tracking (Guest & Authenticated User)
+  usePresenceTracker();
+
   useEffect(() => {
     void hydrateSession();
+    void useWebsiteSettingsStore.getState().fetchSettings();
+    const unsubSettings = useWebsiteSettingsStore.getState().initSocketListener();
 
     // Global 403 Forbidden Toast Listener
     const handleForbidden = (e: any) => {
@@ -236,6 +284,17 @@ const AppInitializer: React.FC<{ children: React.ReactNode }> = ({ children }) =
         );
     };
     window.addEventListener('auth:forbidden', handleForbidden);
+
+    // Global 503 Maintenance Listener
+    const handleMaintenance = (e: any) => {
+      const detail = e.detail;
+      useWebsiteSettingsStore.getState().setMaintenanceState(
+        true,
+        detail?.message,
+        detail?.maintenanceUntil
+      );
+    };
+    window.addEventListener('app:maintenance', handleMaintenance);
 
     const cleanup = setupMultiTabAuthSync(
       () => {
@@ -255,6 +314,8 @@ const AppInitializer: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
     return () => {
       window.removeEventListener('auth:forbidden', handleForbidden);
+      window.removeEventListener('app:maintenance', handleMaintenance);
+      unsubSettings();
       cleanup();
     };
   }, [hydrateSession]);
@@ -372,9 +433,11 @@ const AppRoutes: React.FC = () => {
                 <Route
                   path="roles"
                   element={
-                    <Suspense fallback={<PageLoadingFallback />}>
-                      <AdminRolesPage />
-                    </Suspense>
+                    <ProtectedRoute allowedRoles={['admin']}>
+                      <Suspense fallback={<PageLoadingFallback />}>
+                        <AdminRolesPage />
+                      </Suspense>
+                    </ProtectedRoute>
                   }
                 />
                 <Route
@@ -382,6 +445,14 @@ const AppRoutes: React.FC = () => {
                   element={
                     <Suspense fallback={<PageLoadingFallback />}>
                       <AdminDashboardPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="ai-assistant"
+                  element={
+                    <Suspense fallback={<PageLoadingFallback />}>
+                      <AdminAiWorkspacePage />
                     </Suspense>
                   }
                 />
@@ -444,9 +515,11 @@ const AppRoutes: React.FC = () => {
                 <Route
                   path="settings"
                   element={
-                    <Suspense fallback={<PageLoadingFallback />}>
-                      <AdminSettingsPage />
-                    </Suspense>
+                    <ProtectedRoute allowedRoles={['admin']}>
+                      <Suspense fallback={<PageLoadingFallback />}>
+                        <AdminSettingsPage />
+                      </Suspense>
+                    </ProtectedRoute>
                   }
                 />
                 <Route
@@ -486,9 +559,11 @@ const AppRoutes: React.FC = () => {
                 <Route
                   path="loyalty/settings"
                   element={
-                    <Suspense fallback={<PageLoadingFallback />}>
-                      <AdminLoyaltySettingsPage />
-                    </Suspense>
+                    <ProtectedRoute allowedRoles={['admin']}>
+                      <Suspense fallback={<PageLoadingFallback />}>
+                        <AdminLoyaltySettingsPage />
+                      </Suspense>
+                    </ProtectedRoute>
                   }
                 />
 
@@ -560,71 +635,87 @@ const AppRoutes: React.FC = () => {
                   }
                 />
 
-                {/* Admin Policy Management Routes */}
+                {/* Admin Policy Management Routes (Admin Only) */}
                 <Route
                   path="policies"
                   element={
-                    <Suspense fallback={<PageLoadingFallback />}>
-                      <AdminPoliciesPage />
-                    </Suspense>
+                    <ProtectedRoute allowedRoles={['admin']}>
+                      <Suspense fallback={<PageLoadingFallback />}>
+                        <AdminPoliciesPage />
+                      </Suspense>
+                    </ProtectedRoute>
                   }
                 />
                 <Route
                   path="policies/new"
                   element={
-                    <Suspense fallback={<PageLoadingFallback />}>
-                      <AdminPolicyCreatePage />
-                    </Suspense>
+                    <ProtectedRoute allowedRoles={['admin']}>
+                      <Suspense fallback={<PageLoadingFallback />}>
+                        <AdminPolicyCreatePage />
+                      </Suspense>
+                    </ProtectedRoute>
                   }
                 />
                 <Route
                   path="policies/:id/edit"
                   element={
-                    <Suspense fallback={<PageLoadingFallback />}>
-                      <AdminPolicyEditPage />
-                    </Suspense>
+                    <ProtectedRoute allowedRoles={['admin']}>
+                      <Suspense fallback={<PageLoadingFallback />}>
+                        <AdminPolicyEditPage />
+                      </Suspense>
+                    </ProtectedRoute>
                   }
                 />
                 <Route
                   path="policies/:id/history"
                   element={
-                    <Suspense fallback={<PageLoadingFallback />}>
-                      <AdminPolicyHistoryPage />
-                    </Suspense>
+                    <ProtectedRoute allowedRoles={['admin']}>
+                      <Suspense fallback={<PageLoadingFallback />}>
+                        <AdminPolicyHistoryPage />
+                      </Suspense>
+                    </ProtectedRoute>
                   }
                 />
 
-                {/* Admin User Tracking & Behavioral Analytics Routes */}
+                {/* Admin User Tracking & Behavioral Analytics Routes (Admin Only) */}
                 <Route
                   path="tracking"
                   element={
-                    <Suspense fallback={<PageLoadingFallback />}>
-                      <AdminTrackingPage />
-                    </Suspense>
+                    <ProtectedRoute allowedRoles={['admin']}>
+                      <Suspense fallback={<PageLoadingFallback />}>
+                        <AdminTrackingPage />
+                      </Suspense>
+                    </ProtectedRoute>
                   }
                 />
                 <Route
                   path="tracking/users"
                   element={
-                    <Suspense fallback={<PageLoadingFallback />}>
-                      <AdminTrackingUsersPage />
-                    </Suspense>
+                    <ProtectedRoute allowedRoles={['admin']}>
+                      <Suspense fallback={<PageLoadingFallback />}>
+                        <AdminTrackingUsersPage />
+                      </Suspense>
+                    </ProtectedRoute>
                   }
                 />
                 <Route
                   path="tracking/events"
                   element={
-                    <Suspense fallback={<PageLoadingFallback />}>
-                      <AdminTrackingEventsPage />
-                    </Suspense>
+                    <ProtectedRoute allowedRoles={['admin']}>
+                      <Suspense fallback={<PageLoadingFallback />}>
+                        <AdminTrackingEventsPage />
+                      </Suspense>
+                    </ProtectedRoute>
                   }
                 />
                 <Route
                   path="tracking/products"
                   element={
-                    <Suspense fallback={<PageLoadingFallback />}>
-                      <AdminTrackingProductsPage />
-                    </Suspense>
+                    <ProtectedRoute allowedRoles={['admin']}>
+                      <Suspense fallback={<PageLoadingFallback />}>
+                        <AdminTrackingProductsPage />
+                      </Suspense>
+                    </ProtectedRoute>
                   }
                 />
               </Route>

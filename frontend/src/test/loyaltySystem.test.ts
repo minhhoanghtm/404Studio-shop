@@ -14,6 +14,16 @@ import {
   computeLoyaltySystemStats,
   validateTierThresholds,
   TierDefinition,
+  getActiveMembershipTiers,
+  saveCustomMembershipTiers,
+  resetCustomMembershipTiers,
+  getManualAdjustments,
+  saveManualAdjustment,
+  removeManualAdjustment,
+  getLoyaltyAuditLogs,
+  addLoyaltyAuditLog,
+  getLoyaltyRuleConfig,
+  saveLoyaltyRuleConfig,
 } from '../shared/loyalty';
 import { evaluateSecurityPolicy } from '../shared/utils/aiSecurityGuard';
 
@@ -442,5 +452,108 @@ describe('Atelier Vérité — Customer Loyalty & 12-Tier Membership System Test
     expect(stats.tierDistribution['silver_1']).toBe(1);
     expect(stats.familyDistribution['bronze']).toBe(1);
     expect(stats.familyDistribution['silver']).toBe(1);
+  });
+
+  // 22. Custom tier threshold editing and validation
+  it('TC-22: Allows editing tier upgrade thresholds and validates strictly ascending hierarchy', () => {
+    // Reset to start clean
+    resetCustomMembershipTiers();
+    const original = getActiveMembershipTiers();
+    expect(original[1].minPoints).toBe(100);
+
+    // Valid update: Bronze II = 150 pts
+    const modified = original.map((t, i) => (i === 1 ? { ...t, minPoints: 150 } : t));
+    const saved = saveCustomMembershipTiers(modified);
+    expect(saved).toBe(true);
+
+    const updated = getActiveMembershipTiers();
+    expect(updated[1].minPoints).toBe(150);
+
+    // Invalid update: Silver I (500) reduced to 200 (less than Bronze III at 250)
+    const invalid = updated.map((t, i) => (t.id === 'silver_1' ? { ...t, minPoints: 200 } : t));
+    const failedSave = saveCustomMembershipTiers(invalid);
+    expect(failedSave).toBe(false);
+
+    // Clean up
+    resetCustomMembershipTiers();
+    expect(getActiveMembershipTiers()[1].minPoints).toBe(100);
+  });
+
+  // 23. Point revocation (thu hồi điểm) via manual adjustments
+  it('TC-23: Supports point revocation (thu hồi điểm) and correctly updates balance & tier', () => {
+    // Customer has 1 order yielding 600 points -> Silver I
+    const baseOrders = [
+      { _id: 'ord-rev-1', status: 'delivered', payment_status: 'paid', total_price: 6000000 },
+    ];
+
+    const profileBefore = buildCustomerLoyaltyProfile('cust-rev', baseOrders);
+    expect(profileBefore.currentBalance).toBe(600);
+    expect(profileBefore.currentTier.id).toBe('silver_1');
+
+    // Admin revokes 200 points (thu hồi điểm do hoàn trả hàng ngoài hệ thống)
+    const revocationTx = {
+      id: 'TX-REV-TEST-01',
+      customerId: 'cust-rev',
+      eventType: 'REFUND_REVERSAL' as const,
+      pointsDelta: -200,
+      previousBalance: 600,
+      newBalance: 400,
+      createdAt: new Date().toISOString(),
+      reason: 'Thu hồi điểm do hoàn hàng ngoài hệ thống',
+      idempotencyKey: 'adj-test-rev-1',
+      ruleVersion: 'v1.0',
+    };
+
+    const profileAfter = buildCustomerLoyaltyProfile('cust-rev', baseOrders, {
+      name: 'Khách Hàng Thu Hồi',
+      manualAdjustments: [revocationTx],
+    });
+
+    expect(profileAfter.currentBalance).toBe(400);
+    expect(profileAfter.reversedPoints).toBe(200);
+    expect(profileAfter.qualifyingPoints).toBe(400);
+    // 400 points corresponds to Bronze III (250 - 499)
+    expect(profileAfter.currentTier.id).toBe('bronze_3');
+    expect(profileAfter.currentTier.nameVi).toBe('Đồng III');
+  });
+
+  // 24. Audit logging for administrative loyalty actions
+  it('TC-24: Records and retrieves administrative loyalty audit logs', () => {
+    const newLog = addLoyaltyAuditLog({
+      adminName: 'Admin Vérité',
+      actionType: 'REVOKE_POINTS',
+      targetCustomerId: 'cust-01',
+      targetCustomerName: 'Nguyễn Văn A',
+      pointsDelta: -50,
+      reason: 'Thu hồi điểm thử nghiệm kiểm toán',
+    });
+
+    expect(newLog.id).toBeDefined();
+    expect(newLog.timestamp).toBeDefined();
+
+    const allLogs = getLoyaltyAuditLogs();
+    const found = allLogs.find((l) => l.id === newLog.id);
+    expect(found).toBeDefined();
+    expect(found?.pointsDelta).toBe(-50);
+    expect(found?.actionType).toBe('REVOKE_POINTS');
+  });
+
+  // 25. Rule configuration persistence
+  it('TC-25: Saves and retrieves loyalty rule configuration', () => {
+    const config = getLoyaltyRuleConfig();
+    expect(config.vndPerPoint).toBe(10000);
+
+    saveLoyaltyRuleConfig({
+      ...config,
+      vndPerPoint: 20000,
+      pointValueVnd: 200,
+    });
+
+    const updated = getLoyaltyRuleConfig();
+    expect(updated.vndPerPoint).toBe(20000);
+    expect(updated.pointValueVnd).toBe(200);
+
+    // Reset back to standard
+    saveLoyaltyRuleConfig(config);
   });
 });

@@ -1,6 +1,7 @@
 import authService from "./auth.service.js";
 import { successResponse } from "../../common/responses/index.js";
 import trackingService from "../tracking/tracking.service.js";
+import { getSystemSettings } from "../../common/utils/featureFlags.js";
 
 const REFRESH_TOKEN_TTL = 14 * 24 * 60 * 60 * 1000;
 
@@ -91,6 +92,19 @@ export const signIn = async (req, res, next) => {
 
     const { accessToken, refreshToken, user } = await authService.signIn(identifier, passWord, ip, ua);
 
+    // Maintenance Mode Guard: When maintenance mode is active, only admin role can sign in
+    const settings = await getSystemSettings();
+    if (settings?.maintenanceMode && user?.role !== "admin") {
+      return res.status(503).json({
+        success: false,
+        code: "MAINTENANCE",
+        message:
+          settings.maintenanceMessage ||
+          "Hệ thống đang trong chế độ bảo trì. Chỉ tài khoản Quản trị viên (Admin) mới có quyền truy cập.",
+        maintenanceUntil: settings.maintenanceUntil || null,
+      });
+    }
+
     const anonymousId = req.body.anonymous_id || req.headers["x-anonymous-id"];
     if (anonymousId && (user?.id || user?._id)) {
       trackingService
@@ -173,6 +187,19 @@ export const verifyLoginOtpController = async (req, res, next) => {
     const ip = req.ip || req.headers["x-forwarded-for"] || req.socket.remoteAddress;
     const ua = req.headers["user-agent"];
     const { accessToken, refreshToken, user } = await authService.verifyLoginOtp(phone, otp, ip, ua);
+
+    // Maintenance Mode Guard: When maintenance mode is active, only admin role can sign in
+    const settings = await getSystemSettings();
+    if (settings?.maintenanceMode && user?.role !== "admin") {
+      return res.status(503).json({
+        success: false,
+        code: "MAINTENANCE",
+        message:
+          settings.maintenanceMessage ||
+          "Hệ thống đang trong chế độ bảo trì. Chỉ tài khoản Quản trị viên (Admin) mới có quyền truy cập.",
+        maintenanceUntil: settings.maintenanceUntil || null,
+      });
+    }
 
     res.cookie("refreshToken", refreshToken, getCookieOptions(req));
 
@@ -340,6 +367,19 @@ export const signInWithGoogle = async (req, res, next) => {
     const ip = req.ip || req.headers["x-forwarded-for"] || req.socket.remoteAddress;
     const ua = req.headers["user-agent"];
     const { accessToken, refreshToken, user } = await authService.signInWithGoogle(idToken, ip, ua);
+
+    // Maintenance Mode Guard: When maintenance mode is active, only admin role can sign in
+    const settings = await getSystemSettings();
+    if (settings?.maintenanceMode && user?.role !== "admin") {
+      return res.status(503).json({
+        success: false,
+        code: "MAINTENANCE",
+        message:
+          settings.maintenanceMessage ||
+          "Hệ thống đang trong chế độ bảo trì. Chỉ tài khoản Quản trị viên (Admin) mới có quyền truy cập.",
+        maintenanceUntil: settings.maintenanceUntil || null,
+      });
+    }
 
     const anonymousId = req.body.anonymous_id || req.headers["x-anonymous-id"];
     if (anonymousId && (user?._id || user?.id)) {

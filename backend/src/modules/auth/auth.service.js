@@ -307,8 +307,8 @@ class AuthService {
       throw new AppError("Email, số điện thoại hoặc mật khẩu không chính xác.", 401);
     }
 
-    if (user.status === "blocked") {
-      const err = new AppError("Tài khoản của bạn đã bị khóa.", 403);
+    if (user.status === "blocked" || user.status === "locked" || user.isActive === false) {
+      const err = new AppError("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ với shop để giải quyết.", 403);
       err.code = "ACCOUNT_BLOCKED";
       throw err;
     }
@@ -374,8 +374,8 @@ class AuthService {
       throw err;
     }
 
-    if (user.status === "blocked") {
-      const err = new AppError("Tài khoản của bạn đã bị khóa.", 403);
+    if (user.status === "blocked" || user.status === "locked" || user.isActive === false) {
+      const err = new AppError("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ với shop để giải quyết.", 403);
       err.code = "ACCOUNT_BLOCKED";
       throw err;
     }
@@ -424,8 +424,8 @@ class AuthService {
       throw new AppError("Không tìm thấy người dùng.", 404);
     }
 
-    if (user.status === "blocked") {
-      throw new AppError("Tài khoản của bạn đã bị khóa.", 403);
+    if (user.status === "blocked" || user.status === "locked" || user.isActive === false) {
+      throw new AppError("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ với shop để giải quyết.", 403);
     }
 
     return await this.issueAuthSession(user, ip, ua);
@@ -473,7 +473,7 @@ class AuthService {
       return genericSuccess;
     }
 
-    if (user.status === "blocked") {
+    if (user.status === "blocked" || user.status === "locked" || user.isActive === false) {
       return genericSuccess; // Still return generic message to avoid leaking status
     }
 
@@ -754,10 +754,10 @@ class AuthService {
     const oldJti = parts[2];
 
     const user = await userRepository.findById(userId);
-    if (!user || user.status === "blocked") {
+    if (!user || user.status === "blocked" || user.status === "locked" || user.isActive === false) {
       await redis.del(sessionKey);
       await redis.del(`rt:${hashedRt}`);
-      const err = new AppError("Tài khoản không tồn tại hoặc đã bị khóa", 403);
+      const err = new AppError("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ với shop để giải quyết.", 403);
       err.code = "ACCOUNT_BLOCKED";
       throw err;
     }
@@ -1030,8 +1030,8 @@ class AuthService {
       };
     }
 
-    if (user.status === "blocked" || user.status === "locked") {
-      throw new AppError("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.", 403);
+    if (user.status === "blocked" || user.status === "locked" || user.isActive === false) {
+      throw new AppError("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ với shop để giải quyết.", 403);
     }
 
     // Token expires in 15 minutes
@@ -1133,8 +1133,8 @@ class AuthService {
         },
       });
     } else {
-      if (user.status === "blocked" || user.status === "locked") {
-        throw new AppError("Tài khoản của bạn đã bị khóa.", 403);
+      if (user.status === "blocked" || user.status === "locked" || user.isActive === false) {
+        throw new AppError("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ với shop để giải quyết.", 403);
       }
       let modified = false;
       if (!user.googleId && googleId) {

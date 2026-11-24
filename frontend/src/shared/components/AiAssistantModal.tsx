@@ -240,6 +240,19 @@ export const AiAssistantModal: React.FC<{ isOpen: boolean; onClose: () => void }
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
+  // Handle external open-stylist-ai custom events with prefilled prompt
+  useEffect(() => {
+    const handleCustomPrompt = (e: any) => {
+      const prompt = e?.detail?.prompt;
+      if (prompt) {
+        setAiInput(prompt);
+        setCurrentMode('ai');
+      }
+    };
+    window.addEventListener('open-stylist-ai', handleCustomPrompt);
+    return () => window.removeEventListener('open-stylist-ai', handleCustomPrompt);
+  }, []);
+
   // Fetch Staff Status & connect socket when modal opens
   useEffect(() => {
     if (!isOpen) return;
@@ -275,23 +288,47 @@ export const AiAssistantModal: React.FC<{ isOpen: boolean; onClose: () => void }
       if (!mounted) return;
       const { message } = payload;
       const convId = message.conversationId;
+      const isSystem =
+        message.senderType === 'system' ||
+        (message as any).messageType === 'system' ||
+        message.metadata?.action === 'staff_joined' ||
+        message.metadata?.action === 'conversation_closed' ||
+        message.metadata?.action === 'conversation_reopened';
 
       // Only handle if message belongs to current guest or user
       const isRelevant =
         convId === guestConversationId ||
+        (guestConversationId && convId === guestConversationId) ||
         message.senderGuestId === guestId ||
-        message.senderType === 'admin';
+        (payload.conversation && (
+          payload.conversation.guestId === guestId ||
+          (user && (
+            payload.conversation.customerId === ((user as any)?._id || (user as any)?.id) ||
+            payload.conversation.customerId?._id === ((user as any)?._id || (user as any)?.id)
+          ))
+        )) ||
+        (!guestConversationId && (isSystem || message.senderType === 'admin'));
 
       if (isRelevant) {
+        if (convId && !guestConversationId) {
+          setGuestConversationId(convId);
+          localStorage.setItem('atelier_chat_guest_conv_id', convId);
+        }
+
+        // If staff joined or messaged, automatically switch to staff mode
+        if (isSystem || message.senderType === 'admin') {
+          setCurrentMode('staff');
+        }
+
         const isFromAdmin = message.senderType === 'admin';
-        const role = isFromAdmin ? 'staff' : (message.senderType === 'user' ? 'user' : 'user');
+        const role: ChatMessage['role'] = isSystem ? 'system' : isFromAdmin ? 'staff' : 'user';
         const incomingId = String(message._id || message.id || `m_${Date.now()}`);
         const clientMessageId = message.clientMessageId;
 
         const newMsg: ChatMessage = {
           id: incomingId,
           clientMessageId,
-          role: role as any,
+          role,
           text: message.content,
           timestamp: new Date(message.createdAt || Date.now()).toLocaleTimeString('vi-VN', {
             hour: '2-digit',
@@ -326,6 +363,34 @@ export const AiAssistantModal: React.FC<{ isOpen: boolean; onClose: () => void }
       }
     });
 
+    // Listen to staff:joined event specifically
+    const unsubStaffJoined = socketService.onStaffJoined((data) => {
+      if (!mounted) return;
+      const isMatch = !guestConversationId || data.conversationId === guestConversationId;
+      if (isMatch) {
+        setCurrentMode('staff');
+        if (data.conversationId && !guestConversationId) {
+          setGuestConversationId(data.conversationId);
+          localStorage.setItem('atelier_chat_guest_conv_id', data.conversationId);
+        }
+        const text = data.message || `${data.staffName || 'Nhân viên'} đã tham gia cuộc trò chuyện`;
+        const time = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+
+        setStaffMessages((prev) => {
+          if (prev.some((m) => m.role === 'system' && m.text === text)) return prev;
+          return [
+            ...prev,
+            {
+              id: `staff_join_${Date.now()}`,
+              role: 'system',
+              text,
+              timestamp: time,
+            },
+          ];
+        });
+      }
+    });
+
     // Listen to typing indicators
     const unsubTypingStart = socketService.onTypingStart((data) => {
       if (!mounted) return;
@@ -343,17 +408,96 @@ export const AiAssistantModal: React.FC<{ isOpen: boolean; onClose: () => void }
       mounted = false;
       unsubStaff();
       unsubMsg();
+      unsubStaffJoined();
       unsubTypingStart();
       unsubTypingStop();
     };
-  }, [isOpen, guestConversationId, guestId]);
+  }, [isOpen, guestConversationId, guestId, user]);
 
   // Join room when guestConversationId is available
   useEffect(() => {
-    if (guestConversationId && guestId) {
-      socketService.joinGuest(guestConversationId, guestId);
+    if (guestConversationId) {
+      if (guestId && !isAuthenticated) {
+        socketService.joinGuest(guestConversationId, guestId);
+      } else if (isAuthenticated) {
+        socketService.joinConversation(guestConversationId);
+      }
     }
-  }, [guestConversationId, guestId]);
+  }, [guestConversationId, guestId, isAuthenticated]);
+
+  // Load conversation history on modal open if a conversation exists
+  useEffect(() => {
+    if (!isOpen) return;
+
+    let active = true;
+    const syncHistory = async () => {
+      try {
+        let targetConvId = guestConversationId;
+
+        // For logged-in user: find their active support conversation if none in state
+        if (isAuthenticated && !targetConvId) {
+          const convRes: any = await communicationApi.getCustomerConversations();
+          const convs = convRes?.data?.items || convRes?.items || convRes?.data || [];
+          if (Array.isArray(convs) && convs.length > 0) {
+            const supportConv = convs.find((c: any) => c.type === 'support' && c.status !== 'closed') || convs[0];
+            if (supportConv) {
+              targetConvId = String(supportConv._id || supportConv.id);
+              setGuestConversationId(targetConvId);
+              localStorage.setItem('atelier_chat_guest_conv_id', targetConvId);
+            }
+          }
+        }
+
+        if (!targetConvId) return;
+
+        let historyMsgs: any[] = [];
+        if (!isAuthenticated && guestId) {
+          const res: any = await communicationApi.getGuestMessages(targetConvId, guestId);
+          historyMsgs = res?.data?.messages || res?.messages || [];
+        } else if (isAuthenticated) {
+          const res: any = await communicationApi.getCustomerMessages(targetConvId);
+          historyMsgs = res?.data?.items || res?.items || res?.data?.messages || res?.messages || [];
+        }
+
+        if (active && Array.isArray(historyMsgs) && historyMsgs.length > 0) {
+          const mapped: ChatMessage[] = historyMsgs.map((m: any) => {
+            const isSys =
+              m.senderType === 'system' ||
+              m.messageType === 'system' ||
+              m.metadata?.action === 'staff_joined' ||
+              m.metadata?.action === 'conversation_closed' ||
+              m.metadata?.action === 'conversation_reopened';
+            const role: ChatMessage['role'] = isSys
+              ? 'system'
+              : m.senderType === 'admin'
+              ? 'staff'
+              : 'user';
+            return {
+              id: String(m._id || m.id || `hist_${Date.now()}`),
+              clientMessageId: m.clientMessageId,
+              role,
+              text: m.content || '',
+              timestamp: new Date(m.createdAt || Date.now()).toLocaleTimeString('vi-VN', {
+                hour: '2-digit',
+                minute: '2-digit',
+              }),
+            };
+          });
+
+          setStaffMessages(mapped);
+          setIsGuestFormSubmitted(true);
+        }
+      } catch {
+        // Fallback gracefully
+      }
+    };
+
+    syncHistory();
+
+    return () => {
+      active = false;
+    };
+  }, [isOpen, guestConversationId, guestId, isAuthenticated]);
 
   // Auto-scroll when messages update
   const scrollToBottom = useCallback((smooth = true) => {
@@ -652,6 +796,12 @@ export const AiAssistantModal: React.FC<{ isOpen: boolean; onClose: () => void }
           content,
           clientMessageId: localId,
         });
+        const returnedConvId = res?.data?.conversationId || res?.data?.conversation?._id || res?.conversationId;
+        if (returnedConvId && returnedConvId !== guestConversationId) {
+          setGuestConversationId(String(returnedConvId));
+          localStorage.setItem('atelier_chat_guest_conv_id', String(returnedConvId));
+          socketService.joinConversation(String(returnedConvId));
+        }
       } else {
         // Guest send
         if (!guestConversationId) {
@@ -924,6 +1074,18 @@ export const AiAssistantModal: React.FC<{ isOpen: boolean; onClose: () => void }
             {currentMessages.map((message) => {
               const isUser = message.role === 'user';
               const isStaff = message.role === 'staff';
+              const isSystem = message.role === 'system';
+
+              if (isSystem) {
+                return (
+                  <div key={message.id} className="flex justify-center my-3">
+                    <div className="px-3.5 py-1.5 rounded-full bg-[var(--bg-alt)] border border-[var(--border)] text-[var(--accent)] text-[11px] font-mono flex items-center gap-1.5 shadow-sm text-center">
+                      <Headphones className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                      <span>{renderSafeMessage(message.text)}</span>
+                    </div>
+                  </div>
+                );
+              }
 
               return (
                 <div

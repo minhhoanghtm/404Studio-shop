@@ -108,6 +108,7 @@ test-results/
 playwright-report/
 blob-report/
 playwright/.auth/
+frontend/e2e/.auth/
 *.har
 *.trace
 

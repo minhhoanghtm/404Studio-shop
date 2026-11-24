@@ -482,11 +482,20 @@ html.light .editorial-page :is([class~="text-white/10"], [class~="text-white/20"
   color: var(--color-text-secondary) !important;
 }
 
-html.light .editorial-page :is([class*="bg-noir-"], [class*="bg-black/"], [class*="bg-gradient-to-"], [class*="bg-[#0f0f14]"], [class*="bg-[#14141a]"], [class*="bg-[#181822]"], [class*="bg-[#141414]"]) [class*="text-white"] {
-  color: #fff !important;
+/* Whitelist for explicitly dark cards/sections inside light mode: preserve white text, borders, and gold accents */
+html.light .editorial-page :is([class*="bg-noir-"], [class*="bg-black"], [class*="bg-gradient-to-"], [class*="bg-[#0f0f14]"], [class*="bg-[#14141a]"], [class*="bg-[#181822]"], [class*="bg-[#141414]"], .editorial-dark-section, .editorial-dark-card) [class*="text-white"] {
+  color: #ffffff !important;
 }
 
-html.light .editorial-page :is([class*="bg-noir-"], [class*="bg-black/"], [class*="bg-gradient-to-"], [class*="bg-[#0f0f14]"], [class*="bg-[#14141a]"], [class*="bg-[#181822]"], [class*="bg-[#141414]"]) [class*="text-platinum"] {
+html.light .editorial-page :is([class*="bg-noir-"], [class*="bg-black"], [class*="bg-gradient-to-"], [class*="bg-[#0f0f14]"], [class*="bg-[#14141a]"], [class*="bg-[#181822]"], [class*="bg-[#141414]"], .editorial-dark-section, .editorial-dark-card) :is([class~="text-white/80"], [class~="text-white/90"]) {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+html.light .editorial-page :is([class*="bg-noir-"], [class*="bg-black"], [class*="bg-gradient-to-"], [class*="bg-[#0f0f14]"], [class*="bg-[#14141a]"], [class*="bg-[#181822]"], [class*="bg-[#141414]"], .editorial-dark-section, .editorial-dark-card) :is([class~="text-white/50"], [class~="text-white/60"], [class~="text-white/70"]) {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+html.light .editorial-page :is([class*="bg-noir-"], [class*="bg-black"], [class*="bg-gradient-to-"], [class*="bg-[#0f0f14]"], [class*="bg-[#14141a]"], [class*="bg-[#181822]"], [class*="bg-[#141414]"], .editorial-dark-section, .editorial-dark-card) [class*="text-platinum"] {
   color: #D8D8E0 !important;
 }
 
@@ -498,12 +507,16 @@ html.light .editorial-page [class*="border-white/"] {
   border-color: var(--color-border) !important;
 }
 
-html.light .editorial-page :is([class*="bg-noir-"], [class*="bg-black/"], [class*="bg-gradient-to-"], [class*="bg-[#0f0f14]"], [class*="bg-[#14141a]"], [class*="bg-[#181822]"], [class*="bg-[#141414]"]) [class*="border-white/"] {
-  border-color: rgba(255, 255, 255, 0.18) !important;
+html.light .editorial-page :is([class*="bg-noir-"], [class*="bg-black"], [class*="bg-gradient-to-"], [class*="bg-[#0f0f14]"], [class*="bg-[#14141a]"], [class*="bg-[#181822]"], [class*="bg-[#141414]"], .editorial-dark-section, .editorial-dark-card) [class*="border-white/"] {
+  border-color: rgba(255, 255, 255, 0.22) !important;
 }
 
 html.light .editorial-page [class~="bg-white/5"] {
   background-color: var(--color-border) !important;
+}
+
+html.light .editorial-page :is([class*="bg-noir-"], [class*="bg-black"], [class*="bg-gradient-to-"], [class*="bg-[#0f0f14]"], [class*="bg-[#14141a]"], [class*="bg-[#181822]"], [class*="bg-[#141414]"], .editorial-dark-section, .editorial-dark-card) [class~="bg-white/5"] {
+  background-color: rgba(255, 255, 255, 0.08) !important;
 }
 
 /* Skeleton component */
@@ -574,6 +587,16 @@ html.dark .atelier-skeleton {
   left: 0;
   right: 0;
   z-index: var(--z-sticky, 50);
+  transition: transform 320ms cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+}
+
+.site-chrome-hidden {
+  transform: translateY(-100%);
+}
+
+.site-chrome-visible {
+  transform: translateY(0);
 }
 
 .site-main-standard {
@@ -918,4 +941,143 @@ html.dark .atelier-skeleton {
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 20px;
   }
+}
+
+/*
+ * Opacity modifiers on arbitrary CSS-variable utilities (for example
+ * `bg-[var(--surface)]/95`) are not emitted by Tailwind 3.4.  These
+ * compatibility utilities retain the intended translucent surfaces and
+ * ensure text remains readable in both theme modes.
+ */
+[class~="bg-[var(--accent)]"] { background-color: var(--accent); }
+[class~="text-[var(--accent-contrast)]"] { color: var(--accent-contrast); }
+[class~="border-[var(--accent)]"] { border-color: var(--accent); }
+
+/* Universal High-Contrast Pagination Button Tokens */
+.pagination-btn-active {
+  background-color: var(--accent, #8a6d1a) !important;
+  color: var(--accent-contrast, #ffffff) !important;
+  border-color: var(--accent, #8a6d1a) !important;
+}
+html.dark .pagination-btn-active,
+[data-theme="dark"] .pagination-btn-active {
+  background-color: #d4af37 !important;
+  color: #121217 !important;
+  border-color: #d4af37 !important;
+  box-shadow: 0 0 16px rgba(212, 175, 55, 0.45) !important;
+}
+html.light .pagination-btn-active,
+[data-theme="light"] .pagination-btn-active {
+  background-color: #8a6d1a !important;
+  color: #ffffff !important;
+  border-color: #8a6d1a !important;
+  box-shadow: 0 4px 12px rgba(138, 109, 26, 0.3) !important;
+}
+[class~="bg-[var(--accent)]/5"] { background-color: color-mix(in srgb, var(--accent) 5%, transparent); }
+[class~="bg-[var(--accent)]/10"] { background-color: color-mix(in srgb, var(--accent) 10%, transparent); }
+[class~="bg-[var(--status-success)]/10"] { background-color: color-mix(in srgb, var(--status-success) 10%, transparent); }
+[class~="bg-[var(--accent)]/15"] { background-color: color-mix(in srgb, var(--accent) 15%, transparent); }
+[class~="bg-[var(--accent)]/20"] { background-color: color-mix(in srgb, var(--accent) 20%, transparent); }
+[class~="bg-[var(--bg-alt)]/20"] { background-color: color-mix(in srgb, var(--bg-alt) 20%, transparent); }
+[class~="bg-[var(--accent)]/30"] { background-color: color-mix(in srgb, var(--accent) 30%, transparent); }
+[class~="bg-[var(--bg-alt)]/30"] { background-color: color-mix(in srgb, var(--bg-alt) 30%, transparent); }
+[class~="bg-[var(--accent)]/90"] { background-color: color-mix(in srgb, var(--accent) 90%, transparent); }
+[class~="bg-[var(--bg-alt)]/40"] { background-color: color-mix(in srgb, var(--bg-alt) 40%, transparent); }
+[class~="bg-[var(--bg-card)]/40"] { background-color: color-mix(in srgb, var(--bg-card) 40%, transparent); }
+[class~="bg-[var(--bg-alt)]/50"] { background-color: color-mix(in srgb, var(--bg-alt) 50%, transparent); }
+[class~="bg-[var(--bg-card-muted)]/50"] { background-color: color-mix(in srgb, var(--bg-card-muted) 50%, transparent); }
+[class~="bg-[var(--bg-alt)]/60"] { background-color: color-mix(in srgb, var(--bg-alt) 60%, transparent); }
+[class~="bg-[var(--bg-alt)]/70"] { background-color: color-mix(in srgb, var(--bg-alt) 70%, transparent); }
+[class~="bg-[var(--bg-card)]/90"] { background-color: color-mix(in srgb, var(--bg-card) 90%, transparent); }
+[class~="bg-[var(--bg-card)]/95"] { background-color: color-mix(in srgb, var(--bg-card) 95%, transparent); }
+[class~="bg-[var(--surface)]/80"] { background-color: color-mix(in srgb, var(--surface) 80%, transparent); }
+[class~="bg-[var(--surface)]/90"] { background-color: color-mix(in srgb, var(--surface) 90%, transparent); }
+[class~="bg-[var(--surface)]/95"] { background-color: color-mix(in srgb, var(--surface) 95%, transparent); }
+
+[class~="border-[var(--accent)]/20"] { border-color: color-mix(in srgb, var(--accent) 20%, transparent); }
+[class~="border-[var(--accent)]/30"] { border-color: color-mix(in srgb, var(--accent) 30%, transparent); }
+[class~="border-[var(--status-success)]/30"] { border-color: color-mix(in srgb, var(--status-success) 30%, transparent); }
+[class~="border-[var(--accent)]/40"] { border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
+[class~="border-[var(--accent)]/50"] { border-color: color-mix(in srgb, var(--accent) 50%, transparent); }
+[class~="border-[var(--accent)]/60"] { border-color: color-mix(in srgb, var(--accent) 60%, transparent); }
+[class~="border-[var(--border)]/70"] { border-color: color-mix(in srgb, var(--border) 70%, transparent); }
+
+[class~="text-[var(--accent-contrast)]/70"] { color: color-mix(in srgb, var(--accent-contrast) 70%, transparent); }
+[class~="text-[var(--accent)]/40"] { color: color-mix(in srgb, var(--accent) 40%, transparent); }
+[class~="text-[var(--text-muted)]/30"] { color: color-mix(in srgb, var(--text-muted) 30%, transparent); }
+[class~="text-[var(--text-muted)]/40"] { color: color-mix(in srgb, var(--text-muted) 40%, transparent); }
+[class~="text-[var(--text-muted)]/60"] { color: color-mix(in srgb, var(--text-muted) 60%, transparent); }
+[class~="text-[var(--text-muted)]/70"] { color: color-mix(in srgb, var(--text-muted) 70%, transparent); }
+
+/* ==========================================================================
+   BUTTONS & TASK CARDS: DEFINED BORDERS & ELEVATION SHADOW ON HOVER / ACTIVE
+   ========================================================================== */
+
+/* Buttons & Interactive Clickables: defined border, hover elevation, active pressed feedback */
+button:not(:disabled),
+a[role="button"]:not([aria-disabled="true"]),
+.btn-interactive {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Hover shadow for buttons to stand out */
+button:not(:disabled):hover,
+a[role="button"]:not([aria-disabled="true"]):hover {
+  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.09), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+}
+
+html.dark button:not(:disabled):hover,
+html.dark a[role="button"]:not([aria-disabled="true"]):hover {
+  box-shadow: 0 6px 18px -2px rgba(0, 0, 0, 0.5), 0 0 10px rgba(212, 175, 55, 0.14);
+}
+
+/* Active / Pressed state: crisp inner shadow & slight scale for physical tactility */
+button:not(:disabled):active,
+a[role="button"]:not([aria-disabled="true"]):active {
+  transform: translateY(1px) scale(0.985);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15) !important;
+}
+
+html.dark button:not(:disabled):active,
+html.dark a[role="button"]:not([aria-disabled="true"]):active {
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.6) !important;
+}
+
+/* Task Cards, Action Panels & Interactive Widgets */
+.task-card,
+.admin-card-interactive,
+.metric-card-interactive {
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+html.dark .task-card,
+html.dark .admin-card-interactive,
+html.dark .metric-card-interactive {
+  border: 1px solid rgba(245, 238, 235, 0.14);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+.task-card:hover,
+.admin-card-interactive:hover,
+.metric-card-interactive:hover {
+  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+  box-shadow: 0 10px 24px -4px rgba(0, 0, 0, 0.09), 0 4px 8px -2px rgba(0, 0, 0, 0.04);
+  transform: translateY(-2px);
+}
+
+html.dark .task-card:hover,
+html.dark .admin-card-interactive:hover,
+html.dark .metric-card-interactive:hover {
+  border-color: color-mix(in srgb, var(--accent) 70%, transparent);
+  box-shadow: 0 12px 28px -4px rgba(0, 0, 0, 0.6), 0 0 14px rgba(212, 175, 55, 0.2);
+  transform: translateY(-2px);
+}
+
+.task-card:active,
+.admin-card-interactive:active,
+.metric-card-interactive:active {
+  transform: translateY(0) scale(0.995);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08) inset;
 }

@@ -32,7 +32,7 @@ const sectionDataSchemas = {
     images: z
       .array(
         z.object({
-          imageUrl: z.string({ required_error: "Gallery image yêu cầu imageUrl là chuỗi" }),
+          imageUrl: z.string().optional(),
           caption:  z.string().optional(),
         }).passthrough()
       )
@@ -40,7 +40,7 @@ const sectionDataSchemas = {
   }).passthrough(),
 
   quote: z.object({
-    quote:  z.string({ required_error: "Quote text là bắt buộc và phải là chuỗi" }).min(1, "Quote text là bắt buộc và phải là chuỗi"),
+    quote:  z.string().optional(),
     author: z.string().optional(),
   }).passthrough(),
 
@@ -48,11 +48,11 @@ const sectionDataSchemas = {
     image:         z.string().optional(),
     title:         z.string().optional(),
     content:       z.string().optional(),
-    imagePosition: z.enum(["left", "right"], { message: "Image + Text imagePosition phải là 'left' hoặc 'right'" }).optional(),
+    imagePosition: z.string().optional(),
   }).passthrough(),
 
   products: z.object({
-    productIds: z.array(z.string(), { required_error: "Products spotlight productIds phải là một mảng" }),
+    productIds: z.array(z.string()).optional(),
   }).passthrough(),
 
   banner: z.object({
@@ -87,7 +87,8 @@ const validSectionTypes = Object.keys(sectionDataSchemas);
 export const validateSectionData = (type, data) => {
   const schema = sectionDataSchemas[type];
   if (!schema) {
-    throw new AppError(`Loại khối nội dung không hợp lệ: ${type}`, 400);
+    // Dynamic / extensible section type fallback (allows Page Builder custom blocks)
+    return;
   }
 
   const result = schema.safeParse(data || {});

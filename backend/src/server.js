@@ -16,6 +16,7 @@ import mongoose from "mongoose";
 
 const PORT = process.env.PORT || 5000;
 
+
 // Catch unhandled errors gracefully to ensure backend stability
 process.on("unhandledRejection", (reason, promise) => {
   console.error("⚠️ [Process] Unhandled Rejection at:", promise, "reason:", reason);

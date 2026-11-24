@@ -55,7 +55,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
           <button
             onClick={() => onPageChange(currentPage - 1)}
             disabled={currentPage === 1}
-            className="p-2 rounded border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--bg-alt)] disabled:opacity-30 disabled:pointer-events-none transition-colors"
+            className="pagination-btn-nav p-2 rounded-lg border border-[#e3ded2] dark:border-white/15 bg-white dark:bg-zinc-800 text-[#1a1a17] dark:text-zinc-200 hover:text-[#8a6d1a] dark:hover:text-[#fef08a] hover:border-[#8a6d1a] dark:hover:border-[#d4af37] hover:bg-[#f7f5ef] dark:hover:bg-zinc-700/80 disabled:opacity-30 disabled:pointer-events-none transition-colors"
             aria-label="Trang trước"
           >
             <ChevronLeft className="w-4 h-4" />
@@ -66,10 +66,10 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
               <button
                 key={page}
                 onClick={() => onPageChange(page)}
-                className={`w-8 h-8 rounded transition-colors ${
+                className={`w-8 h-8 rounded-lg font-mono text-xs border transition-all duration-200 flex items-center justify-center cursor-pointer ${
                   currentPage === page
-                    ? 'bg-[var(--accent)] text-[var(--accent-contrast)] font-bold shadow-sm'
-                    : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--bg-alt)]'
+                    ? 'pagination-btn-active bg-[#8a6d1a] text-white border-[#8a6d1a] dark:bg-[#d4af37] dark:text-[#121217] dark:border-[#d4af37] font-bold shadow-md shadow-amber-900/25 dark:shadow-[0_0_16px_rgba(212,175,55,0.45)]'
+                    : 'pagination-btn-inactive border border-[#e3ded2] dark:border-white/15 bg-white dark:bg-zinc-800 text-[#1a1a17] dark:text-zinc-200 hover:border-[#8a6d1a] dark:hover:border-[#d4af37] hover:text-[#8a6d1a] dark:hover:text-[#fef08a] hover:bg-[#f7f5ef] dark:hover:bg-zinc-700/80 shadow-xs'
                 }`}
               >
                 {page}
@@ -80,7 +80,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
           <button
             onClick={() => onPageChange(currentPage + 1)}
             disabled={currentPage === totalPages}
-            className="p-2 rounded border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--bg-alt)] disabled:opacity-30 disabled:pointer-events-none transition-colors"
+            className="pagination-btn-nav p-2 rounded-lg border border-[#e3ded2] dark:border-white/15 bg-white dark:bg-zinc-800 text-[#1a1a17] dark:text-zinc-200 hover:text-[#8a6d1a] dark:hover:text-[#fef08a] hover:border-[#8a6d1a] dark:hover:border-[#d4af37] hover:bg-[#f7f5ef] dark:hover:bg-zinc-700/80 disabled:opacity-30 disabled:pointer-events-none transition-colors"
             aria-label="Trang sau"
           >
             <ChevronRight className="w-4 h-4" />

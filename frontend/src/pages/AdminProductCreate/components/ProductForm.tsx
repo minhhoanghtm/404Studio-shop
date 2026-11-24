@@ -5,6 +5,7 @@ import { AdminProductFormValues, CategoryOption, ProductVariantItem } from '../.
 import { VariantTable } from './VariantTable';
 import { categoriesApi } from '@/shared/api';
 import { formatCurrency } from '@/shared/utils/formatters';
+import { StatusToggle } from '@/shared/components';
 
 interface ProductFormProps {
   initialValues?: Partial<AdminProductFormValues>;
@@ -242,14 +243,14 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           <button
             type="button"
             onClick={() => navigate('/admin/products')}
-            className="px-4 py-2 border border-white/10 hover:border-white/20 text-xs text-white rounded-sm transition-colors"
+            className="px-4 py-2 border border-[var(--border)] hover:border-[var(--accent)] bg-[var(--bg-card)] text-xs font-mono uppercase tracking-wider text-[var(--text-primary)] hover:text-[var(--accent)] rounded-lg shadow-xs hover:shadow-sm transition-all cursor-pointer"
           >
             Hủy Bỏ
           </button>
           <button
             type="submit"
             disabled={isLoading}
-            className="px-6 py-2 bg-champagne text-noir-950 font-semibold text-xs uppercase tracking-wider rounded-sm hover:bg-champagne/90 transition-colors flex items-center gap-2 disabled:opacity-50"
+            className="px-6 py-2 bg-[var(--accent)] text-[var(--accent-contrast)] border border-[var(--accent)] font-bold text-xs font-mono uppercase tracking-wider rounded-lg hover:brightness-105 transition-all shadow-md hover:shadow-lg flex items-center gap-2 disabled:opacity-50 cursor-pointer"
           >
             <Save className="w-4 h-4" />
             <span>{isLoading ? 'Đang Lưu...' : isEdit ? 'Cập Nhật Sản Phẩm' : 'Khởi Tạo Sản Phẩm'}</span>
@@ -365,26 +366,28 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           </div>
 
           {/* Status Switches */}
-          <div className="flex items-center gap-6 pt-4">
-            <label className="flex items-center gap-2 cursor-pointer text-xs text-white">
-              <input
-                type="checkbox"
+          <div className="flex flex-wrap items-center gap-6 pt-4">
+            <div className="flex items-center gap-2.5">
+              <StatusToggle
+                size="sm"
+                color="success"
                 checked={isActive}
-                onChange={(e) => setIsActive(e.target.checked)}
-                className="w-4 h-4 rounded bg-noir-950 border-white/20 accent-champagne focus:ring-champagne focus:ring-1"
+                onChange={setIsActive}
+                ariaLabel="Đang Mở Bán (Active)"
               />
-              <span>Đang Mở Bán (Active)</span>
-            </label>
+              <span className="text-xs text-[var(--text-primary)] font-medium">Đang Mở Bán (Active)</span>
+            </div>
 
-            <label className="flex items-center gap-2 cursor-pointer text-xs text-white">
-              <input
-                type="checkbox"
+            <div className="flex items-center gap-2.5">
+              <StatusToggle
+                size="sm"
+                color="accent"
                 checked={isFeatured}
-                onChange={(e) => setIsFeatured(e.target.checked)}
-                className="w-4 h-4 rounded bg-noir-950 border-white/20 accent-champagne focus:ring-champagne focus:ring-1"
+                onChange={setIsFeatured}
+                ariaLabel="Sản Phẩm Tiêu Biểu (Featured Runway)"
               />
-              <span>Sản Phẩm Tiêu Biểu (Featured Runway)</span>
-            </label>
+              <span className="text-xs text-[var(--text-primary)] font-medium">Sản Phẩm Tiêu Biểu (Featured Runway)</span>
+            </div>
           </div>
 
           {/* Description */}
@@ -489,7 +492,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full sm:w-auto px-8 py-3 bg-champagne text-noir-950 font-semibold text-xs uppercase tracking-widest rounded-sm hover:bg-champagne/90 transition-all flex items-center justify-center gap-2 shadow-lg shadow-champagne/10 disabled:opacity-50"
+          className="w-full sm:w-auto px-8 py-3 bg-[var(--accent)] text-[var(--accent-contrast)] border border-[var(--accent)] font-bold text-xs font-mono uppercase tracking-widest rounded-lg hover:brightness-105 transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg disabled:opacity-50 cursor-pointer"
         >
           <Save className="w-4 h-4" />
           <span>{isLoading ? 'Đang Xử Lý...' : isEdit ? 'Cập Nhật Sản Phẩm' : 'Hoàn Tất & Lưu Sản Phẩm'}</span>

@@ -126,9 +126,13 @@ describe('Admin Tracking Analytics & Data Integrity Suite', () => {
     it('should verify live presence session models do not contain passwords, tokens or OTPs', () => {
       const mockLiveSession = {
         sessionId: 'sess_9921_paris',
+        visitorId: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
         userId: 'user_88241',
+        displayName: 'Trần Nam',
+        type: 'user' as const,
         isAnonymous: false,
         currentRoute: '/products/chiffon-dress',
+        page: '/products/chiffon-dress',
         status: 'active' as const,
         lastSeen: new Date().toISOString(),
         deviceType: 'desktop',
@@ -142,6 +146,22 @@ describe('Admin Tracking Analytics & Data Integrity Suite', () => {
       expect(sessionKeys).not.toContain('accessToken');
       expect(sessionKeys).not.toContain('secret');
       expect(sessionKeys).not.toContain('cardNumber');
+      expect(mockLiveSession.displayName).toBe('Trần Nam');
+    });
+
+    it('should generate and persist valid visitorId UUID in localStorage', async () => {
+      const { getOrCreateVisitorId } = await import('../shared/tracking/usePresenceTracker');
+      localStorage.removeItem('visitorId');
+      localStorage.removeItem('atelier_anon_id');
+
+      const vid1 = getOrCreateVisitorId();
+      expect(vid1).toBeTruthy();
+      expect(vid1).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+      expect(localStorage.getItem('visitorId')).toBe(vid1);
+
+      // Gọi lần 2 phải giữ nguyên visitorId không sinh mới
+      const vid2 = getOrCreateVisitorId();
+      expect(vid2).toBe(vid1);
     });
 
     it('should verify data subject rights requests support Law 91/2025/QH15 types', () => {
@@ -149,6 +169,49 @@ describe('Admin Tracking Analytics & Data Integrity Suite', () => {
       expect(supportedDsrTypes).toContain('ERASURE');
       expect(supportedDsrTypes).toContain('RESTRICT');
       expect(supportedDsrTypes).toContain('OBJECT');
+    });
+
+    it('should configure 3-minute idle threshold and format status to Vietnamese badges', async () => {
+      const { IDLE_THRESHOLD_SECONDS } = await import('../shared/tracking/usePresenceTracker');
+      const { getPresenceStatusBadge, formatDurationSec } = await import('../pages/AdminTrackingUsers/AdminTrackingUsersPage');
+
+      // 1. Kiểm tra ngưỡng treo là đúng 3 phút (180 giây)
+      expect(IDLE_THRESHOLD_SECONDS).toBe(180);
+
+      // 2. Kiểm tra nhãn hiển thị tiếng Việt cho từng trạng thái
+      const activeBadge = getPresenceStatusBadge('active');
+      expect(activeBadge.text).toBe('Hoạt động');
+
+      const idleBadge = getPresenceStatusBadge('idle');
+      expect(idleBadge.text).toBe('Treo');
+
+      const awayBadge = getPresenceStatusBadge('away');
+      expect(awayBadge.text).toBe('Treo');
+
+      const backgroundBadge = getPresenceStatusBadge('background');
+      expect(backgroundBadge.text).toBe('Ẩn tab');
+
+      const offlineBadge = getPresenceStatusBadge('disconnected');
+      expect(offlineBadge.text).toBe('Ngoại tuyến');
+
+      // 3. Kiểm tra định dạng thời gian lưu lại (duration)
+      expect(formatDurationSec(45)).toBe('45 giây');
+      expect(formatDurationSec(120)).toBe('2 phút');
+      expect(formatDurationSec(135)).toBe('2 phút 15 giây');
+    });
+
+    it('should format relative elapsed time accurately in Vietnamese', async () => {
+      const { formatRelativeTime } = await import('../pages/AdminTrackingUsers/AdminTrackingUsersPage');
+      const now = Date.now();
+
+      expect(formatRelativeTime(now - 10 * 1000)).toBe('Vừa xong');
+      expect(formatRelativeTime(now - 5 * 60 * 1000)).toBe('5 phút trước');
+      expect(formatRelativeTime(now - 2 * 60 * 60 * 1000)).toBe('2 giờ trước');
+      expect(formatRelativeTime(now - 2 * 24 * 60 * 60 * 1000)).toBe('2 ngày trước');
+      expect(formatRelativeTime(now - 14 * 24 * 60 * 60 * 1000)).toBe('2 tuần trước');
+      expect(formatRelativeTime(now - 60 * 24 * 60 * 60 * 1000)).toBe('2 tháng trước');
+      expect(formatRelativeTime(now - 400 * 24 * 60 * 60 * 1000)).toBe('1 năm trước');
+      expect(formatRelativeTime(null)).toBe('—');
     });
   });
 });

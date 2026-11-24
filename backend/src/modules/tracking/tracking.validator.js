@@ -218,20 +218,29 @@ export const updateConsentSchema = z.object({
 export const presenceHeartbeatSchema = z.object({
   body: z
     .object({
-      session_id: z.string().trim().min(1, "session_id là bắt buộc"),
-      tab_id: z.string().trim().min(1, "tab_id là bắt buộc"),
+      visitorId: z.string().trim().optional().nullable(),
+      visitor_id: z.string().trim().optional().nullable(),
+      session_id: z.string().trim().optional().nullable(),
+      tab_id: z.string().trim().optional().nullable(),
+      page: z.string().max(500).optional().nullable(),
       anonymous_id: z.string().trim().optional().nullable(),
       initial: z.boolean().optional().nullable(),
       consent_status: z.string().optional().nullable(),
-      status: z.enum([
-        "ACTIVE",
-        "IDLE",
-        "AWAY",
-        "BACKGROUND",
-        "PASSIVE_VIEWING",
-        "DISCONNECTED",
-        "SESSION_ENDED",
-      ]),
+      status: z
+        .preprocess(
+          (val) => (typeof val === "string" ? val.toUpperCase() : val),
+          z.enum([
+            "ACTIVE",
+            "IDLE",
+            "AWAY",
+            "BACKGROUND",
+            "PASSIVE_VIEWING",
+            "DISCONNECTED",
+            "SESSION_ENDED",
+          ])
+        )
+        .optional()
+        .default("ACTIVE"),
       current_route: z.string().max(500).optional().nullable(),
       previous_route: z.string().max(500).optional().nullable(),
       idle_duration_sec: z.number().min(0).optional().nullable(),
@@ -243,14 +252,23 @@ export const presenceHeartbeatSchema = z.object({
       visible: z.boolean().optional().nullable(),
       timestamp: z.union([z.string(), z.number()]).optional().nullable(),
     })
-    .passthrough(),
+    .passthrough()
+    .refine(
+      (data) => Boolean(data.visitorId || data.visitor_id || data.session_id || data.anonymous_id),
+      {
+        message: "Yêu cầu phải có visitorId hoặc session_id",
+        path: ["visitorId"],
+      }
+    ),
 });
 
 export const presenceLeaveSchema = z.object({
   body: z
     .object({
-      session_id: z.string().trim().min(1, "session_id là bắt buộc"),
-      tab_id: z.string().trim().min(1, "tab_id là bắt buộc"),
+      visitorId: z.string().trim().optional().nullable(),
+      visitor_id: z.string().trim().optional().nullable(),
+      session_id: z.string().trim().optional().nullable(),
+      tab_id: z.string().trim().optional().nullable(),
       reason: z.string().max(100).optional().nullable(),
       final_timings: z.record(z.string(), z.any()).optional().nullable(),
     })
@@ -260,7 +278,9 @@ export const presenceLeaveSchema = z.object({
 export const presenceDisassociateSchema = z.object({
   body: z
     .object({
-      session_id: z.string().trim().min(1, "session_id là bắt buộc"),
+      visitorId: z.string().trim().optional().nullable(),
+      visitor_id: z.string().trim().optional().nullable(),
+      session_id: z.string().trim().optional().nullable(),
       tab_id: z.string().trim().optional().nullable(),
     })
     .passthrough(),

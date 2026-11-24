@@ -31,6 +31,7 @@ import recommendationRouter from "../modules/recommendations/recommendation.rout
 import experimentRouter from "../modules/recommendations/experiments/experiment.route.js";
 import aiRouter from "../modules/ai/ai.route.js";
 import internalAiRouter from "../modules/ai/internalAi.route.js";
+import adminAiRouter from "../modules/ai/adminAi.route.js";
 import inventoryRouter, { checkoutReservationRouter } from "../modules/inventory/inventory.route.js";
 import loyaltyRouter from "../modules/loyalty/loyalty.route.js";
 import supportTicketRouter from "../modules/support/supportTicket.route.js";
@@ -125,6 +126,8 @@ rootRouter.use("/search", searchHistoryRouter);
 rootRouter.use("/recommendations", recommendationRouter);
 rootRouter.use("/experiments", experimentRouter);
 rootRouter.use("/ai", aiRouter);
+rootRouter.use("/admin/ai", adminAiRouter);
+rootRouter.use("/ai/admin", adminAiRouter);
 // Not mounted behind the public /ai route. It is HMAC-authenticated service traffic only.
 rootRouter.use("/internal/ai", internalAiRouter);
 rootRouter.use("/inventory", inventoryRouter);

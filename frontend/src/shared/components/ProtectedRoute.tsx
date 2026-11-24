@@ -9,6 +9,7 @@ import { ForbiddenPage } from '@/pages/Forbidden/ForbiddenPage';
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requireAdmin?: boolean;
+  allowedRoles?: string[];
   permission?: string;
   requireAuth?: boolean;
 }
@@ -16,6 +17,7 @@ interface ProtectedRouteProps {
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
   requireAdmin = false,
+  allowedRoles,
   permission,
   requireAuth = true,
 }) => {
@@ -77,6 +79,15 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
     if (!hasAnyAdminAccess) {
       return <ForbiddenPage requiredPermission="dashboard:view" />;
+    }
+  }
+
+  // 3.5 Specific Allowed Roles Check
+  if (allowedRoles && allowedRoles.length > 0) {
+    const isAdmin = user?.role === 'admin' || user?.vipTier === 'admin';
+    const isAllowed = isAdmin || (user?.role && allowedRoles.includes(user.role));
+    if (!isAllowed) {
+      return <ForbiddenPage requiredPermission={allowedRoles.join(' / ')} />;
     }
   }
 

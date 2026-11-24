@@ -432,7 +432,7 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
   return (
     <ModalPortal>
       <div
-        className="fixed inset-0 bg-[var(--bg-overlay)] backdrop-blur-sm flex items-center justify-center p-4 pointer-events-auto"
+        className="fixed inset-0 bg-[rgba(26,26,23,0.55)] backdrop-blur-sm flex items-center justify-center p-4 pointer-events-auto"
         style={{ zIndex: overlayZIndex }}
         onClick={(e) => {
           if (e.target === e.currentTarget && !isImporting) handleClose();
@@ -442,20 +442,20 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
         aria-label="Nhập Dữ Liệu Excel"
       >
         <div
-          className="bg-[var(--bg-card)] border border-[var(--border)] rounded-sm w-full max-w-5xl max-h-[calc(100dvh-32px)] flex flex-col shadow-2xl overflow-hidden text-[var(--text-primary)]"
+          className="bg-[var(--surface)] border border-[var(--border)] rounded-sm w-full max-w-5xl max-h-[calc(100dvh-32px)] flex flex-col shadow-2xl overflow-hidden text-[var(--text)]"
           style={{ zIndex: contentZIndex }}
         >
           {/* Header */}
-          <div className="px-6 py-4 border-b border-[var(--border)] flex items-center justify-between bg-[var(--bg-card-muted)]">
+          <div className="px-6 py-4 border-b border-[var(--border)] flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <FileSpreadsheet className="w-5 h-5 text-[var(--accent)]" />
               <div>
-                <h3 className="text-sm font-semibold text-[var(--text-primary)] tracking-wide uppercase font-mono">
+                <h3 className="text-base font-semibold text-[var(--text)] tracking-wider uppercase font-display">
                   {type === 'category'
                     ? 'Nhập Danh Mục Từ Tệp Excel'
                     : 'Nhập Sản Phẩm & Biến Thể Kèm Ảnh Nhúng Từ Excel'}
                 </h3>
-                <p className="text-[11px] text-[var(--text-muted)]">
+                <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
                   Trích xuất hình ảnh trực tiếp từ ô Excel, chuẩn hóa WebP 82%, khử trùng lặp SHA-256
                 </p>
               </div>
@@ -464,9 +464,9 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
               type="button"
               onClick={handleClose}
               aria-label="Đóng"
-              className="p-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors rounded-sm"
+              className="p-1 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors rounded-sm"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
           </div>
 
@@ -530,8 +530,8 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
             {/* Loading parsing */}
             {isParsing && (
               <div className="py-12 flex flex-col items-center justify-center space-y-3">
-                <Loader2 className="w-8 h-8 animate-spin text-champagne" />
-                <p className="text-xs text-platinum-light font-mono">
+                <Loader2 className="w-8 h-8 animate-spin text-[var(--accent)]" />
+                <p className="text-xs text-[var(--text-muted)] font-mono">
                   Đang trích xuất ảnh nhúng, kiểm tra chữ ký số magic bytes và cấu trúc dữ liệu...
                 </p>
               </div>
@@ -605,7 +605,7 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
                     <button
                       type="button"
                       onClick={handleReset}
-                      className="text-[11px] text-champagne hover:underline shrink-0"
+                      className="text-[11px] text-[var(--accent)] hover:underline shrink-0"
                     >
                       Đổi tệp khác
                     </button>
@@ -663,7 +663,7 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
                     <button
                       type="button"
                       onClick={handleDownloadErrorReport}
-                      className="pb-2 text-xs text-platinum-dark hover:text-champagne transition-colors flex items-center gap-1 font-mono"
+                      className="pb-2 text-xs text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors flex items-center gap-1 font-mono"
                     >
                       <Download className="w-3.5 h-3.5" />
                       <span>Tải Báo Cáo Lỗi (.xlsx)</span>
@@ -673,12 +673,12 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
 
                 {/* Tab 1: Preview Table */}
                 {activeTab === 'preview' && (
-                  <div className="border border-white/10 rounded-sm overflow-hidden bg-noir-950">
+                  <div className="border border-[var(--border)] rounded-sm overflow-hidden bg-[var(--surface)]">
                     {/* Category Preview */}
                     {type === 'category' && categoryResult && (
                       <div className="overflow-x-auto max-h-72">
                         <table className="w-full text-left text-xs">
-                          <thead className="bg-white/5 text-platinum-dark uppercase font-mono text-[10px] sticky top-0">
+                          <thead className="bg-[var(--bg-alt)] text-[var(--text-muted)] uppercase font-mono text-[10px] sticky top-0 border-b border-[var(--border)]">
                             <tr>
                               <th className="py-2.5 px-3">Dòng</th>
                               <th className="py-2.5 px-3">Ảnh</th>
@@ -687,32 +687,32 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
                               <th className="py-2.5 px-3">Đường Dẫn Ảnh</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-white/5 text-platinum-light">
+                          <tbody className="divide-y divide-[var(--border)] text-[var(--text)]">
                             {categoryResult.validItems.length === 0 ? (
                               <tr>
-                                <td colSpan={5} className="py-8 text-center text-platinum-dark">
+                                <td colSpan={5} className="py-8 text-center text-[var(--text-muted)]">
                                   Không có dòng nào hợp lệ để xem trước.
                                 </td>
                               </tr>
                             ) : (
                               categoryResult.validItems.map((cat, idx) => (
-                                <tr key={idx} className="hover:bg-white/[0.02]">
-                                  <td className="py-2 px-3 font-mono text-[11px] text-platinum-dark">
+                                <tr key={idx} className="hover:bg-[var(--bg-alt)]">
+                                  <td className="py-2 px-3 font-mono text-[11px] text-[var(--text-muted)]">
                                     #{cat.rowNumber}
                                   </td>
                                   <td className="py-2 px-3">
                                     <img
                                       src={cat.image}
                                       alt={cat.name}
-                                      className="w-8 h-8 rounded-sm object-cover bg-noir-900 border border-white/10"
+                                      className="w-8 h-8 rounded-sm object-cover bg-[var(--bg-alt)] border border-[var(--border)]"
                                       onError={(e) => {
                                         (e.target as HTMLElement).style.display = 'none';
                                       }}
                                     />
                                   </td>
-                                  <td className="py-2 px-3 font-medium text-white">{cat.name}</td>
-                                  <td className="py-2 px-3 font-mono text-[11px] text-champagne">{cat.slug || 'Tự động'}</td>
-                                  <td className="py-2 px-3 font-mono text-[11px] text-platinum-dark truncate max-w-xs" title={cat.image}>
+                                  <td className="py-2 px-3 font-medium text-[var(--text)]">{cat.name}</td>
+                                  <td className="py-2 px-3 font-mono text-[11px] text-[var(--accent)]">{cat.slug || 'Tự động'}</td>
+                                  <td className="py-2 px-3 font-mono text-[11px] text-[var(--text-muted)] truncate max-w-xs" title={cat.image}>
                                     {cat.image}
                                   </td>
                                 </tr>
@@ -727,7 +727,7 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
                     {type === 'product' && serverProductResult && (
                       <div className="overflow-x-auto max-h-80">
                         <table className="w-full text-left text-xs">
-                          <thead className="bg-white/5 text-platinum-dark uppercase font-mono text-[10px] sticky top-0">
+                          <thead className="bg-[var(--bg-alt)] text-[var(--text-muted)] uppercase font-mono text-[10px] sticky top-0 border-b border-[var(--border)]">
                             <tr>
                               <th className="py-2.5 px-3 w-8"></th>
                               <th className="py-2.5 px-3 w-16 text-center">Ảnh Thu Nhỏ</th>
@@ -740,10 +740,10 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
                               <th className="py-2.5 px-3">Trạng Thái Ảnh</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-white/5 text-platinum-light">
+                          <tbody className="divide-y divide-[var(--border)] text-[var(--text)]">
                             {serverProductResult.products.length === 0 ? (
                               <tr>
-                                <td colSpan={9} className="py-8 text-center text-platinum-dark">
+                                <td colSpan={9} className="py-8 text-center text-[var(--text-muted)]">
                                   Không có sản phẩm nào hợp lệ để xem trước.
                                 </td>
                               </tr>
@@ -754,9 +754,9 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
                                   <React.Fragment key={idx}>
                                     <tr
                                       onClick={() => setExpandedRow(isExp ? null : idx)}
-                                      className="hover:bg-white/[0.03] cursor-pointer"
+                                      className="hover:bg-[var(--bg-alt)] cursor-pointer"
                                     >
-                                      <td className="py-2 px-3 text-platinum-dark">
+                                      <td className="py-2 px-3 text-[var(--text-muted)]">
                                         {isExp ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
                                       </td>
                                       {/* Embedded image thumbnail */}
@@ -765,54 +765,54 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
                                           <img
                                             src={p.thumbnailDataUrl}
                                             alt={p.name}
-                                            className="w-10 h-10 rounded-sm object-cover bg-noir-900 border border-white/10 mx-auto"
+                                            className="w-10 h-10 rounded-sm object-cover bg-[var(--bg-alt)] border border-[var(--border)] mx-auto"
                                           />
                                         ) : (
-                                          <div className="w-10 h-10 rounded-sm bg-white/5 border border-white/10 flex items-center justify-center text-platinum-dark mx-auto">
+                                          <div className="w-10 h-10 rounded-sm bg-[var(--bg-alt)] border border-[var(--border)] flex items-center justify-center text-[var(--text-muted)] mx-auto">
                                             <ImageIcon className="w-4 h-4 opacity-40" />
                                           </div>
                                         )}
                                       </td>
-                                      <td className="py-2 px-3 font-mono text-[11px] text-champagne">{p.productSku}</td>
-                                      <td className="py-2 px-3 font-medium text-white">{p.name}</td>
-                                      <td className="py-2 px-3 text-platinum-dark">{p.categoryName || 'Mặc định'}</td>
-                                      <td className="py-2 px-3 font-mono text-platinum-light">{formatCurrency(p.new_price)}</td>
+                                      <td className="py-2 px-3 font-mono text-[11px] text-[var(--accent)]">{p.productSku}</td>
+                                      <td className="py-2 px-3 font-medium text-[var(--text)]">{p.name}</td>
+                                      <td className="py-2 px-3 text-[var(--text-muted)]">{p.categoryName || 'Mặc định'}</td>
+                                      <td className="py-2 px-3 font-mono text-[var(--text)]">{formatCurrency(p.new_price)}</td>
                                       <td className="py-2 px-3">
-                                        <span className="px-2 py-0.5 bg-white/5 border border-white/10 rounded-sm font-mono text-[11px]">
+                                        <span className="px-2 py-0.5 bg-[var(--bg-alt)] border border-[var(--border)] rounded-sm font-mono text-[11px]">
                                           {p.variants.length} biến thể
                                         </span>
                                       </td>
-                                      <td className="py-2 px-3 font-mono font-bold text-emerald-400">
+                                      <td className="py-2 px-3 font-mono font-bold text-emerald-500 dark:text-emerald-400">
                                         {p.totalStock.toLocaleString('vi-VN')}
                                       </td>
                                       <td className="py-2 px-3">
                                         {p.hasEmbeddedImage ? (
-                                          <span className="inline-flex items-center gap-1 text-[11px] text-emerald-400 font-mono">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                                          <span className="inline-flex items-center gap-1 text-[11px] text-emerald-500 dark:text-emerald-400 font-mono">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400"></span>
                                             Ảnh nhúng
                                           </span>
                                         ) : (
-                                          <span className="inline-flex items-center gap-1 text-[11px] text-yellow-400 font-mono">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-yellow-400"></span>
+                                          <span className="inline-flex items-center gap-1 text-[11px] text-yellow-600 dark:text-yellow-400 font-mono">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-yellow-600 dark:bg-yellow-400"></span>
                                             Giữ ảnh cũ / Trống
                                           </span>
                                         )}
                                       </td>
                                     </tr>
                                     {isExp && (
-                                      <tr className="bg-noir-900/80">
+                                      <tr className="bg-[var(--bg-alt)]">
                                         <td colSpan={9} className="p-3 pl-12">
-                                          <div className="text-[11px] font-mono text-platinum-dark mb-1.5 uppercase">
+                                          <div className="text-[11px] font-mono text-[var(--text-muted)] mb-1.5 uppercase">
                                             Chi tiết các biến thể thành phần:
                                           </div>
                                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                                             {p.variants.map((v, vIdx) => (
-                                              <div key={vIdx} className="p-2 bg-noir-950 border border-white/5 rounded-sm">
-                                                <div className="font-semibold text-white">{v.color} / Cỡ {v.size}</div>
-                                                <div className="text-[11px] text-platinum-dark mt-0.5">
-                                                  Tồn kho: <span className="font-mono text-emerald-400 font-bold">{v.stock}</span>
+                                              <div key={vIdx} className="p-2 bg-[var(--surface)] border border-[var(--border)] rounded-sm">
+                                                <div className="font-semibold text-[var(--text)]">{v.color} / Cỡ {v.size}</div>
+                                                <div className="text-[11px] text-[var(--text-muted)] mt-0.5">
+                                                  Tồn kho: <span className="font-mono text-emerald-500 dark:text-emerald-400 font-bold">{v.stock}</span>
                                                 </div>
-                                                {v.sku && <div className="text-[10px] text-platinum-dark/70 font-mono mt-0.5">{v.sku}</div>}
+                                                {v.sku && <div className="text-[10px] text-[var(--text-muted)] font-mono mt-0.5">{v.sku}</div>}
                                               </div>
                                             ))}
                                           </div>
@@ -832,7 +832,7 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
                     {type === 'product' && !serverProductResult && clientProductResult && (
                       <div className="overflow-x-auto max-h-80">
                         <table className="w-full text-left text-xs">
-                          <thead className="bg-white/5 text-platinum-dark uppercase font-mono text-[10px] sticky top-0">
+                          <thead className="bg-[var(--bg-alt)] text-[var(--text-muted)] uppercase font-mono text-[10px] sticky top-0 border-b border-[var(--border)]">
                             <tr>
                               <th className="py-2.5 px-3 w-8"></th>
                               <th className="py-2.5 px-3">Mã SKU Nhóm</th>
@@ -843,10 +843,10 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
                               <th className="py-2.5 px-3">Tổng Tồn Kho</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-white/5 text-platinum-light">
+                          <tbody className="divide-y divide-[var(--border)] text-[var(--text)]">
                             {clientProductResult.validProducts.length === 0 ? (
                               <tr>
-                                <td colSpan={7} className="py-8 text-center text-platinum-dark">
+                                <td colSpan={7} className="py-8 text-center text-[var(--text-muted)]">
                                   Không có sản phẩm nào hợp lệ để xem trước.
                                 </td>
                               </tr>
@@ -857,38 +857,38 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
                                   <React.Fragment key={idx}>
                                     <tr
                                       onClick={() => setExpandedRow(isExp ? null : idx)}
-                                      className="hover:bg-white/[0.03] cursor-pointer"
+                                      className="hover:bg-[var(--bg-alt)] cursor-pointer"
                                     >
-                                      <td className="py-2 px-3 text-platinum-dark">
+                                      <td className="py-2 px-3 text-[var(--text-muted)]">
                                         {isExp ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
                                       </td>
-                                      <td className="py-2 px-3 font-mono text-[11px] text-champagne">{p.productSku}</td>
-                                      <td className="py-2 px-3 font-medium text-white">{p.name}</td>
-                                      <td className="py-2 px-3 text-platinum-dark">{p.categoryName || p.category_id}</td>
-                                      <td className="py-2 px-3 font-mono text-platinum-light">{formatCurrency(p.new_price)}</td>
+                                      <td className="py-2 px-3 font-mono text-[11px] text-[var(--accent)]">{p.productSku}</td>
+                                      <td className="py-2 px-3 font-medium text-[var(--text)]">{p.name}</td>
+                                      <td className="py-2 px-3 text-[var(--text-muted)]">{p.categoryName || p.category_id}</td>
+                                      <td className="py-2 px-3 font-mono text-[var(--text)]">{formatCurrency(p.new_price)}</td>
                                       <td className="py-2 px-3">
-                                        <span className="px-2 py-0.5 bg-white/5 border border-white/10 rounded-sm font-mono text-[11px]">
+                                        <span className="px-2 py-0.5 bg-[var(--bg-alt)] border border-[var(--border)] rounded-sm font-mono text-[11px]">
                                           {p.variants.length} biến thể
                                         </span>
                                       </td>
-                                      <td className="py-2 px-3 font-mono font-bold text-emerald-400">
+                                      <td className="py-2 px-3 font-mono font-bold text-emerald-500 dark:text-emerald-400">
                                         {p.totalStock.toLocaleString('vi-VN')}
                                       </td>
                                     </tr>
                                     {isExp && (
-                                      <tr className="bg-noir-900/80">
+                                      <tr className="bg-[var(--bg-alt)]">
                                         <td colSpan={7} className="p-3 pl-11">
-                                          <div className="text-[11px] font-mono text-platinum-dark mb-1.5 uppercase">
+                                          <div className="text-[11px] font-mono text-[var(--text-muted)] mb-1.5 uppercase">
                                             Chi tiết các biến thể thành phần:
                                           </div>
                                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                                             {p.variants.map((v, vIdx) => (
-                                              <div key={vIdx} className="p-2 bg-noir-950 border border-white/5 rounded-sm">
-                                                <div className="font-semibold text-white">{v.color} / Cỡ {v.size}</div>
-                                                <div className="text-[11px] text-platinum-dark mt-0.5">
-                                                  Tồn kho: <span className="font-mono text-emerald-400 font-bold">{v.stock}</span>
+                                              <div key={vIdx} className="p-2 bg-[var(--surface)] border border-[var(--border)] rounded-sm">
+                                                <div className="font-semibold text-[var(--text)]">{v.color} / Cỡ {v.size}</div>
+                                                <div className="text-[11px] text-[var(--text-muted)] mt-0.5">
+                                                  Tồn kho: <span className="font-mono text-emerald-500 dark:text-emerald-400 font-bold">{v.stock}</span>
                                                 </div>
-                                                {v.sku && <div className="text-[10px] text-platinum-dark/70 font-mono mt-0.5">{v.sku}</div>}
+                                                {v.sku && <div className="text-[10px] text-[var(--text-muted)] font-mono mt-0.5">{v.sku}</div>}
                                               </div>
                                             ))}
                                           </div>
@@ -908,22 +908,22 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
 
                 {/* Tab 2: Warnings Table */}
                 {activeTab === 'warnings' && serverProductResult && (
-                  <div className="border border-yellow-950/40 rounded-sm overflow-hidden bg-noir-950">
+                  <div className="border border-yellow-500/30 rounded-sm overflow-hidden bg-[var(--surface)]">
                     <div className="overflow-x-auto max-h-72">
                       <table className="w-full text-left text-xs">
-                        <thead className="bg-yellow-950/20 text-yellow-300 uppercase font-mono text-[10px] sticky top-0 border-b border-yellow-900/30">
+                        <thead className="bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 uppercase font-mono text-[10px] sticky top-0 border-b border-yellow-500/20">
                           <tr>
                             <th className="py-2.5 px-3">Dòng (Row)</th>
                             <th className="py-2.5 px-3">Trường Dữ Liệu</th>
                             <th className="py-2.5 px-3">Nội Dung Cảnh Báo</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-white/5 text-platinum-light">
+                        <tbody className="divide-y divide-[var(--border)] text-[var(--text)]">
                           {serverProductResult.warnings.map((w, idx) => (
-                            <tr key={idx} className="hover:bg-yellow-950/10">
-                              <td className="py-2.5 px-3 font-mono text-yellow-400">Dòng {w.row}</td>
-                              <td className="py-2.5 px-3 font-medium text-white">{w.field}</td>
-                              <td className="py-2.5 px-3 text-yellow-200">{w.message}</td>
+                            <tr key={idx} className="hover:bg-yellow-500/5">
+                              <td className="py-2.5 px-3 font-mono text-yellow-600 dark:text-yellow-400">Dòng {w.row}</td>
+                              <td className="py-2.5 px-3 font-medium text-[var(--text)]">{w.field}</td>
+                              <td className="py-2.5 px-3 text-yellow-700 dark:text-yellow-200">{w.message}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -934,10 +934,10 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
 
                 {/* Tab 3: Error Table */}
                 {activeTab === 'errors' && (
-                  <div className="border border-red-950/40 rounded-sm overflow-hidden bg-noir-950">
+                  <div className="border border-red-500/30 rounded-sm overflow-hidden bg-[var(--surface)]">
                     <div className="overflow-x-auto max-h-72">
                       <table className="w-full text-left text-xs">
-                        <thead className="bg-red-950/20 text-red-300 uppercase font-mono text-[10px] sticky top-0 border-b border-red-900/30">
+                        <thead className="bg-red-500/10 text-red-600 dark:text-red-400 uppercase font-mono text-[10px] sticky top-0 border-b border-red-500/20">
                           <tr>
                             <th className="py-2.5 px-3">Vị Trí</th>
                             <th className="py-2.5 px-3">Trường Dữ Liệu</th>
@@ -946,11 +946,11 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
                             <th className="py-2.5 px-3">Hướng Dẫn Khắc Phục</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-white/5 text-platinum-light">
+                        <tbody className="divide-y divide-[var(--border)] text-[var(--text)]">
                           {errorCount === 0 ? (
                             <tr>
-                              <td colSpan={5} className="py-8 text-center text-emerald-400">
-                                <CheckCircle2 className="w-6 h-6 mx-auto mb-1 text-emerald-400" />
+                              <td colSpan={5} className="py-8 text-center text-emerald-500 dark:text-emerald-400">
+                                <CheckCircle2 className="w-6 h-6 mx-auto mb-1 text-emerald-500 dark:text-emerald-400" />
                                 Không phát hiện lỗi dữ liệu nào trong tệp Excel!
                               </td>
                             </tr>
@@ -959,14 +959,14 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
                               ? categoryResult?.errors
                               : serverProductResult?.errors || clientProductResult?.errors
                             )?.map((err: any, idx: number) => (
-                              <tr key={idx} className="hover:bg-red-950/10">
-                                <td className="py-2.5 px-3 font-mono text-red-400">
+                              <tr key={idx} className="hover:bg-red-500/5">
+                                <td className="py-2.5 px-3 font-mono text-red-600 dark:text-red-400">
                                   Dòng {err.row}{err.col ? `, Cột ${err.col}` : ''}
                                 </td>
-                                <td className="py-2.5 px-3 font-medium text-white">{err.field}</td>
-                                <td className="py-2.5 px-3 font-mono text-[11px] text-platinum-dark">{err.code}</td>
-                                <td className="py-2.5 px-3 text-red-300">{err.message}</td>
-                                <td className="py-2.5 px-3 text-platinum-dark text-[11px]">{err.fix || 'Kiểm tra lại dữ liệu'}</td>
+                                <td className="py-2.5 px-3 font-medium text-[var(--text)]">{err.field}</td>
+                                <td className="py-2.5 px-3 font-mono text-[11px] text-[var(--text-muted)]">{err.code}</td>
+                                <td className="py-2.5 px-3 text-red-600 dark:text-red-300">{err.message}</td>
+                                <td className="py-2.5 px-3 text-[var(--text-muted)] text-[11px]">{err.fix || 'Kiểm tra lại dữ liệu'}</td>
                               </tr>
                             ))
                           )}
@@ -978,10 +978,10 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
 
                 {/* Execution Progress & Logs */}
                 {isImporting && (
-                  <div className="p-4 bg-noir-950 border border-white/10 rounded-sm space-y-3">
+                  <div className="p-4 bg-[var(--bg-alt)] border border-[var(--border)] rounded-sm space-y-3">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-white font-mono flex items-center gap-2">
-                        <Loader2 className="w-4 h-4 animate-spin text-champagne" />
+                      <span className="text-[var(--text)] font-mono flex items-center gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin text-[var(--accent)]" />
                         <span>
                           {serverProductResult?.previewId
                             ? 'Đang chuẩn hóa ảnh WebP 82%, khử trùng lặp SHA-256 và lưu cơ sở dữ liệu...'
@@ -989,15 +989,15 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
                         </span>
                       </span>
                       {!serverProductResult?.previewId && (
-                        <span className="font-mono text-champagne">
+                        <span className="font-mono text-[var(--accent)]">
                           {progress.current} / {progress.total} ({Math.round((progress.current / (progress.total || 1)) * 100)}%)
                         </span>
                       )}
                     </div>
                     {!serverProductResult?.previewId && (
-                      <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                      <div className="w-full h-2 bg-[var(--track-bar)] rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-champagne transition-all duration-300"
+                          className="h-full bg-[var(--accent)] transition-all duration-300"
                           style={{ width: `${(progress.current / (progress.total || 1)) * 100}%` }}
                         />
                       </div>
@@ -1007,27 +1007,27 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
 
                 {/* Finished Summary Banner (Server Confirm) */}
                 {isFinished && serverConfirmSummary && (
-                  <div className="p-4 bg-noir-950 border border-emerald-800/60 rounded-sm space-y-3">
-                    <div className="flex items-center gap-2 text-emerald-400 text-xs font-semibold">
+                  <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-sm space-y-3">
+                    <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 text-xs font-semibold">
                       <CheckCircle2 className="w-4 h-4" />
                       <span>Hoàn tất quá trình nhập sản phẩm & hình ảnh vào hệ thống!</span>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono pt-1">
-                      <div className="p-2.5 bg-black/40 border border-white/5 rounded-sm">
-                        <span className="text-[10px] text-platinum-dark block">Sản Phẩm Đã Nhập</span>
-                        <span className="text-emerald-400 font-bold text-sm">{serverConfirmSummary.importedProducts}</span>
+                      <div className="p-2.5 bg-[var(--surface)] border border-[var(--border)] rounded-sm">
+                        <span className="text-[10px] text-[var(--text-muted)] block">Sản Phẩm Đã Nhập</span>
+                        <span className="text-emerald-600 dark:text-emerald-400 font-bold text-sm">{serverConfirmSummary.importedProducts}</span>
                       </div>
-                      <div className="p-2.5 bg-black/40 border border-white/5 rounded-sm">
-                        <span className="text-[10px] text-platinum-dark block">Biến Thể Đã Tạo</span>
-                        <span className="text-champagne font-bold text-sm">{serverConfirmSummary.importedVariants}</span>
+                      <div className="p-2.5 bg-[var(--surface)] border border-[var(--border)] rounded-sm">
+                        <span className="text-[10px] text-[var(--text-muted)] block">Biến Thể Đã Tạo</span>
+                        <span className="text-[var(--accent)] font-bold text-sm">{serverConfirmSummary.importedVariants}</span>
                       </div>
-                      <div className="p-2.5 bg-black/40 border border-white/5 rounded-sm">
-                        <span className="text-[10px] text-platinum-dark block">Ảnh Mới Đã Lưu</span>
-                        <span className="text-white font-bold text-sm">{serverConfirmSummary.uploadedImagesCount}</span>
+                      <div className="p-2.5 bg-[var(--surface)] border border-[var(--border)] rounded-sm">
+                        <span className="text-[10px] text-[var(--text-muted)] block">Ảnh Mới Đã Lưu</span>
+                        <span className="text-[var(--text)] font-bold text-sm">{serverConfirmSummary.uploadedImagesCount}</span>
                       </div>
-                      <div className="p-2.5 bg-black/40 border border-white/5 rounded-sm">
-                        <span className="text-[10px] text-platinum-dark block">Ảnh Khử Trùng Lặp (SHA-256)</span>
-                        <span className="text-emerald-400 font-bold text-sm">{serverConfirmSummary.reusedImagesCount}</span>
+                      <div className="p-2.5 bg-[var(--surface)] border border-[var(--border)] rounded-sm">
+                        <span className="text-[10px] text-[var(--text-muted)] block">Ảnh Khử Trùng Lặp (SHA-256)</span>
+                        <span className="text-emerald-600 dark:text-emerald-400 font-bold text-sm">{serverConfirmSummary.reusedImagesCount}</span>
                       </div>
                     </div>
                   </div>
@@ -1035,25 +1035,25 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
 
                 {/* Finished Summary Banner (Client Fallback) */}
                 {isFinished && !serverConfirmSummary && (
-                  <div className="p-4 bg-noir-950 border border-emerald-800/60 rounded-sm space-y-3">
-                    <div className="flex items-center gap-2 text-emerald-400 text-xs font-semibold">
+                  <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-sm space-y-3">
+                    <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 text-xs font-semibold">
                       <CheckCircle2 className="w-4 h-4" />
                       <span>Hoàn tất quá trình nhập dữ liệu vào Backend!</span>
                     </div>
                     <div className="flex gap-4 text-xs font-mono">
-                      <span className="text-emerald-400">Lưu thành công: {progress.success}</span>
-                      {progress.failed > 0 && <span className="text-red-400">Thất bại: {progress.failed}</span>}
+                      <span className="text-emerald-600 dark:text-emerald-400">Lưu thành công: {progress.success}</span>
+                      {progress.failed > 0 && <span className="text-red-500 dark:text-red-400">Thất bại: {progress.failed}</span>}
                     </div>
-                    <div className="max-h-32 overflow-y-auto space-y-1 text-[11px] font-mono text-platinum-dark">
+                    <div className="max-h-32 overflow-y-auto space-y-1 text-[11px] font-mono text-[var(--text-muted)]">
                       {importLogs.map((log, idx) => (
                         <div key={idx} className="flex items-center gap-2">
                           {log.status === 'success' ? (
-                            <span className="text-emerald-400">✓</span>
+                            <span className="text-emerald-600 dark:text-emerald-400">✓</span>
                           ) : (
-                            <span className="text-red-400">✕</span>
+                            <span className="text-red-500 dark:text-red-400">✕</span>
                           )}
-                          <span className="text-white">{log.name}</span>
-                          {log.message && <span className="text-red-400">({log.message})</span>}
+                          <span className="text-[var(--text)]">{log.name}</span>
+                          {log.message && <span className="text-red-500 dark:text-red-400">({log.message})</span>}
                         </div>
                       ))}
                     </div>
@@ -1064,7 +1064,7 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
           </div>
 
           {/* Footer Actions */}
-          <div className="px-6 py-4 border-t border-[var(--border)] bg-[var(--bg-card-muted)] flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="px-6 py-4 border-t border-[var(--border)] bg-[var(--surface)] flex flex-col sm:flex-row items-center justify-between gap-3">
             <div className="flex items-center gap-2 text-[11px] text-[var(--text-muted)]">
               <ShieldCheck className="w-4 h-4 text-emerald-500 dark:text-emerald-400 shrink-0" />
               <span>Chế độ an toàn: Tự động giữ nguyên ảnh cũ nếu cập nhật & khử trùng lặp SHA-256</span>
@@ -1075,7 +1075,7 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
                 type="button"
                 onClick={handleClose}
                 disabled={isImporting}
-                className="px-4 py-2 text-xs text-[var(--text-primary)] hover:text-[var(--accent)] bg-[var(--bg-card)] hover:bg-[var(--bg-card-muted)] border border-[var(--border)] rounded-sm transition-colors flex-1 sm:flex-initial"
+                className="px-4 py-2 border border-[var(--border)] text-[var(--text)] rounded-sm text-xs font-mono uppercase tracking-wider hover:bg-[var(--bg-alt)] transition-colors flex-1 sm:flex-initial"
               >
                 {isFinished ? 'Đóng' : 'Hủy Bỏ'}
               </button>
@@ -1085,7 +1085,7 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
                   type="button"
                   onClick={handleExecuteImport}
                   disabled={isImporting}
-                  className="px-6 py-2 bg-[var(--accent)] text-[var(--accent-contrast)] text-xs font-semibold rounded-sm hover:opacity-90 transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-50 flex-1 sm:flex-initial"
+                  className="px-6 py-2 bg-[var(--accent)] text-[var(--accent-contrast)] text-xs font-mono font-semibold uppercase tracking-wider rounded-sm hover:bg-[var(--accent)]/90 transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 flex-1 sm:flex-initial"
                 >
                   {isImporting ? (
                     <>

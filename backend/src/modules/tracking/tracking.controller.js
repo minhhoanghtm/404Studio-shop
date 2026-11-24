@@ -306,6 +306,21 @@ class TrackingController {
     }
   }
 
+  async terminateSession(req, res, next) {
+    try {
+      const { sessionId, visitorId, reason } = req.body;
+      const result = await presenceService.terminateSession({
+        sessionId: sessionId || visitorId,
+        visitorId: visitorId || sessionId,
+        reason,
+        adminUser: req.user,
+      });
+      return successResponse(res, result, result.message || "Đã kết thúc phiên làm việc thành công");
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async getActivityAnalytics(req, res, next) {
     try {
       const { startDate, endDate } = req.query;

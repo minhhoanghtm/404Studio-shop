@@ -23,6 +23,7 @@ export const getSystemSettings = async (forceFresh = false) => {
         allowGuestCheckout: Boolean(doc.system.allowGuestCheckout),
         enableVoucher: doc.system.enableVoucher !== false,
         enableReviews: doc.system.enableReviews !== false,
+        disallowReviewEditDelete: Boolean(doc.system.disallowReviewEditDelete),
       };
     } else {
       cachedSystemSettings = {
@@ -32,6 +33,7 @@ export const getSystemSettings = async (forceFresh = false) => {
         allowGuestCheckout: false,
         enableVoucher: true,
         enableReviews: true,
+        disallowReviewEditDelete: false,
       };
     }
   } catch (err) {
@@ -44,6 +46,7 @@ export const getSystemSettings = async (forceFresh = false) => {
         allowGuestCheckout: false,
         enableVoucher: true,
         enableReviews: true,
+        disallowReviewEditDelete: false,
       };
     }
   }

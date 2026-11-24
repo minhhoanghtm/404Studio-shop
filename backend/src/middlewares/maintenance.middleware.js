@@ -13,11 +13,17 @@ const isExemptPath = (path) => {
   // Essential auth routes so admin can log in / check session
   if (
     p === "/auth/login" ||
+    p === "/auth/signin" ||
     p === "/auth/admin-login" ||
     p === "/auth/refresh" ||
+    p === "/auth/refreshtoken" ||
     p === "/auth/refresh-token" ||
     p === "/auth/me" ||
-    p === "/auth/logout"
+    p === "/auth/me/permissions" ||
+    p === "/auth/logout" ||
+    p === "/auth/signout" ||
+    p === "/auth/login/otp/send" ||
+    p === "/auth/login/otp/verify"
   ) {
     return true;
   }

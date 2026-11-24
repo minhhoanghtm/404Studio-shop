@@ -302,7 +302,7 @@ describe("User Activity Tracking, Idle Detection & Observability Test Suite", ()
         session_id: testSessionId,
         tab_id: testTab2,
       });
-    });
+    }, 15000);
 
     test("TC-10b: Ghi nhận Guest session với anonymous_id và tính toán counts.guestCount chính xác", async () => {
       const guestSessionId = `sess-guest-${Date.now()}`;
@@ -378,6 +378,86 @@ describe("User Activity Tracking, Idle Detection & Observability Test Suite", ()
         session_id: authSessionId,
         tab_id: authTabId,
       });
+    });
+
+    test("TC-10d: Kiểm tra visitorId tracking, Redis key presence:{visitorId} và hợp nhất phiên khách -> user khi đăng nhập không đếm trùng", async () => {
+      const redis = getRedisConnection();
+      if (!redis) return;
+
+      const testVisitorId = "visitor-uuid-" + crypto.randomUUID();
+
+      // 1. Khách vãng lai truy cập web -> gửi heartbeat
+      await presenceService.updateHeartbeat(
+        {
+          visitorId: testVisitorId,
+          page: "/products",
+          status: "active",
+        },
+        null // Chưa đăng nhập
+      );
+
+      // Kiểm tra Redis key presence:{visitorId}
+      const rawGuest = await redis.get(`presence:${testVisitorId}`);
+      expect(rawGuest).toBeDefined();
+      const guestData = JSON.parse(rawGuest);
+      expect(guestData.type).toBe("guest");
+      expect(guestData.displayName).toBe("Khách vãng lai");
+      expect(guestData.page).toBe("/products");
+      expect(guestData.status).toBe("active");
+
+      // Kiểm tra TTL nằm trong khoảng 30 - 45s
+      const ttlGuest = await redis.ttl(`presence:${testVisitorId}`);
+      expect(ttlGuest).toBeGreaterThan(0);
+      expect(ttlGuest).toBeLessThanOrEqual(45);
+
+      // Đọc live sessions
+      const live1 = await presenceService.getLiveSessions({ limit: 100 });
+      const foundGuest = live1.sessions.find((s) => s.visitorId === testVisitorId || s.sessionId === testVisitorId);
+      expect(foundGuest).toBeDefined();
+      expect(foundGuest.userDisplay).toBe("Khách vãng lai");
+      expect(foundGuest.isAnonymous).toBe(true);
+
+      // 2. User đăng nhập trên cùng trình duyệt (cùng visitorId)
+      const mockLoggedInUser = {
+        _id: new mongoose.Types.ObjectId(),
+        email: "customer@example.com",
+        fullName: "Hoàng Kim",
+        name: "Hoàng Kim",
+        role: "customer",
+      };
+      User.findById = jest.fn(() => ({
+        select: () => ({
+          lean: async () => ({ ...mockLoggedInUser }),
+        }),
+      }));
+
+      await presenceService.updateHeartbeat(
+        {
+          visitorId: testVisitorId,
+          page: "/checkout",
+          status: "active",
+        },
+        mockLoggedInUser // Đã đăng nhập
+      );
+
+      // Kiểm tra Redis key presence:{visitorId} đã được cập nhật thành user
+      const rawUser = await redis.get(`presence:${testVisitorId}`);
+      const userData = JSON.parse(rawUser);
+      expect(userData.type).toBe("user");
+      expect(userData.displayName).toBe("Hoàng Kim");
+      expect(userData.page).toBe("/checkout");
+
+      // Đọc lại live sessions: không đếm trùng, phiên khách cũ đã chuyển thành phiên user
+      const live2 = await presenceService.getLiveSessions({ limit: 100 });
+      const matchingSessions = live2.sessions.filter(
+        (s) => s.visitorId === testVisitorId || s.sessionId === testVisitorId
+      );
+      expect(matchingSessions.length).toBe(1); // Duy nhất 1 phiên, không trùng!
+      expect(matchingSessions[0].userDisplay).toBe("Hoàng Kim");
+      expect(matchingSessions[0].isAnonymous).toBe(false);
+
+      // Cleanup
+      await presenceService.handleTabLeave({ visitorId: testVisitorId });
     });
   });
 

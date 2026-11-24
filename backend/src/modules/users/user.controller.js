@@ -33,7 +33,7 @@ export const createUser = async (req, res, next) => {
 export const updateUser = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const updatedUser = await userService.updateUser(id, req.body);
+    const updatedUser = await userService.updateUser(id, req.body, req.user);
     return successResponse(res, updatedUser, "Cập nhật tài khoản thành công");
   } catch (error) {
     next(error);

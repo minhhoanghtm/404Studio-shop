@@ -61,13 +61,13 @@ export const ExcelTemplateButton: React.FC<ExcelTemplateButtonProps> = ({
       type="button"
       onClick={handleDownload}
       disabled={loading}
-      className={`px-3 py-2 text-xs font-mono uppercase tracking-wider text-[var(--text-primary)] hover:text-[var(--accent)] bg-[var(--bg-card)] hover:bg-[var(--bg-card-muted)] border border-[var(--border)] rounded-sm transition-all flex items-center gap-1.5 disabled:opacity-50 ${className}`}
+      className={`px-3.5 py-2 text-xs font-mono uppercase tracking-wider text-[var(--text-primary)] hover:text-[var(--accent)] hover:border-[var(--accent)] bg-[var(--bg-card)] hover:bg-[var(--bg-card-muted)] border border-[var(--border)] rounded-lg transition-all shadow-xs hover:shadow-sm flex items-center gap-1.5 disabled:opacity-50 cursor-pointer ${className}`}
       title={type === 'category' ? 'Tải tệp Excel mẫu danh mục' : 'Tải tệp Excel mẫu sản phẩm có ảnh nhúng'}
     >
       {loading ? (
-        <Loader2 className="w-3.5 h-3.5 animate-spin text-champagne" />
+        <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--accent)]" />
       ) : (
-        <Download className="w-3.5 h-3.5 text-champagne" />
+        <Download className="w-3.5 h-3.5 text-[var(--accent)]" />
       )}
       <span>{type === 'category' ? 'Tải Mẫu Danh Mục' : 'Tải Mẫu Sản Phẩm'}</span>
     </button>

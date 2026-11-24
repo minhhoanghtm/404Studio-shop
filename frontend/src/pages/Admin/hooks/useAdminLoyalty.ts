@@ -6,7 +6,10 @@ import {
   LoyaltySystemStats,
   buildCustomerLoyaltyProfile,
   computeLoyaltySystemStats,
-  MEMBERSHIP_TIERS,
+  getActiveMembershipTiers,
+  getManualAdjustments,
+  EVENT_LOYALTY_SETTINGS_CHANGED,
+  EVENT_LOYALTY_ADJUSTMENTS_CHANGED,
 } from '@/shared/loyalty';
 
 export interface UseAdminLoyaltyResult {
@@ -15,7 +18,7 @@ export interface UseAdminLoyaltyResult {
   stats: LoyaltySystemStats | null;
   isLoading: boolean;
   error: string | null;
-  refetch: () => Promise<void>;
+  refetch: (silent?: boolean) => Promise<void>;
   backendSyncMode: 'REAL_ORDER_DERIVED' | 'BACKEND_NATIVE';
 }
 
@@ -27,11 +30,24 @@ export function useAdminLoyalty(): UseAdminLoyaltyResult {
   const [error, setError] = useState<string | null>(null);
   const [backendSyncMode, setBackendSyncMode] = useState<'REAL_ORDER_DERIVED' | 'BACKEND_NATIVE'>('REAL_ORDER_DERIVED');
 
-  const fetchAdminLoyaltyData = useCallback(async () => {
-    setIsLoading(true);
+  const fetchAdminLoyaltyData = useCallback(async (silent = false) => {
+    if (!silent) setIsLoading(true);
     setError(null);
 
     try {
+      // Retrieve active tier thresholds and administrative manual adjustments
+      const activeTiers = getActiveMembershipTiers();
+      const manualAdjustments = getManualAdjustments();
+
+      // Group adjustments by customerId
+      const adjustmentsByCust = new Map<string, PointTransaction[]>();
+      for (const adj of manualAdjustments) {
+        if (!adjustmentsByCust.has(adj.customerId)) {
+          adjustmentsByCust.set(adj.customerId, []);
+        }
+        adjustmentsByCust.get(adj.customerId)!.push(adj);
+      }
+
       // 1. Check if backend native loyalty admin endpoints exist
       try {
         const [nativeStats, nativeCustomers, nativeTx] = await Promise.all([
@@ -41,9 +57,25 @@ export function useAdminLoyalty(): UseAdminLoyaltyResult {
         ]);
 
         if (nativeStats?.data && nativeCustomers?.data) {
+          // If native backend returned profiles, ensure local adjustments are incorporated
+          const baseCustomers = Array.isArray(nativeCustomers.data) ? nativeCustomers.data : [];
+          const mergedProfiles = baseCustomers.map((cust: any) => {
+            const custId = String(cust.customerId || cust._id || cust.id);
+            const extraAdjs = adjustmentsByCust.get(custId) || [];
+            if (extraAdjs.length === 0) return cust;
+            const extraDelta = extraAdjs.reduce((sum, a) => sum + (a.pointsDelta || 0), 0);
+            const updatedBalance = Math.max(0, (cust.currentBalance || 0) + extraDelta);
+            return {
+              ...cust,
+              currentBalance: updatedBalance,
+              qualifyingPoints: Math.max(0, (cust.qualifyingPoints || cust.currentBalance || 0) + extraDelta),
+              transactions: [...extraAdjs, ...(cust.transactions || [])],
+            };
+          });
+
           setStats(nativeStats.data);
-          setProfiles(nativeCustomers.data);
-          setAllTransactions(nativeTx?.data || []);
+          setProfiles(mergedProfiles);
+          setAllTransactions([...manualAdjustments, ...(nativeTx?.data || [])]);
           setBackendSyncMode('BACKEND_NATIVE');
           setIsLoading(false);
           return;
@@ -82,6 +114,7 @@ export function useAdminLoyalty(): UseAdminLoyaltyResult {
       for (const cust of customersList) {
         const custId = String(cust._id || cust.id);
         const userOrders = ordersByUser.get(custId) || [];
+        const custAdjs = adjustmentsByCust.get(custId) || [];
         const profile = buildCustomerLoyaltyProfile(
           custId,
           userOrders,
@@ -89,8 +122,9 @@ export function useAdminLoyalty(): UseAdminLoyaltyResult {
             name: cust.fullName || cust.name,
             email: cust.email,
             phone: cust.phone,
+            manualAdjustments: custAdjs,
           },
-          MEMBERSHIP_TIERS
+          activeTiers
         );
 
         computedProfiles.push(profile);
@@ -102,11 +136,33 @@ export function useAdminLoyalty(): UseAdminLoyaltyResult {
         if (userId === 'guest') continue;
         const exists = computedProfiles.some((p) => p.customerId === userId);
         if (!exists) {
+          const custAdjs = adjustmentsByCust.get(userId) || [];
           const profile = buildCustomerLoyaltyProfile(
             userId,
             userOrders,
-            { name: `Thành viên #${userId.slice(-6)}` },
-            MEMBERSHIP_TIERS
+            {
+              name: `Thành viên #${userId.slice(-6)}`,
+              manualAdjustments: custAdjs,
+            },
+            activeTiers
+          );
+          computedProfiles.push(profile);
+          combinedTx.push(...profile.transactions);
+        }
+      }
+
+      // Account for any customer with manual adjustments only
+      for (const [adjCustomerId, adjs] of adjustmentsByCust.entries()) {
+        const exists = computedProfiles.some((p) => p.customerId === adjCustomerId);
+        if (!exists) {
+          const profile = buildCustomerLoyaltyProfile(
+            adjCustomerId,
+            [],
+            {
+              name: `Khách hàng #${adjCustomerId.slice(-6)}`,
+              manualAdjustments: adjs,
+            },
+            activeTiers
           );
           computedProfiles.push(profile);
           combinedTx.push(...profile.transactions);
@@ -129,12 +185,28 @@ export function useAdminLoyalty(): UseAdminLoyaltyResult {
       console.warn('[useAdminLoyalty] Error deriving admin loyalty data:', err);
       setError(err?.message || 'Không thể tổng hợp dữ liệu khách hàng thân thiết');
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
     fetchAdminLoyaltyData();
+  }, [fetchAdminLoyaltyData]);
+
+  // Reactive listener for local adjustments & tier threshold updates
+  useEffect(() => {
+    const handleUpdate = () => {
+      // Khi có thay đổi cấu hình hoặc điều chỉnh điểm, cập nhật âm thầm không reload spinner
+      fetchAdminLoyaltyData(true);
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener(EVENT_LOYALTY_SETTINGS_CHANGED, handleUpdate);
+      window.addEventListener(EVENT_LOYALTY_ADJUSTMENTS_CHANGED, handleUpdate);
+      return () => {
+        window.removeEventListener(EVENT_LOYALTY_SETTINGS_CHANGED, handleUpdate);
+        window.removeEventListener(EVENT_LOYALTY_ADJUSTMENTS_CHANGED, handleUpdate);
+      };
+    }
   }, [fetchAdminLoyaltyData]);
 
   return {
@@ -143,7 +215,7 @@ export function useAdminLoyalty(): UseAdminLoyaltyResult {
     stats,
     isLoading,
     error,
-    refetch: fetchAdminLoyaltyData,
+    refetch: (silent = true) => fetchAdminLoyaltyData(silent),
     backendSyncMode,
   };
 }

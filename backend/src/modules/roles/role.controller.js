@@ -336,6 +336,11 @@ export const updateUserStatus = async (req, res, next) => {
     const { id } = req.params;
     const { status } = req.body;
 
+    // Permission enforcement: Only admin has authority to lock/unlock accounts
+    if (req.user?.role !== "admin") {
+      throw new AppError("Chỉ Quản trị viên (Admin) mới có quyền khóa hoặc mở khóa tài khoản nhân viên và khách hàng.", 403);
+    }
+
     if (!["active", "locked", "blocked"].includes(status)) {
       throw new AppError("Trạng thái không hợp lệ (chỉ chấp nhận active, locked)", 400);
     }

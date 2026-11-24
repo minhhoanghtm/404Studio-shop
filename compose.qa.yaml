@@ -1,0 +1,38 @@
+name: atelier-qa
+
+services:
+  mongo:
+    image: mongo:7.0
+    container_name: atelier_qa_mongo
+    ports:
+      - "127.0.0.1:27018:27017"
+    volumes:
+      - atelier_qa_mongo_data:/data/db
+    networks: [atelier-qa-network]
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --eval 'db.adminCommand(\"ping\")' >/dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    container_name: atelier_qa_redis
+    ports:
+      - "127.0.0.1:6381:6379"
+    volumes:
+      - atelier_qa_redis_data:/data
+    networks: [atelier-qa-network]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+networks:
+  atelier-qa-network:
+    name: atelier-qa-network
+
+volumes:
+  atelier_qa_mongo_data:
+  atelier_qa_redis_data:

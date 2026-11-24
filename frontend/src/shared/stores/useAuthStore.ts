@@ -10,16 +10,36 @@ import { broadcastAuthLogout, isJwtExpired } from '../utils/authSync';
 import { Order, ShippingAddress, User } from '../types';
 import { clearLocalBehaviorSignals } from '../tracking/useBehaviorTracking';
 
-const toUser = (value: any): User => ({
+export const toUser = (value: any): User => ({
   id: String(value?.id || value?._id || ''),
   name: value?.fullName || value?.name || '',
   email: value?.email || '',
-  phone: value?.phone,
+  phone: value?.phone || value?.phoneNumber || value?.addresses?.[0]?.phone || '',
   avatar: value?.avatar || value?.avatar_url,
   role: value?.role || (value?.vipTier === 'admin' ? 'admin' : 'customer'),
   vipTier: value?.vipTier || value?.tier || (value?.role === 'admin' ? 'admin' : 'Thành viên'),
   addresses: Array.isArray(value?.addresses) ? value.addresses : [],
 });
+
+export const persistUserToStorage = (user: User | null) => {
+  try {
+    const raw = localStorage.getItem('atelier_patron_auth');
+    const existing = raw ? JSON.parse(raw) : {};
+    const existingState = existing.state || {};
+    localStorage.setItem(
+      'atelier_patron_auth',
+      JSON.stringify({
+        ...existing,
+        state: {
+          ...existingState,
+          user,
+        },
+      })
+    );
+  } catch {
+    // Ignore localStorage quota errors
+  }
+};
 
 const readInitialUser = (): User | null => {
   try {
@@ -119,12 +139,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       ]);
 
       if (userRes.status === 'fulfilled') {
-        const u = toUser(userRes.value.data);
+        const rawUser = userRes.value?.data?.user || userRes.value?.data || userRes.value;
+        const u = toUser(rawUser);
         const perms =
           permRes.status === 'fulfilled' && Array.isArray(permRes.value.data?.permissions)
             ? permRes.value.data.permissions
             : [];
 
+        persistUserToStorage(u);
         set({
           isAuthenticated: true,
           user: u,
@@ -136,12 +158,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           localStorage.setItem('atelier_user_permissions', JSON.stringify(perms));
         } catch {}
       } else {
-        clearAuthSession();
-        set({ isAuthenticated: false, user: null, permissions: [], isPermissionsLoaded: true, orders: [] });
+        const reason: any = userRes.reason;
+        if (reason?.status === 401 || reason?.status === 403) {
+          clearAuthSession();
+          set({ isAuthenticated: false, user: null, permissions: [], isPermissionsLoaded: true, orders: [] });
+        } else {
+          set({ isPermissionsLoaded: true });
+        }
       }
     } catch {
-      clearAuthSession();
-      set({ isAuthenticated: false, user: null, permissions: [], isPermissionsLoaded: true, orders: [] });
+      // Retain existing offline session if non-critical error
+      set({ isPermissionsLoaded: true });
     }
   },
 
@@ -151,8 +178,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const data = response.data;
       if (!data?.accessToken || !data?.user) return false;
 
-      setAuthTokens(data.accessToken, data.refreshToken);
       const u = toUser(data.user);
+      setAuthTokens(data.accessToken, data.refreshToken);
+      persistUserToStorage(u);
       set({ isAuthenticated: true, user: u, orders: [] });
 
       // Fetch permissions right after login
@@ -166,8 +194,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
 
       return true;
-    } catch {
-      return false;
+    } catch (err: any) {
+      throw err;
     }
   },
 
@@ -177,8 +205,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const data = response.data;
       if (!data?.accessToken || !data?.user) return false;
 
-      setAuthTokens(data.accessToken, data.refreshToken);
       const u = toUser(data.user);
+      setAuthTokens(data.accessToken, data.refreshToken);
+      persistUserToStorage(u);
       set({ isAuthenticated: true, user: u, orders: [] });
 
       try {
@@ -191,8 +220,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
 
       return true;
-    } catch {
-      return false;
+    } catch (err: any) {
+      throw err;
     }
   },
 
@@ -209,8 +238,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const data = response.data;
       if (!data?.accessToken || !data?.user) return false;
 
-      setAuthTokens(data.accessToken, data.refreshToken);
       const u = toUser(data.user);
+      setAuthTokens(data.accessToken, data.refreshToken);
+      persistUserToStorage(u);
       set({ isAuthenticated: true, user: u, permissions: [], isPermissionsLoaded: true, orders: [] });
       return true;
     } catch {
@@ -238,7 +268,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   updateProfile: async (profile) => {
     try {
       const response = await authApi.updateProfile({ fullName: profile.name, phone: profile.phone });
-      set({ user: toUser(response.data?.user || response.data || { ...get().user, ...profile }) });
+      const rawUser = response.data?.user || response.data || { ...get().user, ...profile };
+      const u = toUser(rawUser);
+      persistUserToStorage(u);
+      set({ user: u });
       return true;
     } catch {
       return false;

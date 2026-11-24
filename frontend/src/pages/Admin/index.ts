@@ -11,3 +11,4 @@ export * from './AdminLoyaltyPage';
 export * from './AdminLoyaltyCustomersPage';
 export * from './AdminLoyaltyTransactionsPage';
 export * from './AdminLoyaltySettingsPage';
+export * from './AdminAiWorkspacePage';

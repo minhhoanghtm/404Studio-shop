@@ -6,9 +6,9 @@ import { useConsentStore } from './useConsentStore';
 import { ModalPortal } from '../context/ModalContext';
 
 export const ConsentBanner: React.FC = () => {
-  const { isBannerOpen, acceptAll, rejectOptional, openPreferences } = useConsentStore();
+  const { isBannerOpen, isPreferencesOpen, acceptAll, rejectOptional, openPreferences } = useConsentStore();
 
-  if (!isBannerOpen) return null;
+  if (!isBannerOpen || isPreferencesOpen) return null;
 
   return (
     <ModalPortal>

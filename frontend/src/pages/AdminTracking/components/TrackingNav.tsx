@@ -20,7 +20,7 @@ export const TrackingNav: React.FC<TrackingNavProps> = () => {
   ];
 
   return (
-    <div className="flex items-center gap-1 overflow-x-auto pb-1 border-b border-[var(--border)] font-sans text-xs">
+    <div className="flex items-center gap-2.5 overflow-x-auto pb-3 border-b border-[var(--border)] font-sans text-xs">
       {tabs.map((tab) => {
         const Icon = tab.icon;
         return (
@@ -29,10 +29,10 @@ export const TrackingNav: React.FC<TrackingNavProps> = () => {
             to={tab.to}
             end={tab.end}
             className={({ isActive }) =>
-              `flex items-center gap-2 px-4 py-2.5 rounded-t-sm border-b-2 font-medium uppercase tracking-wider whitespace-nowrap transition-all ${
+              `flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-mono uppercase tracking-wider whitespace-nowrap transition-all duration-200 cursor-pointer ${
                 isActive
-                  ? 'border-[var(--accent)] text-[var(--accent)] bg-[var(--accent)]/10 font-bold'
-                  : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--table-row-hover)]'
+                  ? 'admin-tab-active'
+                  : 'admin-tab-inactive'
               }`
             }
           >

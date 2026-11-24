@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { useConsentStore } from './useConsentStore';
 import { ConsentCategories } from './types';
 import { useModal, ModalPortal } from '../context/ModalContext';
+import { StatusToggle } from '../components/StatusToggle';
 
 export const ConsentPreferencesModal: React.FC = () => {
   const { isPreferencesOpen, closePreferences, consentRecord, saveCustomPreferences, rejectOptional, acceptAll } = useConsentStore();
@@ -55,7 +56,7 @@ export const ConsentPreferencesModal: React.FC = () => {
       <AnimatePresence>
         <div
           className="fixed inset-0 flex items-center justify-center p-4 sm:p-6 bg-[rgba(26,26,23,0.45)] backdrop-blur-sm pointer-events-auto"
-          style={{ zIndex: overlayZIndex }}
+          style={{ zIndex: Math.max(overlayZIndex || 0, 160) }}
           onClick={(e) => {
             if (e.target === e.currentTarget) closePreferences();
           }}
@@ -68,7 +69,7 @@ export const ConsentPreferencesModal: React.FC = () => {
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
             transition={{ duration: 0.25, ease: 'easeOut' }}
-            style={{ zIndex: contentZIndex }}
+            style={{ zIndex: Math.max(contentZIndex || 0, 165) }}
             className="relative w-full max-w-2xl bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-32px)] text-[var(--text)]"
           >
             {/* Header */}
@@ -147,22 +148,11 @@ export const ConsentPreferencesModal: React.FC = () => {
                 </div>
               </div>
               <div className="pt-1">
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={categories.analytics}
-                  onClick={() => handleToggle('analytics')}
-                  className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors ${
-                    categories.analytics ? 'bg-[var(--accent)]' : 'bg-[var(--border)]'
-                  }`}
-                >
-                  <motion.div
-                    layout
-                    className={`w-4 h-4 rounded-full shadow-md ${
-                      categories.analytics ? 'bg-[var(--accent-contrast)] translate-x-5' : 'bg-[var(--surface)] translate-x-0'
-                    }`}
-                  />
-                </button>
+                <StatusToggle
+                  checked={categories.analytics}
+                  onChange={() => handleToggle('analytics')}
+                  ariaLabel="Cookie Phân Tích & Hiệu Năng"
+                />
               </div>
             </div>
 
@@ -185,22 +175,11 @@ export const ConsentPreferencesModal: React.FC = () => {
                 </div>
               </div>
               <div className="pt-1">
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={categories.personalization}
-                  onClick={() => handleToggle('personalization')}
-                  className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors ${
-                    categories.personalization ? 'bg-[var(--accent)]' : 'bg-[var(--border)]'
-                  }`}
-                >
-                  <motion.div
-                    layout
-                    className={`w-4 h-4 rounded-full shadow-md ${
-                      categories.personalization ? 'bg-[var(--accent-contrast)] translate-x-5' : 'bg-[var(--surface)] translate-x-0'
-                    }`}
-                  />
-                </button>
+                <StatusToggle
+                  checked={categories.personalization}
+                  onChange={() => handleToggle('personalization')}
+                  ariaLabel="Cookie Cá Nhân Hóa"
+                />
               </div>
             </div>
 
@@ -223,22 +202,11 @@ export const ConsentPreferencesModal: React.FC = () => {
                 </div>
               </div>
               <div className="pt-1">
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={categories.marketing}
-                  onClick={() => handleToggle('marketing')}
-                  className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors ${
-                    categories.marketing ? 'bg-[var(--accent)]' : 'bg-[var(--border)]'
-                  }`}
-                >
-                  <motion.div
-                    layout
-                    className={`w-4 h-4 rounded-full shadow-md ${
-                      categories.marketing ? 'bg-[var(--accent-contrast)] translate-x-5' : 'bg-[var(--surface)] translate-x-0'
-                    }`}
-                  />
-                </button>
+                <StatusToggle
+                  checked={categories.marketing}
+                  onChange={() => handleToggle('marketing')}
+                  ariaLabel="Cookie Tiếp Thị & Quảng Cáo"
+                />
               </div>
             </div>
 

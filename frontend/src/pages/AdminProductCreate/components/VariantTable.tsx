@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Plus, Trash2, Layers, AlertCircle, Sparkles, Image as ImageIcon, Info, Copy } from 'lucide-react';
 import { ProductVariantItem, DEFAULT_SIZES, DEFAULT_COLORS } from '../../AdminProducts/types';
 import { formatCurrency } from '@/shared/utils/formatters';
+import { StatusToggle } from '@/shared/components';
+import { DeleteActionButton } from '@/shared/components/AdminActionButton';
 
 interface VariantTableProps {
   variants: ProductVariantItem[];
@@ -346,6 +348,7 @@ export const VariantTable: React.FC<VariantTableProps> = ({
             <table className="w-full text-left text-xs">
               <thead className="border-b border-white/10 text-platinum-dark uppercase tracking-wider bg-white/5 font-mono text-[11px]">
                 <tr>
+                  <th className="py-3 px-3 w-12 text-center">STT</th>
                   <th className="py-3 px-3">Màu Sắc</th>
                   <th className="py-3 px-3">Kích Cỡ</th>
                   <th className="py-3 px-3">Mã SKU</th>
@@ -359,6 +362,9 @@ export const VariantTable: React.FC<VariantTableProps> = ({
               <tbody className="divide-y divide-white/5 font-sans">
                 {variants.map((variant, idx) => (
                   <tr key={`${variant.color}_${variant.size}_${idx}`} className="hover:bg-white/[0.02] transition-colors">
+                    <td className="py-3 px-3 text-center font-mono text-xs text-platinum-dark">
+                      {idx + 1}
+                    </td>
                     {/* Color */}
                     <td className="py-3 px-3">
                       <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full border border-white/30" style={{ backgroundColor: variant.color_code || '#1E1E24' }} /><input
@@ -435,19 +441,26 @@ export const VariantTable: React.FC<VariantTableProps> = ({
                     </td>
 
                     <td className="py-3 px-3">
-                      <label className="inline-flex items-center gap-1.5 text-[11px] text-platinum-light"><input type="checkbox" checked={variant.is_active !== false} onChange={(e) => handleUpdateVariant(idx, 'is_active', e.target.checked)} className="accent-champagne focus:ring-champagne" /> {variant.is_active !== false ? 'Bật' : 'Tắt'}</label>
+                      <div className="inline-flex items-center gap-2 text-[11px]">
+                        <StatusToggle
+                          size="sm"
+                          color="success"
+                          checked={variant.is_active !== false}
+                          onChange={(val) => handleUpdateVariant(idx, 'is_active', val)}
+                          ariaLabel="Trạng thái mở bán biến thể"
+                        />
+                        <span className="font-mono text-[var(--text-primary)] dark:text-platinum-light font-medium">
+                          {variant.is_active !== false ? 'Bật' : 'Tắt'}
+                        </span>
+                      </div>
                     </td>
 
                     {/* Actions */}
                     <td className="py-3 px-3 text-right">
-                      <button
-                        type="button"
+                      <DeleteActionButton
                         onClick={() => handleRemoveVariant(idx)}
-                        className="p-1.5 text-platinum-dark hover:text-red-400 transition-colors"
                         title="Xóa biến thể này"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      />
                     </td>
                   </tr>
                 ))}

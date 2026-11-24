@@ -71,7 +71,7 @@ export const AdminPolicyHistoryPage: React.FC = () => {
                   href={`/${policy.slug}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="px-3 py-1.5 border border-white/20 hover:border-champagne hover:text-champagne text-xs uppercase tracking-wider rounded-sm transition-colors flex items-center gap-1.5"
+                  className="px-3.5 py-1.5 border border-white/20 hover:border-champagne hover:text-champagne text-xs font-mono uppercase tracking-wider rounded-lg shadow-xs hover:shadow-sm transition-all flex items-center gap-1.5"
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
                   <span>Xem Công Khai</span>
@@ -79,7 +79,7 @@ export const AdminPolicyHistoryPage: React.FC = () => {
               )}
               <Link
                 to={`/admin/policies/${policy._id}/edit`}
-                className="px-4 py-1.5 bg-champagne text-noir-950 font-semibold text-xs uppercase tracking-wider rounded-sm hover:bg-champagne/90 transition-colors flex items-center gap-1.5"
+                className="px-4 py-1.5 bg-[var(--accent)] text-[var(--accent-contrast)] border border-[var(--accent)] font-bold text-xs font-mono uppercase tracking-wider rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-1.5"
               >
                 <Edit3 className="w-3.5 h-3.5" />
                 <span>Hiệu Chỉnh Văn Bản</span>

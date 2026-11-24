@@ -71,6 +71,8 @@ export async function seedRolesAndAdmin(options = {}) {
       existing.isSystem = true;
       if (roleDef.name === SYSTEM_ROLES.ADMIN) {
         existing.permissions = ALL_PERMISSIONS;
+      } else if (roleDef.name === SYSTEM_ROLES.STAFF || roleDef.name === SYSTEM_ROLES.MANAGER) {
+        existing.permissions = roleDef.permissions;
       }
       await existing.save();
       roleMap[roleDef.name] = existing;

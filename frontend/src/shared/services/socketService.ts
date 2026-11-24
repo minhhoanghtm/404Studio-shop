@@ -27,6 +27,14 @@ export interface MessageNewPayload {
     clientMessageId?: string;
   };
   conversation?: any;
+  staffName?: string;
+}
+
+export interface StaffJoinedPayload {
+  conversationId: string;
+  staffId: string;
+  staffName: string;
+  message: string;
 }
 
 class SocketService {
@@ -59,6 +67,7 @@ class SocketService {
     });
 
     this.socket.on('connect', () => {
+      this.socket?.emit('joinAdmin');
       // Re-join active conversation if reconnected
       if (this.currentConversationId) {
         this.socket?.emit('conversation:join', this.currentConversationId);
@@ -157,6 +166,37 @@ class SocketService {
     s.on('conversation:updated', handler);
     return () => {
       s.off('conversation:updated', handler);
+    };
+  }
+
+  public onStaffJoined(handler: (data: StaffJoinedPayload) => void): () => void {
+    const s = this.connect();
+    s.on('staff:joined', handler);
+    return () => {
+      s.off('staff:joined', handler);
+    };
+  }
+
+  public joinAdmin(): void {
+    const s = this.connect();
+    s.emit('joinAdmin');
+  }
+
+  public onPresenceUpdated(handler: (data: any) => void): () => void {
+    const s = this.connect();
+    s.emit('joinAdmin');
+    s.on('presence:updated', handler);
+    return () => {
+      s.off('presence:updated', handler);
+    };
+  }
+
+  public onPresenceLeave(handler: (data: any) => void): () => void {
+    const s = this.connect();
+    s.emit('joinAdmin');
+    s.on('presence:leave', handler);
+    return () => {
+      s.off('presence:leave', handler);
     };
   }
 }

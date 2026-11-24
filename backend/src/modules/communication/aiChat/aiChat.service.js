@@ -88,6 +88,32 @@ class AiChatService {
     );
   }
 
+  _createEphemeralTurn({ userId, conversation, userContent, aiContent, userMetadata, aiMetadata }) {
+    const userMessage = {
+      _id: new mongoose.Types.ObjectId().toString(),
+      conversationId: conversation ? conversation._id : null,
+      senderType: "user",
+      senderId: userId || null,
+      messageType: "text",
+      content: userContent,
+      metadata: { ...(userMetadata || {}), isEphemeral: true },
+      createdAt: new Date(),
+    };
+
+    const aiMessage = {
+      _id: new mongoose.Types.ObjectId().toString(),
+      conversationId: conversation ? conversation._id : null,
+      senderType: "ai",
+      senderId: null,
+      messageType: "text",
+      content: aiContent,
+      metadata: { ...(aiMetadata || {}), isEphemeral: true },
+      createdAt: new Date(),
+    };
+
+    return { userMessage, aiMessage };
+  }
+
   async _persistTurn({ userId, conversation, userContent, aiContent, userMetadata, aiMetadata }) {
     let userMessage = {
       senderType: "user",
@@ -179,7 +205,7 @@ class AiChatService {
 
     const safetyResponse = getAiSafetyResponse(data.content);
     if (safetyResponse) {
-      const { userMessage, aiMessage } = await this._persistTurn({
+      const { userMessage, aiMessage } = this._createEphemeralTurn({
         userId,
         conversation,
         userContent: data.content,
@@ -238,9 +264,9 @@ class AiChatService {
       if (!userId) {
         const errorText =
           "⚠️ Bạn cần đăng nhập tài khoản khách hàng để thực hiện xác nhận thêm sản phẩm vào giỏ hàng.";
-        const { userMessage, aiMessage } = await this._persistTurn({
-          userId,
-          conversation,
+        const { userMessage, aiMessage } = this._createEphemeralTurn({
+          userId: null,
+          conversation: null,
           userContent: data.content,
           aiContent: errorText,
           userMetadata: data.metadata,
@@ -271,7 +297,7 @@ class AiChatService {
       if (userRole === "admin") {
         const errorText =
           "⚠️ Quản trị viên không được phép thực hiện thao tác giỏ hàng khách hàng.";
-        const { userMessage, aiMessage } = await this._persistTurn({
+        const { userMessage, aiMessage } = this._createEphemeralTurn({
           userId,
           conversation,
           userContent: data.content,
@@ -317,7 +343,7 @@ class AiChatService {
       ) {
         const replayText =
           "⚠️ Thao tác thêm vào giỏ hàng này đã được thực thi trước đó (chống lặp lại). Vui lòng gửi yêu cầu mới nếu bạn muốn mua thêm.";
-        const { userMessage, aiMessage } = await this._persistTurn({
+        const { userMessage, aiMessage } = this._createEphemeralTurn({
           userId,
           conversation,
           userContent: data.content,
@@ -351,7 +377,7 @@ class AiChatService {
       if (candidateAction?.userId && String(candidateAction.userId) !== String(userId)) {
         const crossUserText =
           "⚠️ Thao tác không hợp lệ: Yêu cầu xác nhận không thuộc về phiên đăng nhập của bạn.";
-        const { userMessage, aiMessage } = await this._persistTurn({
+        const { userMessage, aiMessage } = this._createEphemeralTurn({
           userId,
           conversation,
           userContent: data.content,
@@ -391,7 +417,7 @@ class AiChatService {
         }
         const expiredText =
           "⚠️ Yêu cầu xác nhận thêm giỏ hàng đã hết hạn sau 10 phút. Vui lòng gửi lại yêu cầu mới để kiểm tra lại giá và tồn kho nhé!";
-        const { userMessage, aiMessage } = await this._persistTurn({
+        const { userMessage, aiMessage } = this._createEphemeralTurn({
           userId,
           conversation,
           userContent: data.content,
@@ -434,7 +460,7 @@ class AiChatService {
         if (!isValid) {
           const invalidTokenText =
             "⚠️ Chữ ký xác thực hành động không hợp lệ hoặc dữ liệu sản phẩm đã bị can thiệp.";
-          const { userMessage, aiMessage } = await this._persistTurn({
+          const { userMessage, aiMessage } = this._createEphemeralTurn({
             userId,
             conversation,
             userContent: data.content,
@@ -480,7 +506,7 @@ class AiChatService {
         if (!isValid) {
           const invalidTokenText =
             "⚠️ Chữ ký xác thực hành động không hợp lệ hoặc dữ liệu sản phẩm đã bị can thiệp.";
-          const { userMessage, aiMessage } = await this._persistTurn({
+          const { userMessage, aiMessage } = this._createEphemeralTurn({
             userId,
             conversation,
             userContent: data.content,
@@ -565,7 +591,8 @@ class AiChatService {
         } catch {}
       }
 
-      const aiResponseText = execResult?.success
+      const isExecSuccessful = Boolean(execResult?.success);
+      const aiResponseText = isExecSuccessful
         ? `✅ **${execResult.message}**\n` +
           (execResult.addedItems || [])
             .map(
@@ -580,14 +607,28 @@ class AiChatService {
             : "")
         : `⚠️ Không thể thêm vào giỏ hàng: ${execResult?.message || "Vui lòng đăng nhập và thử lại."}`;
 
-      const { userMessage, aiMessage } = await this._persistTurn({
-        userId,
-        conversation,
-        userContent: data.content,
-        aiContent: aiResponseText,
-        userMetadata: data.metadata,
-        aiMetadata: { actionResult: execResult },
-      });
+      let turnMessages;
+      if (!isExecSuccessful) {
+        // Thao tác không hợp lệ hoặc không thành công: chỉ hiển thị cho khách hàng, không lưu vào DB và không gửi cho nhân viên
+        turnMessages = this._createEphemeralTurn({
+          userId,
+          conversation,
+          userContent: data.content,
+          aiContent: aiResponseText,
+          userMetadata: data.metadata,
+          aiMetadata: { actionResult: execResult },
+        });
+      } else {
+        turnMessages = await this._persistTurn({
+          userId,
+          conversation,
+          userContent: data.content,
+          aiContent: aiResponseText,
+          userMetadata: data.metadata,
+          aiMetadata: { actionResult: execResult },
+        });
+      }
+      const { userMessage, aiMessage } = turnMessages;
 
       this._recordLatency(Date.now() - startTime, 0);
       return {

@@ -21,6 +21,15 @@ import { adminPoliciesApi, PolicyDocument } from '@/shared/api';
 import { useToastStore } from '@/shared/stores/useToastStore';
 import { POLICY_CATEGORIES, PolicyStatusFilter } from './types';
 import { useModal, ModalPortal } from '@/shared/context/ModalContext';
+import { TablePagination } from '@/shared/components/TablePagination';
+import { StatusToggle } from '@/shared/components/StatusToggle';
+import {
+  AdminActionButton,
+  AdminActionGroup,
+  EditActionButton,
+  DeleteActionButton,
+  HistoryActionButton,
+} from '@/shared/components/AdminActionButton';
 
 export const AdminPoliciesPage: React.FC = () => {
   const navigate = useNavigate();
@@ -48,8 +57,8 @@ export const AdminPoliciesPage: React.FC = () => {
     onClose: () => setDeletingPolicy(null),
   });
 
-  const fetchPolicies = useCallback(async () => {
-    setLoading(true);
+  const fetchPolicies = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     setError(null);
     try {
       const response = await adminPoliciesApi.getPolicies({
@@ -75,7 +84,7 @@ export const AdminPoliciesPage: React.FC = () => {
         type: 'error',
       });
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [page, limit, statusFilter, search, addToast]);
 
@@ -83,19 +92,43 @@ export const AdminPoliciesPage: React.FC = () => {
     fetchPolicies();
   }, [fetchPolicies]);
 
-  const handleQuickStatusChange = async (policy: PolicyDocument, newStatus: 'published' | 'archived') => {
+  const handleQuickStatusChange = async (policy: PolicyDocument, newStatus: 'published' | 'draft' | 'archived') => {
+    const prevStatus = policy.status;
+    const nowIso = new Date().toISOString();
+
+    // Cập nhật trạng thái trực tiếp trong danh sách cục bộ
+    setPolicies((prev) =>
+      prev.map((p) =>
+        p._id === policy._id
+          ? {
+              ...p,
+              status: newStatus,
+              publishedAt: newStatus === 'published' ? nowIso : p.publishedAt,
+              updatedAt: nowIso,
+            }
+          : p
+      )
+    );
+
     try {
       await adminPoliciesApi.updatePolicy(policy._id, {
+        title: policy.title,
+        slug: policy.slug,
+        type: policy.type || 'policy',
         status: newStatus,
-        publishedAt: newStatus === 'published' ? new Date().toISOString() : policy.publishedAt,
+        publishedAt: newStatus === 'published' ? nowIso : policy.publishedAt,
       });
       addToast({
         title: 'Cập nhật trạng thái thành công',
         message: `Chính sách "${policy.title}" đã được chuyển sang ${newStatus === 'published' ? 'ĐÃ XUẤT BẢN' : 'LƯU TRỮ'}.`,
         type: 'success',
       });
-      fetchPolicies();
+      void fetchPolicies(true);
     } catch (err: any) {
+      // Hoàn tác nếu lỗi
+      setPolicies((prev) =>
+        prev.map((p) => (p._id === policy._id ? { ...p, status: prevStatus } : p))
+      );
       addToast({
         title: 'Cập nhật thất bại',
         message: err?.message || 'Không thể thay đổi trạng thái chính sách',
@@ -106,22 +139,30 @@ export const AdminPoliciesPage: React.FC = () => {
 
   const confirmDelete = async () => {
     if (!deletingPolicy) return;
+    const targetId = deletingPolicy._id;
+    const targetTitle = deletingPolicy.title;
     setIsDeleting(true);
+
+    // Xóa trực tiếp khỏi bảng hiển thị
+    setPolicies((prev) => prev.filter((p) => p._id !== targetId));
+    setTotal((prev) => Math.max(0, prev - 1));
+
     try {
-      await adminPoliciesApi.deletePolicy(deletingPolicy._id);
+      await adminPoliciesApi.deletePolicy(targetId);
       addToast({
         title: 'Xóa chính sách thành công',
-        message: `Chính sách "${deletingPolicy.title}" đã được gỡ bỏ khỏi hệ thống.`,
+        message: `Chính sách "${targetTitle}" đã được gỡ bỏ khỏi hệ thống.`,
         type: 'success',
       });
       setDeletingPolicy(null);
-      fetchPolicies();
+      void fetchPolicies(true);
     } catch (err: any) {
       addToast({
         title: 'Lỗi xóa chính sách',
         message: err?.message || 'Không thể xóa chính sách',
         type: 'error',
       });
+      void fetchPolicies();
     } finally {
       setIsDeleting(false);
     }
@@ -239,7 +280,7 @@ export const AdminPoliciesPage: React.FC = () => {
             <button
               type="button"
               onClick={() => fetchPolicies()}
-              className="p-2 border border-[var(--border)] hover:border-[var(--accent)] text-[var(--text-muted)] hover:text-[var(--accent)] rounded-sm transition-colors bg-[var(--bg-card-muted)]"
+              className="p-2 border border-[var(--border)] hover:border-[var(--accent)] text-[var(--text-muted)] hover:text-[var(--accent)] rounded-lg shadow-xs hover:shadow-sm transition-all bg-[var(--bg-card)] cursor-pointer"
               title="Tải lại danh sách"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-[var(--accent)]' : ''}`} />
@@ -248,7 +289,7 @@ export const AdminPoliciesPage: React.FC = () => {
             {/* Create New Policy CTA */}
             <Link
               to="/admin/policies/new"
-              className="px-4 py-2 bg-[var(--accent)] text-[var(--accent-contrast)] font-semibold text-xs uppercase tracking-wider rounded-sm hover:opacity-90 transition-opacity flex items-center gap-2 shadow-sm"
+              className="px-4 py-2 bg-[var(--accent)] text-[var(--accent-contrast)] border border-[var(--accent)] font-bold text-xs font-mono uppercase tracking-wider rounded-lg hover:brightness-105 transition-all flex items-center gap-2 shadow-md hover:shadow-lg cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>Tạo Chính Sách Mới</span>
@@ -279,6 +320,7 @@ export const AdminPoliciesPage: React.FC = () => {
             <table className="w-full text-left text-xs">
               <thead className="bg-[var(--bg-card-muted)] border-b border-[var(--border)] text-[11px] uppercase tracking-wider text-[var(--text-muted)] font-mono">
                 <tr>
+                  <th className="px-3 py-4 w-12 text-center">STT</th>
                   <th className="px-5 py-4">Tên Chính Sách & Đường Dẫn</th>
                   <th className="px-4 py-4">Phân Loại</th>
                   <th className="px-4 py-4">Trạng Thái</th>
@@ -292,6 +334,9 @@ export const AdminPoliciesPage: React.FC = () => {
                   // Loading Skeletons
                   Array.from({ length: 5 }).map((_, i) => (
                     <tr key={i} className="animate-pulse">
+                      <td className="px-3 py-4 text-center">
+                        <div className="h-4 bg-[var(--border)] rounded w-6 mx-auto" />
+                      </td>
                       <td className="px-5 py-4">
                         <div className="h-4 bg-[var(--border)] rounded w-48 mb-2" />
                         <div className="h-3 bg-[var(--bg-card-muted)] rounded w-24" />
@@ -316,7 +361,7 @@ export const AdminPoliciesPage: React.FC = () => {
                 ) : policies.length === 0 ? (
                   // Empty State
                   <tr>
-                    <td colSpan={6} className="px-6 py-16 text-center">
+                    <td colSpan={7} className="px-6 py-16 text-center">
                       <div className="max-w-md mx-auto space-y-3">
                         <div className="w-12 h-12 mx-auto rounded-full bg-[var(--bg-card-muted)] border border-[var(--border)] flex items-center justify-center text-[var(--text-muted)]">
                           <FileText className="w-6 h-6" />
@@ -339,9 +384,12 @@ export const AdminPoliciesPage: React.FC = () => {
                   </tr>
                 ) : (
                   // Data Rows
-                  policies.map((policy) => {
+                  policies.map((policy, idx) => {
                     return (
                       <tr key={policy._id} className="hover:bg-[var(--table-row-hover)] transition-colors">
+                        <td className="px-3 py-4 text-center font-mono text-xs text-[var(--text-muted)]">
+                          {(page - 1) * limit + idx + 1}
+                        </td>
                         <td className="px-5 py-4">
                           <div className="font-medium text-[var(--text-primary)] text-sm tracking-wide">
                             {policy.title}
@@ -362,23 +410,14 @@ export const AdminPoliciesPage: React.FC = () => {
                           </span>
                         </td>
 
-                        <td className="px-4 py-4">
-                          {policy.status === 'published' ? (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-[11px] font-medium">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                              Đã Xuất Bản
-                            </span>
-                          ) : policy.status === 'draft' ? (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-[11px] font-medium">
-                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                              Bản Nháp
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--bg-card-muted)] border border-[var(--border)] text-[var(--text-muted)] text-[11px] font-medium">
-                              <Archive className="w-3 h-3" />
-                              Đã Lưu Trữ
-                            </span>
-                          )}
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <StatusToggle
+                            checked={policy.status === 'published'}
+                            onChange={(checked) => handleQuickStatusChange(policy, checked ? 'published' : 'draft')}
+                            activeLabel="Xuất Bản"
+                            inactiveLabel="Bản Nháp"
+                            ariaLabel="Bật / tắt trạng thái xuất bản chính sách"
+                          />
                         </td>
 
                         <td className="px-4 py-4 font-mono text-[var(--text-primary)]">
@@ -398,71 +437,36 @@ export const AdminPoliciesPage: React.FC = () => {
                         </td>
 
                         <td className="px-5 py-4 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
+                          <AdminActionGroup>
                             {/* Public View (if published) */}
                             {policy.status === 'published' && (
-                              <a
-                                href={`/${policy.slug}`}
+                              <AdminActionButton
+                                icon={<ExternalLink className="w-3.5 h-3.5" />}
+                                to={`/${policy.slug}`}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="p-1.5 rounded hover:bg-[var(--table-row-hover)] text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors"
                                 title="Xem trang công khai"
-                              >
-                                <ExternalLink className="w-3.5 h-3.5" />
-                              </a>
+                              />
                             )}
 
                             {/* Edit */}
-                            <button
-                              type="button"
-                              onClick={() => navigate(`/admin/policies/${policy._id}/edit`)}
-                              className="p-1.5 rounded hover:bg-[var(--table-row-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+                            <EditActionButton
+                              to={`/admin/policies/${policy._id}/edit`}
                               title="Chỉnh sửa nội dung"
-                            >
-                              <Edit3 className="w-3.5 h-3.5" />
-                            </button>
+                            />
 
                             {/* Version History */}
-                            <button
-                              type="button"
-                              onClick={() => navigate(`/admin/policies/${policy._id}/history`)}
-                              className="p-1.5 rounded hover:bg-[var(--table-row-hover)] text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors"
+                            <HistoryActionButton
+                              to={`/admin/policies/${policy._id}/history`}
                               title="Lịch sử phiên bản"
-                            >
-                              <History className="w-3.5 h-3.5" />
-                            </button>
-
-                            {/* Quick Publish / Archive Toggle */}
-                            {policy.status !== 'published' ? (
-                              <button
-                                type="button"
-                                onClick={() => handleQuickStatusChange(policy, 'published')}
-                                className="p-1.5 rounded hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 transition-colors"
-                                title="Xuất bản chính sách này"
-                              >
-                                <CheckCircle className="w-3.5 h-3.5" />
-                              </button>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => handleQuickStatusChange(policy, 'archived')}
-                                className="p-1.5 rounded hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 transition-colors"
-                                title="Ngừng hiệu lực & Lưu trữ"
-                              >
-                                <Archive className="w-3.5 h-3.5" />
-                              </button>
-                            )}
+                            />
 
                             {/* Delete */}
-                            <button
-                              type="button"
+                            <DeleteActionButton
                               onClick={() => setDeletingPolicy(policy)}
-                              className="p-1.5 rounded hover:bg-red-500/20 text-[var(--text-muted)] hover:text-red-500 transition-colors"
                               title="Xóa chính sách"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
+                            />
+                          </AdminActionGroup>
                         </td>
                       </tr>
                     );
@@ -474,29 +478,14 @@ export const AdminPoliciesPage: React.FC = () => {
 
           {/* Pagination Controls */}
           {totalPages > 1 && (
-            <div className="px-5 py-4 border-t border-[var(--border)] flex items-center justify-between text-xs text-[var(--text-muted)] bg-[var(--bg-card-muted)]">
-              <div>
-                Hiển thị trang <span className="font-semibold text-[var(--text-primary)]">{page}</span> / {totalPages} (Tổng cộng {total} chính sách)
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  disabled={page <= 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  className="px-3 py-1.5 border border-[var(--border)] rounded-sm hover:border-[var(--accent)] hover:text-[var(--accent)] disabled:opacity-30 disabled:hover:border-[var(--border)] disabled:hover:text-[var(--text-muted)] transition-colors uppercase tracking-wider text-[11px] bg-[var(--bg-card)]"
-                >
-                  Trang Trước
-                </button>
-                <button
-                  type="button"
-                  disabled={page >= totalPages}
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  className="px-3 py-1.5 border border-[var(--border)] rounded-sm hover:border-[var(--accent)] hover:text-[var(--accent)] disabled:opacity-30 disabled:hover:border-[var(--border)] disabled:hover:text-[var(--text-muted)] transition-colors uppercase tracking-wider text-[11px] bg-[var(--bg-card)]"
-                >
-                  Trang Tiếp
-                </button>
-              </div>
-            </div>
+            <TablePagination
+              currentPage={page}
+              totalPages={totalPages}
+              totalItems={total}
+              pageSize={limit}
+              onPageChange={setPage}
+              itemName="chính sách"
+            />
           )}
         </div>
 
@@ -504,7 +493,7 @@ export const AdminPoliciesPage: React.FC = () => {
         {deletingPolicy && (
           <ModalPortal>
             <div
-              className="fixed inset-0 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in pointer-events-auto"
+              className="fixed inset-0 flex items-center justify-center p-4 bg-[rgba(26,26,23,0.55)] backdrop-blur-sm pointer-events-auto"
               style={{ zIndex: overlayZIndex }}
               onClick={(e) => {
                 if (e.target === e.currentTarget && !isDeleting) setDeletingPolicy(null);
@@ -514,7 +503,7 @@ export const AdminPoliciesPage: React.FC = () => {
               aria-label="Xác nhận xóa chính sách"
             >
               <div
-                className="w-full max-w-md bg-[var(--bg-card)] border border-[var(--border)] rounded-sm p-6 space-y-4 shadow-2xl max-h-[calc(100dvh-32px)] overflow-y-auto"
+                className="w-full max-w-md bg-[var(--surface)] border border-[var(--border)] rounded-sm p-6 space-y-4 shadow-2xl max-h-[calc(100dvh-32px)] overflow-y-auto text-[var(--text)] admin-content-scrollbar"
                 style={{ zIndex: contentZIndex }}
               >
               <div className="flex items-center gap-3 text-red-500">
@@ -522,28 +511,28 @@ export const AdminPoliciesPage: React.FC = () => {
                   <Trash2 className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-display text-lg text-[var(--text-primary)]">Xác nhận xóa chính sách</h3>
-                  <p className="text-xs text-[var(--text-muted)]">Thao tác này sẽ xóa vĩnh viễn khỏi CSDL.</p>
+                  <h3 className="font-display text-base font-semibold text-[var(--text)] uppercase tracking-wider">Xác nhận xóa chính sách</h3>
+                  <p className="text-xs text-[var(--text-muted)] mt-0.5">Thao tác này sẽ xóa vĩnh viễn khỏi CSDL.</p>
                 </div>
               </div>
 
-              <div className="p-3 bg-[var(--bg-card-muted)] border border-[var(--border)] rounded text-xs space-y-1">
-                <div className="text-[var(--text-primary)] font-medium">{deletingPolicy.title}</div>
+              <div className="p-3 bg-[var(--bg-alt)] border border-[var(--border)] rounded-sm text-xs space-y-1">
+                <div className="text-[var(--text)] font-medium">{deletingPolicy.title}</div>
                 <div className="text-[var(--text-muted)] font-mono">/{deletingPolicy.slug}</div>
               </div>
 
               {deletingPolicy.status === 'published' && (
-                <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded text-[11px] text-amber-700 dark:text-amber-200">
+                <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-sm text-[11px] text-amber-700 dark:text-amber-200">
                   <strong>Cảnh báo pháp lý:</strong> Chính sách này đang có hiệu lực công khai. Việc xóa có thể ảnh hưởng đến bằng chứng đồng thuận pháp lý của khách hàng. Khuyến nghị chuyển sang trạng thái <em>Lưu trữ (archived)</em> thay vì xóa vĩnh viễn.
                 </div>
               )}
 
-              <div className="flex items-center justify-end gap-3 pt-2">
+              <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-[var(--border)]">
                 <button
                   type="button"
                   disabled={isDeleting}
                   onClick={() => setDeletingPolicy(null)}
-                  className="px-4 py-2 border border-[var(--border)] hover:border-[var(--text-muted)] text-xs uppercase tracking-wider text-[var(--text-primary)] rounded-sm transition-colors bg-[var(--bg-card-muted)]"
+                  className="px-4 py-2 border border-[var(--border)] text-[var(--text)] rounded-sm text-xs font-mono uppercase tracking-wider hover:bg-[var(--bg-alt)] transition-colors"
                 >
                   Hủy Bỏ
                 </button>
@@ -551,7 +540,7 @@ export const AdminPoliciesPage: React.FC = () => {
                   type="button"
                   disabled={isDeleting}
                   onClick={confirmDelete}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-xs font-semibold uppercase tracking-wider rounded-sm transition-colors flex items-center gap-2 shadow-md"
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-sm text-xs font-mono uppercase tracking-wider shadow-sm transition-colors flex items-center gap-2"
                 >
                   {isDeleting && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
                   <span>Xác Nhận Xóa</span>

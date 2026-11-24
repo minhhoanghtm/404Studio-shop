@@ -302,12 +302,14 @@ export const deleteOrderItem = async (req, res, next) => {
 
 export const getAdminOrders = async (req, res, next) => {
   try {
-    const { page = 1, limit = 10, status, search } = req.query;
+    const { page = 1, limit = 10, status, search, startDate, endDate, fromDate, toDate } = req.query;
     const result = await orderFacade.getAdminOrders({
       page: parseInt(page),
       limit: parseInt(limit),
       status,
       search,
+      startDate: startDate || fromDate,
+      endDate: endDate || toDate,
     });
     return res.status(200).json({
       success: true,

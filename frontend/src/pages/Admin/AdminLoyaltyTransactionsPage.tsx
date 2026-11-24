@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { AdminLayout } from './AdminLayout';
 import { AdminLoyaltyNav } from './components/AdminLoyaltyNav';
 import { useAdminLoyalty } from './hooks/useAdminLoyalty';
 import { formatDate } from '@/shared/utils/formatters';
+import { TablePagination } from '@/shared/components/TablePagination';
 import {
   Clock,
   Search,
@@ -39,6 +40,17 @@ export const AdminLoyaltyTransactionsPage: React.FC = () => {
     return true;
   });
 
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, eventTypeFilter]);
+
+  const paginatedTransactions = useMemo(() => {
+    const start = (page - 1) * 10;
+    return filteredTransactions.slice(start, start + 10);
+  }, [filteredTransactions, page]);
+
   return (
     <AdminLayout
       title="Sổ Cái Giao Dịch Điểm Toàn Hệ Thống"
@@ -55,7 +67,7 @@ export const AdminLoyaltyTransactionsPage: React.FC = () => {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Tìm theo mã GD, mã đơn hàng, Patron ID hoặc lý do..."
+              placeholder="Tìm theo mã giao dịch, mã đơn hàng, mã thành viên hoặc lý do..."
               className="w-full bg-[var(--input-bg)] border border-[var(--border)] focus:border-[var(--accent)] rounded-sm pl-10 pr-4 py-2 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none transition-colors"
             />
           </div>
@@ -66,10 +78,10 @@ export const AdminLoyaltyTransactionsPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setEventTypeFilter('ALL')}
-                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
                   eventTypeFilter === 'ALL'
-                    ? 'bg-[var(--accent)] text-[var(--accent-contrast)] font-semibold shadow-sm'
-                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                    ? 'bg-[var(--accent)] text-[var(--accent-contrast)] border border-[var(--accent)] font-semibold shadow-md'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--table-row-hover)]'
                 }`}
               >
                 Tất cả ({allTransactions.length})
@@ -77,10 +89,10 @@ export const AdminLoyaltyTransactionsPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setEventTypeFilter('EARN')}
-                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
                   eventTypeFilter === 'EARN'
-                    ? 'bg-[var(--accent)] text-[var(--accent-contrast)] font-semibold shadow-sm'
-                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                    ? 'bg-[var(--accent)] text-[var(--accent-contrast)] border border-[var(--accent)] font-semibold shadow-md'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--table-row-hover)]'
                 }`}
               >
                 Cộng điểm ({allTransactions.filter((t) => t.eventType === 'EARN').length})
@@ -88,10 +100,10 @@ export const AdminLoyaltyTransactionsPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setEventTypeFilter('REFUND_REVERSAL')}
-                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
                   eventTypeFilter === 'REFUND_REVERSAL'
-                    ? 'bg-[var(--accent)] text-[var(--accent-contrast)] font-semibold shadow-sm'
-                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                    ? 'bg-[var(--accent)] text-[var(--accent-contrast)] border border-[var(--accent)] font-semibold shadow-md'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--table-row-hover)]'
                 }`}
               >
                 Thu hồi ({allTransactions.filter((t) => t.eventType === 'REFUND_REVERSAL').length})
@@ -106,10 +118,11 @@ export const AdminLoyaltyTransactionsPage: React.FC = () => {
             <table className="w-full text-left text-xs font-sans">
               <thead>
                 <tr className="border-b border-[var(--border)] bg-[var(--bg-card-muted)] text-[var(--text-muted)] text-[10px] uppercase font-mono tracking-wider">
+                  <th className="py-3.5 px-3 w-12 text-center">STT</th>
                   <th className="py-3.5 px-4">Thời Gian</th>
                   <th className="py-3.5 px-4">Mã Giao Dịch</th>
                   <th className="py-3.5 px-4">Loại Sự Kiện</th>
-                  <th className="py-3.5 px-4">Patron ID</th>
+                  <th className="py-3.5 px-4">Mã Thành Viên</th>
                   <th className="py-3.5 px-4">Mã Đơn Hàng</th>
                   <th className="py-3.5 px-4">Lý Do Chi Tiết</th>
                   <th className="py-3.5 px-4 text-right">Biến Động</th>
@@ -120,13 +133,16 @@ export const AdminLoyaltyTransactionsPage: React.FC = () => {
               <tbody className="divide-y divide-[var(--border)]">
                 {isLoading ? (
                   <tr>
-                    <td colSpan={9} className="py-12 text-center text-[var(--text-muted)]">
+                    <td colSpan={10} className="py-12 text-center text-[var(--text-muted)]">
                       Đang xử lý sổ cái điểm từ các đơn hàng...
                     </td>
                   </tr>
                 ) : filteredTransactions.length > 0 ? (
-                  filteredTransactions.map((tx) => (
+                  paginatedTransactions.map((tx, idx) => (
                     <tr key={tx.id} className="hover:bg-[var(--table-row-hover)] transition-colors">
+                      <td className="py-3 px-3 text-center font-mono text-xs text-[var(--text-muted)]">
+                        {(page - 1) * 10 + idx + 1}
+                      </td>
                       <td className="py-3 px-4 font-mono text-[11px] text-[var(--text-muted)] whitespace-nowrap">
                         {formatDate(tx.createdAt)}
                       </td>
@@ -175,7 +191,7 @@ export const AdminLoyaltyTransactionsPage: React.FC = () => {
                         )}
                       </td>
                       <td className="py-3 px-4 text-right font-mono font-semibold text-[var(--text-primary)] whitespace-nowrap">
-                        {tx.newBalance.toLocaleString('vi-VN')} pts
+                        {tx.newBalance.toLocaleString('vi-VN')} điểm
                       </td>
                       <td className="py-3 px-4 font-mono text-[10px] text-[var(--text-muted)] max-w-[140px] truncate">
                         {tx.idempotencyKey}
@@ -184,7 +200,7 @@ export const AdminLoyaltyTransactionsPage: React.FC = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={9} className="py-12 text-center text-[var(--text-muted)]">
+                    <td colSpan={10} className="py-12 text-center text-[var(--text-muted)]">
                       Không tìm thấy giao dịch nào phù hợp tiêu chí lọc.
                     </td>
                   </tr>
@@ -192,6 +208,14 @@ export const AdminLoyaltyTransactionsPage: React.FC = () => {
               </tbody>
             </table>
           </div>
+
+          <TablePagination
+            currentPage={page}
+            totalItems={filteredTransactions.length}
+            pageSize={10}
+            onPageChange={setPage}
+            itemName="giao dịch"
+          />
         </div>
       </div>
     </AdminLayout>

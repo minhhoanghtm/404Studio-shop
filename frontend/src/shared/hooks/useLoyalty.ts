@@ -4,7 +4,10 @@ import { ordersApi, loyaltyApi } from '../api';
 import {
   CustomerLoyaltyProfile,
   buildCustomerLoyaltyProfile,
-  MEMBERSHIP_TIERS,
+  getActiveMembershipTiers,
+  getManualAdjustments,
+  EVENT_LOYALTY_SETTINGS_CHANGED,
+  EVENT_LOYALTY_ADJUSTMENTS_CHANGED,
 } from '../loyalty';
 
 export interface UseLoyaltyResult {
@@ -58,11 +61,19 @@ export function useLoyalty(): UseLoyaltyResult {
       const rawOrders: any = ordersRes?.data || [];
       const ordersList: any[] = Array.isArray(rawOrders) ? rawOrders : (rawOrders.orders || rawOrders.items || []);
 
+      const activeTiers = getActiveMembershipTiers();
+      const myAdjustments = getManualAdjustments().filter(
+        (adj) => String(adj.customerId) === String(customerId)
+      );
+
       const derivedProfile = buildCustomerLoyaltyProfile(
         customerId,
         ordersList,
-        customerInfo,
-        MEMBERSHIP_TIERS
+        {
+          ...customerInfo,
+          manualAdjustments: myAdjustments,
+        },
+        activeTiers
       );
 
       setProfile(derivedProfile);
@@ -70,11 +81,18 @@ export function useLoyalty(): UseLoyaltyResult {
     } catch (err: any) {
       console.warn('[useLoyalty] Error loading loyalty profile:', err);
       // Fallback: Build 0-point profile for customer
+      const activeTiers = getActiveMembershipTiers();
+      const myAdjustments = getManualAdjustments().filter(
+        (adj) => String(adj.customerId) === String(customerId)
+      );
       const fallbackProfile = buildCustomerLoyaltyProfile(
         customerId,
         [],
-        customerInfo,
-        MEMBERSHIP_TIERS
+        {
+          ...customerInfo,
+          manualAdjustments: myAdjustments,
+        },
+        activeTiers
       );
       setProfile(fallbackProfile);
       setError(err?.message || 'Không thể tải dữ liệu đơn hàng');
@@ -85,6 +103,21 @@ export function useLoyalty(): UseLoyaltyResult {
 
   useEffect(() => {
     fetchLoyaltyData();
+  }, [fetchLoyaltyData]);
+
+  // Reactive listener for tier changes and manual adjustments
+  useEffect(() => {
+    const handleUpdate = () => {
+      fetchLoyaltyData();
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener(EVENT_LOYALTY_SETTINGS_CHANGED, handleUpdate);
+      window.addEventListener(EVENT_LOYALTY_ADJUSTMENTS_CHANGED, handleUpdate);
+      return () => {
+        window.removeEventListener(EVENT_LOYALTY_SETTINGS_CHANGED, handleUpdate);
+        window.removeEventListener(EVENT_LOYALTY_ADJUSTMENTS_CHANGED, handleUpdate);
+      };
+    }
   }, [fetchLoyaltyData]);
 
   return {

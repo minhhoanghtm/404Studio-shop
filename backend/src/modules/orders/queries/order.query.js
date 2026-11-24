@@ -94,10 +94,28 @@ export const getMyOrders = async (userIdString) => {
   ]);
 };
 
-export const getAllOrders = async ({ page = 1, limit = 10, status, search }) => {
+export const getAllOrders = async ({ page = 1, limit = 10, status, search, startDate, endDate }) => {
   const query = {};
   if (status) {
     query.status = status;
+  }
+
+  if (startDate || endDate) {
+    query.createdAt = {};
+    if (startDate) {
+      const start = new Date(startDate);
+      if (!isNaN(start.getTime())) {
+        start.setHours(0, 0, 0, 0);
+        query.createdAt.$gte = start;
+      }
+    }
+    if (endDate) {
+      const end = new Date(endDate);
+      if (!isNaN(end.getTime())) {
+        end.setHours(23, 59, 59, 999);
+        query.createdAt.$lte = end;
+      }
+    }
   }
 
   if (search) {

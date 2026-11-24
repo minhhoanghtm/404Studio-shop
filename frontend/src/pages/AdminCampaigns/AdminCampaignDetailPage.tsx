@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   Tag,
   CheckCircle,
+  X,
 } from 'lucide-react';
 import { AdminLayout } from '../Admin/AdminLayout';
 import { campaignsApi, productsApi } from '@/shared/api';
@@ -25,6 +26,7 @@ import { Campaign, CampaignProductItem, CampaignStats } from '@/shared/campaigns
 import { PopupPreviewModal } from './components/PopupPreviewModal';
 import { useToastStore } from '@/shared/stores/useToastStore';
 import { useModal, ModalPortal } from '@/shared/context/ModalContext';
+import { AdminActionGroup, EditActionButton, DeleteActionButton } from '@/shared/components/AdminActionButton';
 
 export const AdminCampaignDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -192,7 +194,7 @@ export const AdminCampaignDetailPage: React.FC = () => {
 
   if (loading) {
     return (
-      <AdminLayout title="Đang Tải Chi Tiết" subtitle="Đang lấy dữ liệu chiến dịch từ Backend...">
+      <AdminLayout title="Đang Tải Chi Tiết" subtitle="Đang tải dữ liệu...">
         <div className="p-16 text-center text-xs text-white/50 flex flex-col items-center justify-center gap-3">
           <div className="w-8 h-8 rounded-full border border-champagne/40 border-t-champagne animate-spin" />
           <span>Đang truy xuất thông số chiến dịch và số liệu bán hàng...</span>
@@ -442,7 +444,7 @@ export const AdminCampaignDetailPage: React.FC = () => {
             </div>
             <button
               onClick={handleOpenAddProduct}
-              className="px-4 py-2 bg-champagne hover:bg-champagne-light text-noir-950 font-serif text-xs font-semibold uppercase tracking-wider rounded-sm flex items-center gap-1.5 transition-colors shadow-md"
+              className="px-4 py-2 bg-[var(--accent)] hover:brightness-105 text-[var(--accent-contrast)] border border-[var(--accent)] font-mono text-xs font-bold uppercase tracking-wider rounded-lg flex items-center gap-1.5 transition-all shadow-md hover:shadow-lg cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Thêm Sản Phẩm</span>
@@ -458,7 +460,7 @@ export const AdminCampaignDetailPage: React.FC = () => {
               </p>
               <button
                 onClick={handleOpenAddProduct}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-champagne text-noir-950 font-serif text-xs uppercase font-semibold rounded-xs"
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-[var(--accent)] hover:brightness-105 text-[var(--accent-contrast)] border border-[var(--accent)] font-mono text-xs uppercase font-bold rounded-lg shadow-md hover:shadow-lg transition-all cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Thêm Sản Phẩm Ngay</span>
@@ -469,6 +471,7 @@ export const AdminCampaignDetailPage: React.FC = () => {
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
                   <tr className="bg-noir-950/70 border-b border-white/10 text-[11px] font-mono uppercase text-white/60 tracking-wider">
+                    <th className="py-3 px-3 w-12 text-center">STT</th>
                     <th className="py-3 px-4">Sản Phẩm</th>
                     <th className="py-3 px-4">Giá Ưu Đãi (Sale)</th>
                     <th className="py-3 px-4">Tổng Suất (Quota)</th>
@@ -478,7 +481,7 @@ export const AdminCampaignDetailPage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
-                  {products.map((item) => {
+                  {products.map((item, idx) => {
                     const prodName =
                       typeof item.product_id === 'object' && item.product_id?.name
                         ? item.product_id.name
@@ -491,6 +494,9 @@ export const AdminCampaignDetailPage: React.FC = () => {
 
                     return (
                       <tr key={item._id} className="hover:bg-white/[0.02] transition-colors">
+                        <td className="py-3 px-3 text-center font-mono text-xs text-white/60">
+                          {idx + 1}
+                        </td>
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-3">
                             {prodImg ? (
@@ -532,22 +538,16 @@ export const AdminCampaignDetailPage: React.FC = () => {
                         </td>
 
                         <td className="py-3 px-4 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <button
+                          <AdminActionGroup>
+                            <EditActionButton
                               onClick={() => handleOpenEditProduct(item)}
-                              className="p-1.5 text-white/60 hover:text-white hover:bg-white/5 rounded-xs transition-colors"
                               title="Sửa giá & quota"
-                            >
-                              <Edit3 className="w-3.5 h-3.5" />
-                            </button>
-                            <button
+                            />
+                            <DeleteActionButton
                               onClick={() => handleRemoveProduct(item._id!)}
-                              className="p-1.5 text-white/60 hover:text-rose-400 hover:bg-rose-500/10 rounded-xs transition-colors"
                               title="Xóa khỏi chiến dịch"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
+                            />
+                          </AdminActionGroup>
                         </td>
                       </tr>
                     );
@@ -565,35 +565,49 @@ export const AdminCampaignDetailPage: React.FC = () => {
           <div
             role="dialog"
             aria-modal="true"
-            className="fixed inset-0 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm pointer-events-auto"
+            aria-label="Thêm Sản Phẩm Vào Chiến Dịch"
+            className="fixed inset-0 bg-[rgba(26,26,23,0.55)] backdrop-blur-sm flex items-center justify-center p-4 pointer-events-auto"
             style={{ zIndex: addProdOverlayZ }}
             onClick={(e) => {
               if (e.target === e.currentTarget) setIsAddProductModalOpen(false);
             }}
           >
             <div
-              className="w-full max-w-lg bg-noir-900 border border-white/20 p-6 rounded-sm text-white shadow-2xl space-y-4 max-h-[calc(100dvh-32px)] overflow-y-auto"
+              className="bg-[var(--surface)] border border-[var(--border)] rounded-sm p-6 w-full max-w-lg shadow-2xl space-y-5 text-xs text-[var(--text)] max-h-[calc(100dvh-32px)] overflow-y-auto admin-content-scrollbar"
               style={{ zIndex: addProdContentZ }}
             >
-              <h3 className="font-serif text-base uppercase tracking-wider font-medium text-champagne">
-                Thêm Sản Phẩm Vào Chiến Dịch
-              </h3>
+              <div className="flex items-center justify-between pb-3 border-b border-[var(--border)]">
+                <div className="flex items-center gap-2">
+                  <Tag className="w-4 h-4 text-[var(--accent)]" />
+                  <h3 className="font-display text-base font-semibold uppercase tracking-wider text-[var(--text)]">
+                    Thêm Sản Phẩm Vào Chiến Dịch
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsAddProductModalOpen(false)}
+                  className="p-1 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors rounded-sm"
+                  aria-label="Đóng"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
 
               {addProductError && (
-                <div className="p-3 bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs rounded-xs">
+                <div className="p-3 bg-rose-500/10 border border-rose-500/30 text-rose-500 text-xs rounded-sm">
                   {addProductError}
                 </div>
               )}
 
               <form onSubmit={handleAddProductSubmit} className="space-y-4 text-xs">
                 <div>
-                  <label className="block text-xs font-mono uppercase tracking-wider text-white/70 mb-1.5">
+                  <label className="block text-[11px] font-mono uppercase tracking-wider text-[var(--text)] mb-1">
                     Chọn Sản Phẩm Từ Danh Mục
                   </label>
                   <select
                     value={selectedProductId}
                     onChange={(e) => handleProductSelectChange(e.target.value)}
-                    className="w-full bg-noir-950 border border-white/10 rounded-sm px-3 py-2 text-xs text-white focus:border-champagne focus:outline-none"
+                    className="w-full px-3 py-2 bg-[var(--bg-alt)] border border-[var(--border)] rounded-sm text-xs text-[var(--text)] focus:border-[var(--accent)] outline-none transition-colors"
                   >
                     {availableProducts.map((p) => {
                       const price = p.new_price ?? p.price ?? 0;
@@ -608,8 +622,8 @@ export const AdminCampaignDetailPage: React.FC = () => {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-mono uppercase tracking-wider text-white/70 mb-1.5">
-                      Giá Khuyến Mãi (Sale Price VNĐ) <span className="text-champagne">*</span>
+                    <label className="block text-[11px] font-mono uppercase tracking-wider text-[var(--text)] mb-1">
+                      Giá Khuyến Mãi (Sale Price VNĐ) <span className="text-[var(--accent)]">*</span>
                     </label>
                     <input
                       type="number"
@@ -617,13 +631,13 @@ export const AdminCampaignDetailPage: React.FC = () => {
                       min="1000"
                       value={salePrice}
                       onChange={(e) => setSalePrice(Number(e.target.value) || 0)}
-                      className="w-full bg-noir-950 border border-white/10 rounded-sm px-3 py-2 text-xs text-white font-mono focus:border-champagne focus:outline-none"
+                      className="w-full px-3 py-2 bg-[var(--bg-alt)] border border-[var(--border)] rounded-sm text-xs text-[var(--text)] font-mono placeholder-[var(--text-muted)] focus:border-[var(--accent)] outline-none transition-colors"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-mono uppercase tracking-wider text-white/70 mb-1.5">
-                      Tổng Suất Bán (Quota) <span className="text-champagne">*</span>
+                    <label className="block text-[11px] font-mono uppercase tracking-wider text-[var(--text)] mb-1">
+                      Tổng Suất Bán (Quota) <span className="text-[var(--accent)]">*</span>
                     </label>
                     <input
                       type="number"
@@ -631,13 +645,13 @@ export const AdminCampaignDetailPage: React.FC = () => {
                       min="1"
                       value={quota}
                       onChange={(e) => setQuota(parseInt(e.target.value, 10) || 1)}
-                      className="w-full bg-noir-950 border border-white/10 rounded-sm px-3 py-2 text-xs text-white font-mono focus:border-champagne focus:outline-none"
+                      className="w-full px-3 py-2 bg-[var(--bg-alt)] border border-[var(--border)] rounded-sm text-xs text-[var(--text)] font-mono placeholder-[var(--text-muted)] focus:border-[var(--accent)] outline-none transition-colors"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-mono uppercase tracking-wider text-white/70 mb-1.5">
+                  <label className="block text-[11px] font-mono uppercase tracking-wider text-[var(--text)] mb-1">
                     Giới Hạn Mua Mỗi Khách Hàng (Tùy chọn)
                   </label>
                   <input
@@ -645,22 +659,22 @@ export const AdminCampaignDetailPage: React.FC = () => {
                     min="1"
                     value={perUserLimit}
                     onChange={(e) => setPerUserLimit(parseInt(e.target.value, 10) || 1)}
-                    className="w-full bg-noir-950 border border-white/10 rounded-sm px-3 py-2 text-xs text-white font-mono focus:border-champagne focus:outline-none"
+                    className="w-full px-3 py-2 bg-[var(--bg-alt)] border border-[var(--border)] rounded-sm text-xs text-[var(--text)] font-mono placeholder-[var(--text-muted)] focus:border-[var(--accent)] outline-none transition-colors"
                   />
                 </div>
 
-                <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/10">
+                <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--border)]">
                   <button
                     type="button"
                     onClick={() => setIsAddProductModalOpen(false)}
-                    className="px-4 py-2 bg-noir-950 border border-white/10 text-xs text-white/70 hover:text-white rounded-xs"
+                    className="px-4 py-2 border border-[var(--border)] hover:border-[var(--accent)] bg-[var(--bg-card)] text-[var(--text)] hover:text-[var(--accent)] rounded-lg text-xs font-mono uppercase tracking-wider transition-all shadow-xs hover:shadow-sm cursor-pointer"
                   >
                     Hủy Bỏ
                   </button>
                   <button
                     type="submit"
                     disabled={addingProduct}
-                    className="px-5 py-2 bg-champagne hover:bg-champagne-light text-noir-950 font-serif text-xs font-semibold uppercase tracking-wider rounded-xs shadow-md disabled:opacity-50"
+                    className="px-5 py-2 bg-[var(--accent)] text-[var(--accent-contrast)] border border-[var(--accent)] font-bold rounded-lg text-xs font-mono uppercase tracking-wider hover:brightness-105 shadow-md hover:shadow-lg transition-all disabled:opacity-50 cursor-pointer"
                   >
                     {addingProduct ? 'Đang thêm...' : 'Xác Nhận Thêm'}
                   </button>
@@ -677,23 +691,37 @@ export const AdminCampaignDetailPage: React.FC = () => {
           <div
             role="dialog"
             aria-modal="true"
-            className="fixed inset-0 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm pointer-events-auto"
+            aria-label="Sửa Mức Giá & Quota Sản Phẩm"
+            className="fixed inset-0 bg-[rgba(26,26,23,0.55)] backdrop-blur-sm flex items-center justify-center p-4 pointer-events-auto"
             style={{ zIndex: editProdOverlayZ }}
             onClick={(e) => {
               if (e.target === e.currentTarget) setEditingProduct(null);
             }}
           >
             <div
-              className="w-full max-w-md bg-noir-900 border border-white/20 p-6 rounded-sm text-white shadow-2xl space-y-4 max-h-[calc(100dvh-32px)] overflow-y-auto"
+              className="bg-[var(--surface)] border border-[var(--border)] rounded-sm p-6 w-full max-w-md shadow-2xl space-y-5 text-xs text-[var(--text)] max-h-[calc(100dvh-32px)] overflow-y-auto admin-content-scrollbar"
               style={{ zIndex: editProdContentZ }}
             >
-              <h3 className="font-serif text-base uppercase tracking-wider font-medium text-champagne">
-                Sửa Mức Giá & Quota Sản Phẩm
-              </h3>
+              <div className="flex items-center justify-between pb-3 border-b border-[var(--border)]">
+                <div className="flex items-center gap-2">
+                  <Edit3 className="w-4 h-4 text-[var(--accent)]" />
+                  <h3 className="font-display text-base font-semibold uppercase tracking-wider text-[var(--text)]">
+                    Sửa Mức Giá & Quota Sản Phẩm
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditingProduct(null)}
+                  className="p-1 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors rounded-sm"
+                  aria-label="Đóng"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
 
               <form onSubmit={handleUpdateProductSubmit} className="space-y-4 text-xs">
                 <div>
-                  <label className="block text-xs font-mono uppercase tracking-wider text-white/70 mb-1.5">
+                  <label className="block text-[11px] font-mono uppercase tracking-wider text-[var(--text)] mb-1">
                     Giá Khuyến Mãi (VNĐ)
                   </label>
                   <input
@@ -701,12 +729,12 @@ export const AdminCampaignDetailPage: React.FC = () => {
                     min="1000"
                     value={editSalePrice}
                     onChange={(e) => setEditSalePrice(Number(e.target.value) || 0)}
-                    className="w-full bg-noir-950 border border-white/10 rounded-sm px-3 py-2 text-xs text-white font-mono focus:border-champagne focus:outline-none"
+                    className="w-full px-3 py-2 bg-[var(--bg-alt)] border border-[var(--border)] rounded-sm text-xs text-[var(--text)] font-mono placeholder-[var(--text-muted)] focus:border-[var(--accent)] outline-none transition-colors"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-mono uppercase tracking-wider text-white/70 mb-1.5">
+                  <label className="block text-[11px] font-mono uppercase tracking-wider text-[var(--text)] mb-1">
                     Tổng Suất Bán (Quota)
                   </label>
                   <input
@@ -714,22 +742,22 @@ export const AdminCampaignDetailPage: React.FC = () => {
                     min="1"
                     value={editQuota}
                     onChange={(e) => setEditQuota(parseInt(e.target.value, 10) || 1)}
-                    className="w-full bg-noir-950 border border-white/10 rounded-sm px-3 py-2 text-xs text-white font-mono focus:border-champagne focus:outline-none"
+                    className="w-full px-3 py-2 bg-[var(--bg-alt)] border border-[var(--border)] rounded-sm text-xs text-[var(--text)] font-mono placeholder-[var(--text-muted)] focus:border-[var(--accent)] outline-none transition-colors"
                   />
                 </div>
 
-                <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/10">
+                <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--border)]">
                   <button
                     type="button"
                     onClick={() => setEditingProduct(null)}
-                    className="px-4 py-2 bg-noir-950 border border-white/10 text-xs text-white/70 hover:text-white rounded-xs"
+                    className="px-4 py-2 border border-[var(--border)] text-[var(--text)] rounded-sm text-xs font-mono uppercase tracking-wider hover:bg-[var(--bg-alt)] transition-colors"
                   >
                     Hủy Bỏ
                   </button>
                   <button
                     type="submit"
                     disabled={updatingProduct}
-                    className="px-5 py-2 bg-champagne hover:bg-champagne-light text-noir-950 font-serif text-xs font-semibold uppercase tracking-wider rounded-xs shadow-md disabled:opacity-50"
+                    className="px-5 py-2 bg-[var(--accent)] text-[var(--accent-contrast)] font-semibold rounded-sm text-xs font-mono uppercase tracking-wider hover:bg-[var(--accent)]/90 shadow-sm transition-colors disabled:opacity-50"
                   >
                     {updatingProduct ? 'Đang cập nhật...' : 'Lưu Thay Đổi'}
                   </button>

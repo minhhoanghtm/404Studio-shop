@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Product, Category } from '../../../shared/types';
 import { productsApi } from '../../../shared/api';
 import { adaptBackendProduct } from '../../../shared/utils/productAdapter';
+import { PRODUCTS } from '../../../shared/data/products';
 
 export type SortOption = 'curated' | 'price-asc' | 'price-desc' | 'rating' | 'newest';
 
@@ -40,10 +41,10 @@ export const useProductFilters = () => {
           const adapted = rawList.map(adaptBackendProduct);
           setDbProducts(adapted);
         } else {
-          setDbProducts([]);
+          setDbProducts(PRODUCTS);
         }
-      } catch (err) {
-        if (!cancelled) setDbProducts([]);
+      } catch {
+        if (!cancelled) setDbProducts(PRODUCTS);
       } finally {
         if (!cancelled) setIsLoading(false);
       }

@@ -103,4 +103,8 @@ export const communicationApi = {
   closeConversation: async (conversationId: string) => {
     return api.post(`/admin/conversations/${conversationId}/close`);
   },
+
+  reopenConversation: async (conversationId: string) => {
+    return api.post(`/admin/conversations/${conversationId}/reopen`);
+  },
 };

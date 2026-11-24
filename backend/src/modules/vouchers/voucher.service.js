@@ -2,6 +2,7 @@ import voucherRepository from "./voucher.repository.js";
 import { AppError } from "../../common/exceptions/AppError.js";
 import mongoose from "mongoose";
 import Product from "../products/product.model.js";
+import { Order } from "../orders/order.model.js";
 import {
   acquireLock,
   releaseLock,
@@ -92,6 +93,7 @@ class VoucherService {
             name: "Miễn phí vận chuyển",
             description:
               "Giảm 30.000 VNĐ phí vận chuyển cho đơn hàng từ 150.000 VNĐ.",
+            voucherType: "shipping",
             discountType: "fixed",
             discountValue: 30000,
             maxDiscountAmount: 0,
@@ -216,7 +218,7 @@ class VoucherService {
       code,
       name,
       description,
-      discountType,
+      discountType = "percentage",
       discountValue,
       maxDiscountAmount,
       minOrderValue,
@@ -227,8 +229,12 @@ class VoucherService {
       voucherType = "order",
       applicableProducts = [],
       applicableCategories = [],
+      targetAudience = "all",
     } = voucherData;
 
+    if (!code) {
+      throw new AppError("Mã giảm giá là bắt buộc", 400);
+    }
     const uppercaseCode = code.trim().toUpperCase();
 
     // Check if code exists
@@ -240,35 +246,48 @@ class VoucherService {
       throw new AppError("Mã giảm giá đã tồn tại", 400);
     }
 
-    if (new Date(endDate) <= new Date(startDate)) {
+    if (!startDate || !endDate) {
+      throw new AppError("Ngày bắt đầu và ngày kết thúc là bắt buộc", 400);
+    }
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    if (end <= start) {
       throw new AppError("Ngày kết thúc phải lớn hơn ngày bắt đầu", 400);
     }
 
-    if (discountValue <= 0) {
+    const numDiscountValue = Number(discountValue);
+    if (isNaN(numDiscountValue) || numDiscountValue <= 0) {
       throw new AppError("Giá trị giảm giá phải lớn hơn 0", 400);
     }
 
-    if (totalQuantity <= 0) {
+    if (discountType === "percentage" && numDiscountValue > 100) {
+      throw new AppError("Mức giảm phần trăm không được vượt quá 100%", 400);
+    }
+
+    const numTotalQuantity = Number(totalQuantity);
+    if (isNaN(numTotalQuantity) || numTotalQuantity <= 0) {
       throw new AppError("Tổng số lượng voucher phải lớn hơn 0", 400);
     }
 
     const voucher = await voucherRepository.create({
       code: uppercaseCode,
-      name,
-      description,
+      name: name ? name.trim() : `Ưu đãi ${uppercaseCode}`,
+      description: description ? description.trim() : "",
       discountType,
-      discountValue,
+      discountValue: numDiscountValue,
       maxDiscountAmount:
-        discountType === "percentage" ? maxDiscountAmount || 0 : 0,
-      minOrderValue: minOrderValue || 0,
-      totalQuantity,
-      remainingQuantity: totalQuantity,
-      startDate,
-      endDate,
+        discountType === "percentage" ? Math.max(0, Number(maxDiscountAmount) || 0) : 0,
+      minOrderValue: Math.max(0, Number(minOrderValue) || 0),
+      totalQuantity: numTotalQuantity,
+      remainingQuantity: numTotalQuantity,
+      startDate: start,
+      endDate: end,
       status,
       voucherType,
-      applicableProducts,
-      applicableCategories,
+      applicableProducts: Array.isArray(applicableProducts) ? applicableProducts : [],
+      applicableCategories: Array.isArray(applicableCategories) ? applicableCategories : [],
+      targetAudience: ["all", "new", "member", "vip"].includes(targetAudience) ? targetAudience : "all",
     });
 
     // Write Audit Log
@@ -292,12 +311,18 @@ class VoucherService {
     const {
       name,
       description,
+      startDate,
       endDate,
       totalQuantity,
       status,
       voucherType,
+      discountType,
+      discountValue,
+      maxDiscountAmount,
+      minOrderValue,
       applicableProducts,
       applicableCategories,
+      targetAudience,
     } = updateData;
 
     const voucher = await voucherRepository.findOne({
@@ -309,31 +334,66 @@ class VoucherService {
     }
 
     const updates = {};
-    if (name !== undefined) updates.name = name;
-    if (description !== undefined) updates.description = description;
+    if (name !== undefined) updates.name = name.trim();
+    if (description !== undefined) updates.description = description ? description.trim() : "";
     if (status !== undefined) updates.status = status;
     if (voucherType !== undefined) updates.voucherType = voucherType;
-    if (applicableProducts !== undefined)
-      updates.applicableProducts = applicableProducts;
-    if (applicableCategories !== undefined)
-      updates.applicableCategories = applicableCategories;
+    if (discountType !== undefined) updates.discountType = discountType;
 
-    if (endDate !== undefined) {
-      if (new Date(endDate) <= new Date(voucher.startDate)) {
-        throw new AppError("Ngày kết thúc phải lớn hơn ngày bắt đầu", 400);
+    const currentDiscountType = updates.discountType || voucher.discountType;
+    if (discountValue !== undefined) {
+      const numDiscountValue = Number(discountValue);
+      if (isNaN(numDiscountValue) || numDiscountValue <= 0) {
+        throw new AppError("Giá trị giảm giá phải lớn hơn 0", 400);
       }
-      updates.endDate = endDate;
+      if (currentDiscountType === "percentage" && numDiscountValue > 100) {
+        throw new AppError("Mức giảm phần trăm không được vượt quá 100%", 400);
+      }
+      updates.discountValue = numDiscountValue;
     }
 
+    if (maxDiscountAmount !== undefined) {
+      updates.maxDiscountAmount = Math.max(0, Number(maxDiscountAmount) || 0);
+    }
+    if (minOrderValue !== undefined) {
+      updates.minOrderValue = Math.max(0, Number(minOrderValue) || 0);
+    }
+
+    if (targetAudience !== undefined) {
+      if (["all", "new", "member", "vip"].includes(targetAudience)) {
+        updates.targetAudience = targetAudience;
+      }
+    }
+
+    if (applicableProducts !== undefined) {
+      updates.applicableProducts = Array.isArray(applicableProducts) ? applicableProducts : [];
+    }
+    if (applicableCategories !== undefined) {
+      updates.applicableCategories = Array.isArray(applicableCategories) ? applicableCategories : [];
+    }
+
+    const effectiveStart = startDate ? new Date(startDate) : new Date(voucher.startDate);
+    const effectiveEnd = endDate ? new Date(endDate) : new Date(voucher.endDate);
+
+    if (effectiveEnd <= effectiveStart) {
+      throw new AppError("Ngày kết thúc phải lớn hơn ngày bắt đầu", 400);
+    }
+    if (startDate !== undefined) updates.startDate = effectiveStart;
+    if (endDate !== undefined) updates.endDate = effectiveEnd;
+
     if (totalQuantity !== undefined) {
-      if (totalQuantity < voucher.claimedQuantity) {
+      const numTotalQuantity = Number(totalQuantity);
+      if (isNaN(numTotalQuantity) || numTotalQuantity <= 0) {
+        throw new AppError("Tổng số lượng voucher phải lớn hơn 0", 400);
+      }
+      if (numTotalQuantity < voucher.claimedQuantity) {
         throw new AppError(
-          `Không thể giảm tổng số lượng nhỏ hơn số lượng đã được claim (${voucher.claimedQuantity})`,
+          `Không thể giảm tổng số lượng nhỏ hơn số lượng đã được nhận (${voucher.claimedQuantity})`,
           400,
         );
       }
-      updates.totalQuantity = totalQuantity;
-      updates.remainingQuantity = totalQuantity - voucher.claimedQuantity;
+      updates.totalQuantity = numTotalQuantity;
+      updates.remainingQuantity = numTotalQuantity - voucher.claimedQuantity;
     }
 
     const updatedVoucher = await voucherRepository.findOneAndUpdate(
@@ -485,6 +545,34 @@ class VoucherService {
         throw new AppError("Bạn đã nhận voucher này rồi", 400);
       }
 
+      const targetVoucher = await voucherRepository.findOne({
+        _id: voucherId,
+        isDeleted: false,
+      });
+      if (!targetVoucher) {
+        throw new AppError("Voucher không tồn tại", 404);
+      }
+
+      if (targetVoucher.targetAudience && targetVoucher.targetAudience !== "all") {
+        if (targetVoucher.targetAudience === "new") {
+          const orderCount = await Order.countDocuments({ user_id: userId, status: { $ne: "cancelled" } });
+          if (orderCount > 0) {
+            throw new AppError("Mã giảm giá này chỉ dành riêng cho khách hàng mới (chưa có đơn hàng)", 400);
+          }
+        } else if (targetVoucher.targetAudience === "member") {
+          const orderCount = await Order.countDocuments({ user_id: userId, status: { $ne: "cancelled" } });
+          if (orderCount === 0) {
+            throw new AppError("Mã giảm giá này chỉ dành cho khách hàng đã từng đặt hàng", 400);
+          }
+        } else if (targetVoucher.targetAudience === "vip") {
+          const orders = await Order.find({ user_id: userId, status: "delivered" }).select("total_price").lean();
+          const totalSpend = orders.reduce((sum, o) => sum + Number(o.total_price || 0), 0);
+          if (totalSpend < 5000000) {
+            throw new AppError("Mã giảm giá này chỉ áp dụng cho khách hàng VIP (tổng chi tiêu từ 5.000.000đ)", 400);
+          }
+        }
+      }
+
       const voucher = await voucherRepository.findOneAndUpdate(
         {
           _id: voucherId,
@@ -570,6 +658,26 @@ class VoucherService {
     // 2. Check general status and dates
     if (voucher.status !== "ACTIVE") {
       throw new AppError("Mã giảm giá đang tạm khóa", 400);
+    }
+
+    if (voucher.targetAudience && voucher.targetAudience !== "all") {
+      if (voucher.targetAudience === "new") {
+        const orderCount = await Order.countDocuments({ user_id: userId, status: { $ne: "cancelled" } });
+        if (orderCount > 0) {
+          throw new AppError("Mã giảm giá này chỉ dành riêng cho khách hàng mới (chưa có đơn hàng)", 400);
+        }
+      } else if (voucher.targetAudience === "member") {
+        const orderCount = await Order.countDocuments({ user_id: userId, status: { $ne: "cancelled" } });
+        if (orderCount === 0) {
+          throw new AppError("Mã giảm giá này chỉ dành cho khách hàng đã từng đặt hàng", 400);
+        }
+      } else if (voucher.targetAudience === "vip") {
+        const orders = await Order.find({ user_id: userId, status: "delivered" }).select("total_price").lean();
+        const totalSpend = orders.reduce((sum, o) => sum + Number(o.total_price || 0), 0);
+        if (totalSpend < 5000000) {
+          throw new AppError("Mã giảm giá này chỉ áp dụng cho khách hàng VIP (tổng chi tiêu từ 5.000.000đ)", 400);
+        }
+      }
     }
 
     const now = new Date();

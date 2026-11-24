@@ -83,3 +83,28 @@ export interface LoyaltySystemStats {
   familyDistribution: Record<TierFamily, number>;
   conversionRateVnd: number;
 }
+
+export interface LoyaltyAuditLog {
+  id: string;
+  timestamp: string;
+  adminName: string;
+  adminEmail?: string;
+  actionType: 'REVOKE_POINTS' | 'GRANT_POINTS' | 'RESET_BALANCE' | 'UPDATE_TIERS' | 'UPDATE_RULES';
+  targetCustomerId?: string;
+  targetCustomerName?: string;
+  pointsDelta?: number;
+  previousBalance?: number;
+  newBalance?: number;
+  reason: string;
+  referenceCode?: string;
+}
+
+export interface LoyaltyRuleConfig {
+  vndPerPoint: number;
+  pointValueVnd: number;
+  minRedeemPoints: number;
+  expiryMonths: number;
+  requireDelivered: boolean;
+  requirePaid: boolean;
+}
+

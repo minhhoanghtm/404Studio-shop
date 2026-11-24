@@ -399,14 +399,16 @@ export const AdminPageBuilderEditorPage: React.FC = () => {
       const firstPara = sec.blocks.find((b) => b.type === 'paragraph');
       const firstBanner = sec.blocks.find((b) => b.type === 'banner');
       const firstQuote = sec.blocks.find((b) => b.type === 'quote');
+      const firstProductGrid = sec.blocks.find((b) => b.type === 'product_grid');
 
       const data: Record<string, any> = {
         title: firstHeading?.content?.text || firstBanner?.content?.title || sec.title,
         description: firstPara?.content?.text || firstBanner?.content?.subtitle,
-        content: firstPara?.content?.text,
-        quote: firstQuote?.content?.quote,
-        author: firstQuote?.content?.author,
+        content: firstPara?.content?.text || '',
+        quote: firstQuote?.content?.quote || '',
+        author: firstQuote?.content?.author || '',
         coverImage: firstBanner?.content?.imageUrl,
+        productIds: firstProductGrid?.content?.productIds || [],
         blocks: sec.blocks,
         styles: sec.styles,
       };
@@ -682,29 +684,29 @@ export const AdminPageBuilderEditorPage: React.FC = () => {
               </button>
             </div>
           )}
-          <div className="flex border-b border-white/10 bg-black/20">
+          <div className="flex items-center gap-1.5 p-2 border-b border-[var(--border)] bg-[var(--bg-card)]">
             <button
               type="button"
               onClick={() => setLeftTab('library')}
-              className={`flex-1 py-2.5 text-xs font-medium uppercase tracking-wider flex items-center justify-center gap-1.5 ${
+              className={`flex-1 py-2 text-xs font-mono uppercase tracking-wider flex items-center justify-center gap-1.5 rounded-lg transition-all cursor-pointer ${
                 leftTab === 'library'
-                  ? 'border-b-2 border-[#d4af37] text-[#d4af37] font-semibold'
-                  : 'text-white/50 hover:text-white'
+                  ? 'admin-tab-active'
+                  : 'admin-tab-inactive'
               }`}
             >
-              <Grid className="w-3.5 h-3.5" />
+              <Grid className="w-3.5 h-3.5 shrink-0" />
               <span>Thư Viện Khối</span>
             </button>
             <button
               type="button"
               onClick={() => setLeftTab('structure')}
-              className={`flex-1 py-2.5 text-xs font-medium uppercase tracking-wider flex items-center justify-center gap-1.5 ${
+              className={`flex-1 py-2 text-xs font-mono uppercase tracking-wider flex items-center justify-center gap-1.5 rounded-lg transition-all cursor-pointer ${
                 leftTab === 'structure'
-                  ? 'border-b-2 border-[#d4af37] text-[#d4af37] font-semibold'
-                  : 'text-white/50 hover:text-white'
+                  ? 'admin-tab-active'
+                  : 'admin-tab-inactive'
               }`}
             >
-              <Layers className="w-3.5 h-3.5" />
+              <Layers className="w-3.5 h-3.5 shrink-0" />
               <span>Cấu Trúc Trang</span>
             </button>
           </div>
@@ -840,28 +842,39 @@ export const AdminPageBuilderEditorPage: React.FC = () => {
           <div
             role="dialog"
             aria-modal="true"
-            className="fixed inset-0 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm pointer-events-auto"
+            aria-label="Không thể xuất bản: Thiếu quy định pháp lý"
+            className="fixed inset-0 bg-[rgba(26,26,23,0.55)] backdrop-blur-sm flex items-center justify-center p-4 pointer-events-auto"
             style={{ zIndex: legalOverlayZ }}
             onClick={(e) => {
               if (e.target === e.currentTarget) setLegalValidationModal(null);
             }}
           >
             <div
-              className="w-full max-w-lg bg-[#14141c] border border-red-500/40 rounded-2xl p-6 space-y-4 shadow-2xl max-h-[calc(100dvh-32px)] overflow-y-auto"
+              className="w-full max-w-lg bg-[var(--surface)] border border-[var(--border)] rounded-sm p-6 space-y-5 text-[var(--text)] shadow-2xl max-h-[calc(100dvh-32px)] overflow-y-auto admin-content-scrollbar"
               style={{ zIndex: legalContentZ }}
             >
-              <div className="flex items-center gap-3 text-red-400">
-                <AlertCircle className="w-6 h-6 shrink-0" />
-                <h3 className="font-serif text-lg font-medium text-white">
-                  Không Thể Xuất Bản: Thiếu Quy Định Pháp Lý Bắt Buộc
-                </h3>
+              <div className="flex items-center justify-between pb-3 border-b border-[var(--border)]">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5 text-rose-500 shrink-0" />
+                  <h3 className="font-display text-base font-semibold uppercase tracking-wider text-[var(--text)]">
+                    Không Thể Xuất Bản: Thiếu Quy Định Pháp Lý
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setLegalValidationModal(null)}
+                  className="p-1 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors rounded-sm"
+                  aria-label="Đóng"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
 
-              <p className="text-xs text-white/70 leading-relaxed">
-                Theo quy định của <strong>Luật Bảo vệ dữ liệu cá nhân số 91/2025/QH15</strong> và Nghị định 356/2025/NĐ-CP, trang chính sách pháp lý của doanh nghiệp không được lược bỏ các điều khoản bắt buộc sau:
+              <p className="text-xs text-[var(--text-muted)] leading-relaxed">
+                Theo quy định của <strong className="text-[var(--text)]">Luật Bảo vệ dữ liệu cá nhân số 91/2025/QH15</strong> và Nghị định 356/2025/NĐ-CP, trang chính sách pháp lý của doanh nghiệp không được lược bỏ các điều khoản bắt buộc sau:
               </p>
 
-              <ul className="space-y-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-xs text-red-300">
+              <ul className="space-y-2 p-3 rounded-sm bg-rose-500/10 border border-rose-500/20 text-xs text-rose-600 dark:text-rose-300">
                 {legalValidationModal.errors.map((err, i) => (
                   <li key={i} className="flex items-start gap-2">
                     <span className="font-bold">•</span>
@@ -870,11 +883,11 @@ export const AdminPageBuilderEditorPage: React.FC = () => {
                 ))}
               </ul>
 
-              <div className="pt-2 flex items-center justify-end gap-3">
+              <div className="pt-3 border-t border-[var(--border)] flex items-center justify-end">
                 <button
                   type="button"
                   onClick={() => setLegalValidationModal(null)}
-                  className="px-5 py-2 rounded-lg bg-white/10 text-white text-xs font-medium hover:bg-white/20 transition-colors"
+                  className="px-5 py-2 bg-[var(--accent)] text-[var(--accent-contrast)] font-semibold rounded-sm text-xs font-mono uppercase tracking-wider hover:bg-[var(--accent)]/90 shadow-sm transition-colors"
                 >
                   Đã Hiểu, Quay Lại Bổ Sung
                 </button>

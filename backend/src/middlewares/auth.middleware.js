@@ -40,10 +40,10 @@ export const protectedRoute = async (req, res, next) => {
     
     // Query User once with status and role
     const user = await User.findById(decoded.userId).select("status role");
-    if (!user || user.status === "blocked") {
+    if (!user || user.status === "blocked" || user.status === "locked" || user.isActive === false) {
       return res.status(403).json({
         success: false,
-        message: "Tài khoản của bạn đã bị khóa hoặc không tồn tại!",
+        message: "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ với shop để giải quyết.",
       });
     }
 
@@ -135,6 +135,47 @@ export const adminOnly = async (req, res, next) => {
     return next();
   } catch (error) {
     console.error("Loi khi kiem tra quyen admin:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Loi he thong",
+    });
+  }
+};
+
+export const staffOrAdmin = async (req, res, next) => {
+  try {
+    const user = req.user;
+
+    if (!user || !user.userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Khong tim thay access token hop le",
+      });
+    }
+
+    let role = user.role;
+    if (!role) {
+      const dbUser = await User.findById(user.userId).select("role");
+      if (!dbUser) {
+        return res.status(404).json({
+          success: false,
+          message: "Nguoi dung khong ton tai!",
+        });
+      }
+      role = dbUser.role;
+      req.user.role = role;
+    }
+
+    if (!["admin", "manager", "staff"].includes(role)) {
+      return res.status(403).json({
+        success: false,
+        message: "Ban khong co quyen truy cap",
+      });
+    }
+
+    return next();
+  } catch (error) {
+    console.error("Loi khi kiem tra quyen staff/admin:", error);
     return res.status(500).json({
       success: false,
       message: "Loi he thong",

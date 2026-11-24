@@ -62,17 +62,18 @@ test.describe('Phase 11 — Legal Compliance, Privacy & Cookie Consent Suite', (
 
     // View first product
     const firstProduct = page.locator('a[href^="/products/"]').first();
+    await firstProduct.waitFor({ state: 'visible', timeout: 10000 });
     await firstProduct.scrollIntoViewIfNeeded();
     await firstProduct.click();
     await page.waitForSelector('h1', { timeout: 10000 });
 
     // Add to bag
-    const addToBagBtn = page.locator('button:has-text("Thêm vào túi đồ")').first();
+    const addToBagBtn = page.locator('button:has-text("Thêm vào túi đồ"), button:has-text("Thêm Vào Túi")').first();
     if (await addToBagBtn.isVisible()) {
       await addToBagBtn.scrollIntoViewIfNeeded();
       await addToBagBtn.click();
       // Verify bag drawer opens
-      await expect(page.locator('text=Túi mua sắm')).toBeVisible({ timeout: 5000 });
+      await expect(page.locator('text=Túi mua sắm, text=GIỎ HÀNG, [aria-label="Giỏ hàng"]').first()).toBeVisible({ timeout: 5000 });
     }
   });
 

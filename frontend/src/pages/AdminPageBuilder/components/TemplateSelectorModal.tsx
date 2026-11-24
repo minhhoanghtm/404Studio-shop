@@ -31,20 +31,20 @@ export const TemplateSelectorModal: React.FC<TemplateSelectorModalProps> = ({
   const getTemplateIcon = (type: string) => {
     switch (type) {
       case 'lookbook':
-        return <Shirt className="w-5 h-5 text-[#d4af37]" />;
+        return <Shirt className="w-4 h-4 text-[var(--accent)]" />;
       case 'about':
-        return <BookOpen className="w-5 h-5 text-[#d4af37]" />;
+        return <BookOpen className="w-4 h-4 text-[var(--accent)]" />;
       case 'policy':
-        return <ShieldCheck className="w-5 h-5 text-[#d4af37]" />;
+        return <ShieldCheck className="w-4 h-4 text-[var(--accent)]" />;
       default:
-        return <Zap className="w-5 h-5 text-[#d4af37]" />;
+        return <Zap className="w-4 h-4 text-[var(--accent)]" />;
     }
   };
 
   return (
     <ModalPortal>
       <div
-        className="fixed inset-0 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn pointer-events-auto"
+        className="fixed inset-0 bg-[rgba(26,26,23,0.55)] backdrop-blur-sm flex items-center justify-center p-4 pointer-events-auto"
         style={{ zIndex: overlayZIndex }}
         onClick={(e) => {
           if (e.target === e.currentTarget) onClose();
@@ -54,20 +54,20 @@ export const TemplateSelectorModal: React.FC<TemplateSelectorModalProps> = ({
         aria-label="Thư Viện Mẫu Trang"
       >
         <div
-          className="relative w-full max-w-4xl bg-[#121218] border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-32px)]"
+          className="relative w-full max-w-4xl bg-[var(--surface)] border border-[var(--border)] rounded-sm shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-32px)] text-[var(--text)]"
           style={{ zIndex: contentZIndex }}
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-white/10">
+          <div className="flex items-center justify-between p-6 border-b border-[var(--border)]">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-[#d4af37]/10 border border-[#d4af37]/30">
-                <Sparkles className="w-5 h-5 text-[#d4af37]" />
+              <div className="p-2 rounded-sm bg-[var(--bg-alt)] border border-[var(--border)]">
+                <Sparkles className="w-5 h-5 text-[var(--accent)]" />
               </div>
               <div>
-                <h2 className="text-xl font-serif font-medium text-white">
+                <h2 className="text-base font-display uppercase tracking-wider font-semibold text-[var(--text)]">
                   Thư Viện Mẫu Trang (Page Templates)
                 </h2>
-                <p className="text-xs text-white/50">
+                <p className="text-xs text-[var(--text-muted)] mt-0.5">
                   Chọn một mẫu bố cục khởi tạo đạt chuẩn phong cách Atelier Vérité
                 </p>
               </div>
@@ -75,7 +75,8 @@ export const TemplateSelectorModal: React.FC<TemplateSelectorModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/5 transition-colors"
+              className="p-1 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors rounded-sm"
+              aria-label="Đóng"
             >
               <X className="w-5 h-5" />
             </button>
@@ -86,26 +87,26 @@ export const TemplateSelectorModal: React.FC<TemplateSelectorModalProps> = ({
             {PAGE_TEMPLATES.map((tmpl) => (
               <div
                 key={tmpl.id}
-                className="flex flex-col justify-between p-5 rounded-xl border border-white/10 bg-white/[0.02] hover:border-[#d4af37]/60 hover:bg-white/[0.04] transition-all group"
+                className="flex flex-col justify-between p-5 rounded-sm border border-[var(--border)] bg-[var(--bg-alt)] hover:border-[var(--accent)] transition-all group"
               >
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       {getTemplateIcon(tmpl.type)}
-                      <span className="font-mono text-xs uppercase tracking-wider text-[#d4af37]">
+                      <span className="font-mono text-xs uppercase tracking-wider text-[var(--accent)] font-semibold">
                         {tmpl.type}
                       </span>
                     </div>
-                    <span className="text-xs text-white/40 font-mono">
+                    <span className="text-xs text-[var(--text-muted)] font-mono">
                       {tmpl.sections.length} Phân vùng
                     </span>
                   </div>
 
-                  <h3 className="font-serif text-lg text-white font-medium group-hover:text-[#d4af37] transition-colors">
+                  <h3 className="font-serif text-base text-[var(--text)] font-medium group-hover:text-[var(--accent)] transition-colors">
                     {tmpl.name}
                   </h3>
 
-                  <p className="text-xs text-white/60 leading-relaxed">
+                  <p className="text-xs text-[var(--text-muted)] leading-relaxed">
                     {tmpl.description}
                   </p>
                 </div>
@@ -114,7 +115,7 @@ export const TemplateSelectorModal: React.FC<TemplateSelectorModalProps> = ({
                   <button
                     type="button"
                     onClick={() => onSelectTemplate(tmpl)}
-                    className="w-full py-2.5 px-4 rounded-lg bg-[#d4af37] text-black text-xs font-semibold uppercase tracking-wider hover:bg-[#e5c158] transition-colors shadow-md"
+                    className="w-full py-2.5 px-4 rounded-sm bg-[var(--accent)] text-[var(--accent-contrast)] text-xs font-mono font-semibold uppercase tracking-wider hover:bg-[var(--accent)]/90 transition-colors shadow-sm"
                   >
                     Áp Dụng Mẫu Này
                   </button>
@@ -124,11 +125,11 @@ export const TemplateSelectorModal: React.FC<TemplateSelectorModalProps> = ({
           </div>
 
           {/* Footer */}
-          <div className="p-4 border-t border-white/10 bg-white/[0.01] flex justify-end">
+          <div className="p-4 border-t border-[var(--border)] flex justify-end">
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2 rounded-lg border border-white/10 text-xs text-white/70 hover:text-white hover:bg-white/5 transition-colors"
+              className="px-5 py-2 rounded-sm border border-[var(--border)] text-xs font-mono uppercase tracking-wider text-[var(--text)] hover:bg-[var(--bg-alt)] transition-colors"
             >
               Đóng
             </button>

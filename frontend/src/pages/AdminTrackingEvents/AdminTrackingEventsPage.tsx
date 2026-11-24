@@ -1,6 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { AdminLayout } from '../Admin/AdminLayout';
 import { TrackingNav } from '../AdminTracking/components/TrackingNav';
+import { TablePagination } from '@/shared/components/TablePagination';
+import { StatusBadge } from '@/shared/components/StatusBadge';
 import {
   adminTrackingApi,
   TrackingOverviewMetrics,
@@ -79,6 +81,21 @@ export const AdminTrackingEventsPage: React.FC = () => {
     ? Object.entries(overview.eventTypeStats).sort((a, b) => b[1] - a[1])
     : [];
 
+  // Pagination states (Max 10 rows per page)
+  const [pageEvents, setPageEvents] = useState(1);
+  const [pageApi, setPageApi] = useState(1);
+
+  const paginatedEventEntries = useMemo(() => {
+    const start = (pageEvents - 1) * 10;
+    return eventEntries.slice(start, start + 10);
+  }, [eventEntries, pageEvents]);
+
+  const paginatedApiMetrics = useMemo(() => {
+    const list = activity?.apiMetrics || [];
+    const start = (pageApi - 1) * 10;
+    return list.slice(start, start + 10);
+  }, [activity?.apiMetrics, pageApi]);
+
   return (
     <AdminLayout
       title="Quản Lý Sự Kiện & Hành Trình Hệ Thống"
@@ -107,7 +124,7 @@ export const AdminTrackingEventsPage: React.FC = () => {
             <button
               type="button"
               onClick={fetchData}
-              className="px-3 py-1 bg-red-900/60 border border-red-400/40 rounded uppercase text-[10px]"
+              className="px-3 py-1 bg-red-900/60 border border-red-400/40 rounded-lg uppercase text-[10px] font-mono font-bold shadow-xs hover:shadow-sm active:scale-95 cursor-pointer"
             >
               Thử lại
             </button>
@@ -131,7 +148,7 @@ export const AdminTrackingEventsPage: React.FC = () => {
                 type="button"
                 onClick={fetchData}
                 disabled={loading}
-                className="p-1.5 border border-white/15 hover:border-champagne text-platinum-dark hover:text-champagne rounded-sm transition-colors"
+                className="p-1.5 border border-white/15 hover:border-champagne text-platinum-dark hover:text-champagne rounded-lg shadow-xs hover:shadow-sm transition-all cursor-pointer"
                 title="Làm mới"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
@@ -143,6 +160,7 @@ export const AdminTrackingEventsPage: React.FC = () => {
             <table className="w-full text-left text-xs font-mono">
               <thead className="bg-noir-950 text-platinum-dark text-[11px] uppercase border-b border-white/10">
                 <tr>
+                  <th className="px-3 py-3 w-12 text-center">STT</th>
                   <th className="px-4 py-3">Mã Loại Sự Kiện (Event Type)</th>
                   <th className="px-4 py-3">Nhóm Nghiệp Vụ</th>
                   <th className="px-4 py-3 text-right">Số Lượng Ghi Nhận</th>
@@ -153,6 +171,7 @@ export const AdminTrackingEventsPage: React.FC = () => {
                 {loading ? (
                   Array.from({ length: 6 }).map((_, i) => (
                     <tr key={i} className="animate-pulse">
+                      <td className="px-3 py-3 text-center"><div className="h-4 bg-white/10 rounded w-6 mx-auto" /></td>
                       <td className="px-4 py-3"><div className="h-4 bg-white/10 rounded w-48" /></td>
                       <td className="px-4 py-3"><div className="h-4 bg-white/5 rounded w-24" /></td>
                       <td className="px-4 py-3 text-right"><div className="h-4 bg-white/10 rounded w-16 ml-auto" /></td>
@@ -161,32 +180,50 @@ export const AdminTrackingEventsPage: React.FC = () => {
                   ))
                 ) : eventEntries.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="py-8 text-center text-platinum-dark italic">
+                    <td colSpan={5} className="py-8 text-center text-platinum-dark italic">
                       Không có sự kiện nào trong hệ thống.
                     </td>
                   </tr>
                 ) : (
-                  eventEntries.map(([type, count]) => {
+                  paginatedEventEntries.map(([type, count], idx) => {
                     const total = overview?.totalEvents || 1;
                     const pct = ((count / total) * 100).toFixed(1);
 
                     let categoryLabel = 'Tương Tác Khác';
-                    if (type.includes('product') || type.includes('view')) categoryLabel = 'Sản Phẩm & Xem';
-                    else if (type.includes('cart')) categoryLabel = 'Giỏ Hàng';
-                    else if (type.includes('checkout') || type.includes('purchase') || type.includes('order')) categoryLabel = 'Thanh Toán & Đơn Hàng';
-                    else if (type.includes('search')) categoryLabel = 'Tìm Kiếm';
-                    else if (type.includes('ai') || type.includes('recommendation')) categoryLabel = 'Trí Tuệ Nhân Tạo AI';
-                    else if (type.includes('page') || type.includes('session')) categoryLabel = 'Điều Hướng & Phiên';
+                    let categoryVariant: 'neutral' | 'accent' | 'purple' | 'info' | 'success' = 'neutral';
+
+                    if (type.includes('product') || type.includes('view')) {
+                      categoryLabel = 'Sản Phẩm & Xem';
+                      categoryVariant = 'success';
+                    } else if (type.includes('cart')) {
+                      categoryLabel = 'Giỏ Hàng';
+                      categoryVariant = 'accent';
+                    } else if (type.includes('checkout') || type.includes('purchase') || type.includes('order')) {
+                      categoryLabel = 'Thanh Toán & Đơn Hàng';
+                      categoryVariant = 'accent';
+                    } else if (type.includes('search')) {
+                      categoryLabel = 'Tìm Kiếm';
+                      categoryVariant = 'info';
+                    } else if (type.includes('ai') || type.includes('recommendation')) {
+                      categoryLabel = 'Trí Tuệ Nhân Tạo AI';
+                      categoryVariant = 'purple';
+                    } else if (type.includes('page') || type.includes('session')) {
+                      categoryLabel = 'Điều Hướng & Phiên';
+                      categoryVariant = 'info';
+                    }
 
                     return (
                       <tr key={type} className="hover:bg-white/[0.02]">
+                        <td className="px-3 py-3 text-center font-mono text-platinum-dark text-[11px]">
+                          {(pageEvents - 1) * 10 + idx + 1}
+                        </td>
                         <td className="px-4 py-3 font-mono text-champagne text-xs font-medium">
                           {type}
                         </td>
                         <td className="px-4 py-3">
-                          <span className="px-2 py-0.5 rounded-sm bg-white/5 border border-white/10 text-[10px] font-mono text-platinum-light">
+                          <StatusBadge variant={categoryVariant}>
                             {categoryLabel}
-                          </span>
+                          </StatusBadge>
                         </td>
                         <td className="px-4 py-3 text-right font-mono font-semibold text-white">
                           {count.toLocaleString('vi-VN')}
@@ -200,6 +237,14 @@ export const AdminTrackingEventsPage: React.FC = () => {
                 )}
               </tbody>
             </table>
+
+            <TablePagination
+              currentPage={pageEvents}
+              totalItems={eventEntries.length}
+              pageSize={10}
+              onPageChange={setPageEvents}
+              itemName="loại sự kiện"
+            />
           </div>
         </div>
 
@@ -226,7 +271,7 @@ export const AdminTrackingEventsPage: React.FC = () => {
             <button
               type="submit"
               disabled={sessionTimelineLoading}
-              className="px-4 py-2 bg-champagne text-noir-950 font-semibold text-xs uppercase tracking-wider rounded-sm hover:bg-champagne/90 transition-colors flex items-center gap-1.5"
+              className="px-4 py-2 bg-[var(--accent)] text-[var(--accent-contrast)] border border-[var(--accent)] font-bold text-xs uppercase tracking-wider rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
             >
               <Search className="w-3.5 h-3.5" />
               <span>{sessionTimelineLoading ? 'Đang Tra Cứu...' : 'Tra Cứu'}</span>
@@ -287,6 +332,7 @@ export const AdminTrackingEventsPage: React.FC = () => {
               <table className="w-full text-left text-xs font-mono">
                 <thead className="bg-noir-950 text-platinum-dark text-[11px] uppercase border-b border-white/10">
                   <tr>
+                    <th className="px-3 py-3 w-12 text-center">STT</th>
                     <th className="px-4 py-3">Endpoint API</th>
                     <th className="px-4 py-3 text-right">Lượt Gọi</th>
                     <th className="px-4 py-3 text-right">Độ Trễ Trung Bình</th>
@@ -295,8 +341,11 @@ export const AdminTrackingEventsPage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
-                  {activity.apiMetrics.map((apiItem) => (
+                  {paginatedApiMetrics.map((apiItem, idx) => (
                     <tr key={apiItem.endpoint} className="hover:bg-white/[0.02]">
+                      <td className="px-3 py-3 text-center font-mono text-platinum-dark text-[11px]">
+                        {(pageApi - 1) * 10 + idx + 1}
+                      </td>
                       <td className="px-4 py-3 text-white font-medium">{apiItem.endpoint}</td>
                       <td className="px-4 py-3 text-right text-champagne">{apiItem.count}</td>
                       <td className="px-4 py-3 text-right text-emerald-400">{apiItem.avgLatencyMs} ms</td>
@@ -306,6 +355,14 @@ export const AdminTrackingEventsPage: React.FC = () => {
                   ))}
                 </tbody>
               </table>
+
+              <TablePagination
+                currentPage={pageApi}
+                totalItems={activity.apiMetrics.length}
+                pageSize={10}
+                onPageChange={setPageApi}
+                itemName="endpoint API"
+              />
             </div>
           </div>
         )}

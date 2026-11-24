@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { AdminLayout } from './AdminLayout';
-import { Plus, Edit3, Trash2, FolderTree, Upload, AlertCircle, Loader2, X } from 'lucide-react';
+import { Plus, FolderTree, Upload, AlertCircle, Loader2, X } from 'lucide-react';
 import { categoriesApi, adminApi, productsApi } from '@/shared/api';
 import { useToastStore } from '@/shared/stores/useToastStore';
 import { CategoryImageUploader } from '@/shared/components/category/CategoryImageUploader';
@@ -8,6 +8,9 @@ import { ExcelTemplateButton } from '@/shared/components/excel/ExcelTemplateButt
 import { ExcelExportButton } from '@/shared/components/excel/ExcelExportButton';
 import { ExcelImportModal } from '@/shared/components/excel/ExcelImportModal';
 import { useModal, ModalPortal } from '@/shared/context/ModalContext';
+import { TablePagination } from '@/shared/components/TablePagination';
+import { StatusBadge } from '@/shared/components/StatusBadge';
+import { AdminActionGroup, EditActionButton, DeleteActionButton } from '@/shared/components/AdminActionButton';
 
 export const AdminCategoriesPage: React.FC = () => {
   const [categories, setCategories] = useState<any[]>([]);
@@ -30,11 +33,17 @@ export const AdminCategoriesPage: React.FC = () => {
   const [formDescription, setFormDescription] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
 
   const { addToast } = useToastStore();
 
-  const fetchCategories = useCallback(async () => {
-    setIsLoading(true);
+  const paginatedCategories = useMemo(() => {
+    const start = (page - 1) * 10;
+    return categories.slice(start, start + 10);
+  }, [categories, page]);
+
+  const fetchCategories = useCallback(async (silent = false) => {
+    if (!silent) setIsLoading(true);
     try {
       const [catRes, prodRes] = await Promise.all([
         categoriesApi.getCategories(),
@@ -63,7 +72,7 @@ export const AdminCategoriesPage: React.FC = () => {
     } catch (_err: any) {
       addToast('Không thể tải danh sách danh mục từ máy chủ.', 'error');
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   }, [addToast]);
 
@@ -113,16 +122,24 @@ export const AdminCategoriesPage: React.FC = () => {
 
       if (editingCat) {
         const id = editingCat._id || editingCat.id;
-        await adminApi.updateCategory(id, payload);
+        const res: any = await adminApi.updateCategory(id, payload);
+        const updatedCat = res?.data || { ...editingCat, ...payload };
+        // Cập nhật trực tiếp cục bộ, không reload lại toàn bộ bảng
+        setCategories((prev) =>
+          prev.map((c) => ((c._id || c.id) === id ? { ...c, ...updatedCat } : c))
+        );
         addToast(`Cập nhật danh mục "${trimmedName}" thành công!`, 'success');
       } else {
-        await adminApi.createCategory(payload);
+        const res: any = await adminApi.createCategory(payload);
+        const newCat = res?.data || { id: `cat-${Date.now()}`, ...payload };
+        // Thêm trực tiếp vào đầu danh sách, không reload lại bảng
+        setCategories((prev) => [newCat, ...prev]);
         addToast(`Đã thêm danh mục mới "${trimmedName}" thành công!`, 'success');
       }
 
       setIsModalOpen(false);
       setEditingCat(null);
-      await fetchCategories();
+      void fetchCategories(true);
     } catch (err: any) {
       const msg = err?.data?.message || err?.message || 'Lỗi khi lưu danh mục';
       addToast(`Không thể lưu danh mục: ${msg}`, 'error');
@@ -144,7 +161,9 @@ export const AdminCategoriesPage: React.FC = () => {
     try {
       await adminApi.deleteCategory(id);
       addToast(`Đã xóa danh mục "${name}" thành công!`, 'success');
-      await fetchCategories();
+      // Loại bỏ mục trực tiếp khỏi danh sách, không reload lại toàn bộ bảng
+      setCategories((prev) => prev.filter((c) => c._id !== id && c.id !== id));
+      void fetchCategories(true);
     } catch (err: any) {
       const msg = err?.data?.message || err?.message || 'Lỗi khi xóa danh mục';
       addToast(`Không thể xóa danh mục: ${msg}`, 'error');
@@ -187,7 +206,7 @@ export const AdminCategoriesPage: React.FC = () => {
             <button
               type="button"
               onClick={handleOpenCreate}
-              className="px-4 py-2 bg-[var(--accent)] text-[var(--accent-contrast)] font-semibold text-xs uppercase tracking-wider rounded-sm hover:opacity-90 transition-opacity flex items-center gap-1.5 shrink-0 shadow-sm"
+              className="px-4 py-2 bg-[var(--accent)] text-[var(--accent-contrast)] border border-[var(--accent)] font-bold text-xs font-mono uppercase tracking-wider rounded-lg hover:brightness-105 transition-all shadow-md hover:shadow-lg flex items-center gap-1.5 shrink-0 cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>Thêm Danh Mục Mới</span>
@@ -218,80 +237,91 @@ export const AdminCategoriesPage: React.FC = () => {
               </button>
             </div>
           ) : (
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="border-b border-white/10 text-platinum-dark uppercase tracking-wider bg-white/5 font-mono text-[11px]">
-                  <th className="py-3 px-4 w-16">Hình Ảnh</th>
-                  <th className="py-3 px-4">Tên Danh Mục</th>
-                  <th className="py-3 px-4">Đường Dẫn Slug</th>
-                  <th className="py-3 px-4">Mô Tả Định Hướng</th>
-                  <th className="py-3 px-4">Số Sản Phẩm</th>
-                  <th className="py-3 px-4 text-right">Thao Tác</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {categories.map((cat) => {
-                  const id = cat._id || cat.id;
-                  const count = productCounts[id] || productCounts[cat.slug] || 0;
-                  return (
-                    <tr key={id} className="hover:bg-white/5 transition-colors">
-                      {/* Image Thumbnail */}
-                      <td className="py-3 px-4">
-                        {cat.image ? (
-                          <img
-                            src={cat.image}
-                            alt={cat.name}
-                            className="w-10 h-10 rounded-sm object-cover bg-noir-950 border border-white/10"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=200';
-                            }}
-                          />
-                        ) : (
-                          <div
-                            className="w-10 h-10 rounded-sm bg-white/5 border border-amber-800/40 flex items-center justify-center text-amber-400"
-                            title="Thiếu ảnh đại diện"
-                          >
-                            <AlertCircle className="w-5 h-5" />
-                          </div>
-                        )}
-                      </td>
-
-                      <td className="py-3.5 px-4 font-serif font-medium text-[var(--text-primary)] text-sm">
-                        {cat.name}
-                      </td>
-                      <td className="py-3.5 px-4 font-mono text-[var(--accent)]">{cat.slug}</td>
-                      <td className="py-3.5 px-4 text-[var(--text-muted)] max-w-xs truncate">
-                        {cat.description || 'Danh mục thời trang cao cấp'}
-                      </td>
-                      <td className="py-3.5 px-4 font-mono">
-                        <span className="px-2 py-0.5 bg-[var(--bg-card-muted)] border border-[var(--border)] rounded-sm text-[var(--text-secondary)]">
-                          {count} sản phẩm
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 text-right space-x-2">
-                        <button
-                          type="button"
-                          onClick={() => handleOpenEdit(cat)}
-                          className="p-1.5 text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors"
-                          title="Chỉnh sửa danh mục"
-                        >
-                          <Edit3 className="w-4 h-4" />
-                        </button>
-                        <button
-                          type="button"
-                          disabled={deletingId === id}
-                          onClick={() => handleDelete(id, cat.name)}
-                          className="p-1.5 text-[var(--text-muted)] hover:text-red-500 transition-colors disabled:opacity-50"
-                          title="Xóa danh mục"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </td>
+            <div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-white/10 text-platinum-dark uppercase tracking-wider bg-white/5 font-mono text-[11px]">
+                      <th className="py-3 px-3 w-12 text-center">STT</th>
+                      <th className="py-3 px-4 w-16">Hình Ảnh</th>
+                      <th className="py-3 px-4">Tên Danh Mục</th>
+                      <th className="py-3 px-4">Đường Dẫn Slug</th>
+                      <th className="py-3 px-4">Mô Tả Định Hướng</th>
+                      <th className="py-3 px-4">Số Sản Phẩm</th>
+                      <th className="py-3 px-4 text-right">Thao Tác</th>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {paginatedCategories.map((cat, idx) => {
+                      const id = cat._id || cat.id;
+                      const count = productCounts[id] || productCounts[cat.slug] || 0;
+                      return (
+                        <tr key={id} className="hover:bg-white/5 transition-colors">
+                          <td className="py-3 px-3 text-center font-mono text-xs text-[var(--text-muted)]">
+                            {(page - 1) * 10 + idx + 1}
+                          </td>
+                          {/* Image Thumbnail */}
+                          <td className="py-3 px-4">
+                            {cat.image ? (
+                              <img
+                                src={cat.image}
+                                alt={cat.name}
+                                className="w-10 h-10 rounded-sm object-cover bg-noir-950 border border-white/10"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=200';
+                                }}
+                              />
+                            ) : (
+                              <div
+                                className="w-10 h-10 rounded-sm bg-white/5 border border-amber-800/40 flex items-center justify-center text-amber-400"
+                                title="Thiếu ảnh đại diện"
+                              >
+                                <AlertCircle className="w-5 h-5" />
+                              </div>
+                            )}
+                          </td>
+
+                          <td className="py-3.5 px-4 font-serif font-medium text-[var(--text-primary)] text-sm">
+                            {cat.name}
+                          </td>
+                          <td className="py-3.5 px-4 font-mono text-[var(--accent)]">{cat.slug}</td>
+                          <td className="py-3.5 px-4 text-[var(--text-muted)] max-w-xs truncate">
+                            {cat.description || 'Danh mục thời trang cao cấp'}
+                          </td>
+                          <td className="py-3.5 px-4 font-mono">
+                            <StatusBadge variant="neutral">
+                              {count} sản phẩm
+                            </StatusBadge>
+                          </td>
+                          <td className="py-3.5 px-4 text-right">
+                            <AdminActionGroup>
+                              <EditActionButton
+                                onClick={() => handleOpenEdit(cat)}
+                                title="Chỉnh sửa danh mục"
+                              />
+                              <DeleteActionButton
+                                onClick={() => handleDelete(id, cat.name)}
+                                disabled={deletingId === id}
+                                loading={deletingId === id}
+                                title="Xóa danh mục"
+                              />
+                            </AdminActionGroup>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              <TablePagination
+                currentPage={page}
+                totalItems={categories.length}
+                pageSize={10}
+                onPageChange={setPage}
+                itemName="danh mục"
+              />
+            </div>
           )}
         </div>
 
@@ -299,7 +329,7 @@ export const AdminCategoriesPage: React.FC = () => {
         {isModalOpen && (
           <ModalPortal>
             <div
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 pointer-events-auto"
+              className="fixed inset-0 bg-[rgba(26,26,23,0.55)] backdrop-blur-sm flex items-center justify-center p-4 pointer-events-auto"
               style={{ zIndex: overlayZIndex }}
               onClick={(e) => {
                 if (e.target === e.currentTarget && !isSaving) setIsModalOpen(false);
@@ -309,17 +339,18 @@ export const AdminCategoriesPage: React.FC = () => {
               aria-label={editingCat ? 'Chỉnh Sửa Danh Mục' : 'Tạo Danh Mục Mới'}
             >
               <div
-                className="bg-[var(--bg-card)] border border-[var(--border)] w-full max-w-md p-6 rounded-sm text-[var(--text-primary)] space-y-4 max-h-[calc(100dvh-32px)] overflow-y-auto shadow-2xl"
+                className="bg-[var(--surface)] border border-[var(--border)] w-full max-w-md p-6 rounded-sm text-[var(--text)] space-y-4 max-h-[calc(100dvh-32px)] overflow-y-auto shadow-2xl admin-content-scrollbar"
                 style={{ zIndex: contentZIndex }}
               >
                 <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
-                  <h3 className="font-display text-base font-semibold text-[var(--text-primary)]">
+                  <h3 className="font-display text-base font-semibold text-[var(--text)] uppercase tracking-wider">
                     {editingCat ? 'Chỉnh Sửa Danh Mục Thời Trang' : 'Tạo Danh Mục Thời Trang Mới'}
                   </h3>
                   <button
                     type="button"
                     onClick={() => setIsModalOpen(false)}
-                    className="p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                    className="p-1 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
+                    aria-label="Đóng"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -328,7 +359,7 @@ export const AdminCategoriesPage: React.FC = () => {
               <form onSubmit={handleSave} className="space-y-4 text-xs">
                 {/* Category Name */}
                 <div>
-                  <label className="block text-[var(--text-muted)] uppercase tracking-wider mb-1">
+                  <label className="block text-[11px] font-mono uppercase tracking-wider text-[var(--text)] mb-1">
                     Tên Danh Mục <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -337,7 +368,7 @@ export const AdminCategoriesPage: React.FC = () => {
                     value={formName}
                     onChange={(e) => setFormName(e.target.value)}
                     placeholder="Ví dụ: Đầm Dạ Tiệc"
-                    className="w-full px-3 py-2 bg-[var(--input-bg)] border border-[var(--border)] focus:border-[var(--accent)] focus:outline-none text-[var(--text-primary)] rounded-sm"
+                    className="w-full px-3 py-2 bg-[var(--bg-alt)] border border-[var(--border)] focus:border-[var(--accent)] outline-none text-[var(--text)] rounded-sm"
                   />
                 </div>
 
@@ -350,7 +381,7 @@ export const AdminCategoriesPage: React.FC = () => {
 
                 {/* Slug */}
                 <div>
-                  <label className="block text-[var(--text-muted)] uppercase tracking-wider mb-1">
+                  <label className="block text-[11px] font-mono uppercase tracking-wider text-[var(--text)] mb-1">
                     Đường Dẫn Slug (Tùy chọn)
                   </label>
                   <input
@@ -358,13 +389,13 @@ export const AdminCategoriesPage: React.FC = () => {
                     value={formSlug}
                     onChange={(e) => setFormSlug(e.target.value)}
                     placeholder="Tuỳ chọn (hệ thống tự động sinh từ tên nếu để trống)"
-                    className="w-full px-3 py-2 bg-[var(--input-bg)] border border-[var(--border)] focus:border-[var(--accent)] focus:outline-none font-mono text-[var(--text-primary)] rounded-sm"
+                    className="w-full px-3 py-2 bg-[var(--bg-alt)] border border-[var(--border)] focus:border-[var(--accent)] outline-none font-mono text-[var(--text)] rounded-sm"
                   />
                 </div>
 
                 {/* Description */}
                 <div>
-                  <label className="block text-[var(--text-muted)] uppercase tracking-wider mb-1">
+                  <label className="block text-[11px] font-mono uppercase tracking-wider text-[var(--text)] mb-1">
                     Mô Tả Định Hướng
                   </label>
                   <textarea
@@ -372,24 +403,24 @@ export const AdminCategoriesPage: React.FC = () => {
                     value={formDescription}
                     onChange={(e) => setFormDescription(e.target.value)}
                     placeholder="Mô tả phong cách, kiểu dáng hoặc chất liệu..."
-                    className="w-full px-3 py-2 bg-[var(--input-bg)] border border-[var(--border)] focus:border-[var(--accent)] focus:outline-none text-[var(--text-primary)] rounded-sm"
+                    className="w-full px-3 py-2 bg-[var(--bg-alt)] border border-[var(--border)] focus:border-[var(--accent)] outline-none text-[var(--text)] rounded-sm"
                   />
                 </div>
 
                 {/* Action buttons */}
-                <div className="pt-4 flex justify-end gap-3 border-t border-[var(--border)]">
+                <div className="pt-4 flex justify-end gap-2 border-t border-[var(--border)]">
                   <button
                     type="button"
                     onClick={() => setIsModalOpen(false)}
                     disabled={isSaving}
-                    className="px-4 py-2 border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--table-row-hover)] uppercase tracking-wider rounded-sm transition-colors"
+                    className="px-4 py-2 border border-[var(--border)] hover:border-[var(--accent)] bg-[var(--bg-card)] text-[var(--text)] hover:text-[var(--accent)] rounded-lg text-xs font-mono uppercase tracking-wider transition-all shadow-xs hover:shadow-sm cursor-pointer"
                   >
                     Hủy
                   </button>
                   <button
                     type="submit"
                     disabled={isSaving}
-                    className="px-6 py-2 bg-champagne text-noir-950 font-semibold uppercase tracking-wider rounded-sm hover:bg-champagne/90 transition-all flex items-center gap-1.5 disabled:opacity-50"
+                    className="px-5 py-2 bg-[var(--accent)] text-[var(--accent-contrast)] border border-[var(--accent)] font-bold rounded-lg text-xs font-mono uppercase tracking-wider hover:brightness-105 shadow-md hover:shadow-lg transition-all flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
                   >
                     {isSaving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                     <span>{isSaving ? 'Đang Lưu...' : editingCat ? 'Cập Nhật' : 'Tạo Mới'}</span>

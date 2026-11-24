@@ -28,6 +28,9 @@ import { useThemeStore } from '@/shared/stores/useThemeStore';
 import { motion, useReducedMotion } from 'motion/react';
 import { Z_INDEX } from '@/shared/config/zIndex';
 import { PERMISSIONS } from '@/shared/config/routePermissions';
+import { UserProfileModal } from '@/shared/components/profile';
+import { AdminAiSidebar } from '@/shared/components/adminAi/AdminAiSidebar';
+import { useAdminAiStore } from '@/shared/stores/useAdminAiStore';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -44,10 +47,12 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
 }) => {
   const { user, permissions, logout } = useAuthStore();
   const { theme, toggleTheme } = useThemeStore();
+  const { toggleSidebar: toggleAdminAi } = useAdminAiStore();
   const navigate = useNavigate();
   const location = useLocation();
   const prefersReducedMotion = useReducedMotion();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   const contentScrollRef = useRef<HTMLDivElement>(null);
   const sidebarNavRef = useRef<HTMLElement>(null);
@@ -75,14 +80,14 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
 
   // On subroute change: auto-scroll main content area to top (0, 0)
   useEffect(() => {
-    if (contentScrollRef.current) {
+    if (typeof contentScrollRef.current?.scrollTo === 'function') {
       contentScrollRef.current.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     }
   }, [location.pathname]);
 
   // Sidebar navigation: keep scroll position and smoothly scroll active link into view if outside viewport
   useEffect(() => {
-    if (activeNavRef.current) {
+    if (typeof activeNavRef.current?.scrollIntoView === 'function') {
       activeNavRef.current.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     }
   }, [location.pathname]);
@@ -118,25 +123,27 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
   }, [fullHeight, isMobileMenuOpen]);
 
   const allNavLinks = [
-    { label: 'Thống Kê Doanh Thu', to: '/admin', icon: LayoutDashboard, end: true, permission: PERMISSIONS.DASHBOARD_VIEW },
-    { label: 'Phân Quyền & Vai Trò', to: '/admin/roles', icon: ShieldCheck, permission: PERMISSIONS.ROLE_MANAGE },
-    { label: 'Thiết Kế Trang & Layouts', to: '/admin/page-builder', icon: Palette, permission: PERMISSIONS.CONTENT_MANAGE },
-    { label: 'Chính Sách Doanh Nghiệp', to: '/admin/policies', icon: FileText, permission: PERMISSIONS.CONTENT_MANAGE },
-    { label: 'Phân Tích & Tracking', to: '/admin/tracking', icon: Activity, permission: PERMISSIONS.REPORT_VIEW },
-    { label: 'Quản Lý Sản Phẩm', to: '/admin/products', icon: Shirt, permission: PERMISSIONS.PRODUCT_VIEW },
-    { label: 'Danh Mục Thời Trang', to: '/admin/categories', icon: FolderTree, permission: PERMISSIONS.PRODUCT_VIEW },
-    { label: 'Quản Lý Đơn Hàng', to: '/admin/orders', icon: ShoppingBag, permission: PERMISSIONS.ORDER_VIEW },
-    { label: 'Hồ Sơ Khách Hàng', to: '/admin/customers', icon: Users, permission: PERMISSIONS.USER_VIEW },
-    { label: 'Khách Hàng Thân Thiết & Điểm', to: '/admin/loyalty', icon: Award, permission: PERMISSIONS.DASHBOARD_VIEW },
-    { label: 'Chiến Dịch & Popup Sale', to: '/admin/campaigns', icon: Sparkles, permission: PERMISSIONS.COUPON_MANAGE },
-    { label: 'Mã Giảm Giá & Ưu Đãi', to: '/admin/coupons', icon: Ticket, permission: PERMISSIONS.COUPON_MANAGE },
-    { label: 'Trò Chuyện CSKH', to: '/admin/chats', icon: MessageSquare, permission: PERMISSIONS.CHAT_REPLY },
-    { label: 'Cấu Hình Hệ Thống', to: '/admin/settings', icon: Settings, permission: PERMISSIONS.ROLE_MANAGE },
+    { label: 'Thống Kê Doanh Thu', to: '/admin', icon: LayoutDashboard, end: true, permission: PERMISSIONS.DASHBOARD_VIEW, roles: ['admin', 'manager', 'staff'] },
+    { label: 'Admin AI Copilot ✨', to: '/admin/ai-assistant', icon: Sparkles, permission: PERMISSIONS.DASHBOARD_VIEW, roles: ['admin', 'manager', 'staff'] },
+    { label: 'Phân Quyền & Vai Trò', to: '/admin/roles', icon: ShieldCheck, permission: PERMISSIONS.ROLE_MANAGE, roles: ['admin'] },
+    { label: 'Thiết Kế Trang & Layouts', to: '/admin/page-builder', icon: Palette, permission: PERMISSIONS.CONTENT_MANAGE, roles: ['admin', 'manager'] },
+    { label: 'Chính Sách Doanh Nghiệp', to: '/admin/policies', icon: FileText, permission: PERMISSIONS.ROLE_MANAGE, roles: ['admin'] },
+    { label: 'Phân Tích & Tracking', to: '/admin/tracking', icon: Activity, permission: PERMISSIONS.ROLE_MANAGE, roles: ['admin'] },
+    { label: 'Quản Lý Sản Phẩm', to: '/admin/products', icon: Shirt, permission: PERMISSIONS.PRODUCT_VIEW, roles: ['admin', 'manager', 'staff'] },
+    { label: 'Danh Mục Thời Trang', to: '/admin/categories', icon: FolderTree, permission: PERMISSIONS.PRODUCT_VIEW, roles: ['admin', 'manager', 'staff'] },
+    { label: 'Quản Lý Đơn Hàng', to: '/admin/orders', icon: ShoppingBag, permission: PERMISSIONS.ORDER_VIEW, roles: ['admin', 'manager', 'staff'] },
+    { label: 'Hồ Sơ Khách Hàng', to: '/admin/customers', icon: Users, permission: PERMISSIONS.USER_VIEW, roles: ['admin', 'manager', 'staff'] },
+    { label: 'Khách Hàng Thân Thiết & Điểm', to: '/admin/loyalty', icon: Award, permission: PERMISSIONS.DASHBOARD_VIEW, roles: ['admin', 'manager', 'staff'] },
+    { label: 'Chiến Dịch & Popup Sale', to: '/admin/campaigns', icon: Sparkles, permission: PERMISSIONS.COUPON_MANAGE, roles: ['admin', 'manager', 'staff'] },
+    { label: 'Mã Giảm Giá & Ưu Đãi', to: '/admin/coupons', icon: Ticket, permission: PERMISSIONS.COUPON_MANAGE, roles: ['admin', 'manager', 'staff'] },
+    { label: 'Trò Chuyện CSKH', to: '/admin/chats', icon: MessageSquare, permission: PERMISSIONS.CHAT_REPLY, roles: ['admin', 'manager', 'staff'] },
+    { label: 'Cấu Hình Hệ Thống', to: '/admin/settings', icon: Settings, permission: PERMISSIONS.ROLE_MANAGE, roles: ['admin'] },
   ];
 
-  // RBAC Filtering: Only render menu items where user has sufficient permission (Admins always see all)
+  // RBAC & Role Filtering: Only render menu items matching user role and sufficient permissions (Admins always see all)
   const navLinks = allNavLinks.filter((link) => {
     if (user?.role === 'admin' || user?.vipTier === 'admin') return true;
+    if (link.roles && user?.role && !link.roles.includes(user.role)) return false;
     if (!link.permission) return true;
     return permissions.includes(link.permission);
   });
@@ -181,7 +188,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
           <button
             type="button"
             onClick={() => setIsMobileMenuOpen(false)}
-            className="lg:hidden p-1.5 text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--bg-alt)] rounded-sm transition-colors"
+            className="lg:hidden p-1.5 text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--bg-alt)] border border-[var(--border)] rounded-lg shadow-xs hover:shadow-sm transition-all cursor-pointer"
             aria-label="Đóng menu"
           >
             <X className="w-5 h-5" />
@@ -209,9 +216,10 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
                 ref={isCurrentActive ? activeNavRef : undefined}
                 onClick={() => setIsMobileMenuOpen(false)}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 px-3.5 py-2.5 rounded-sm transition-all font-medium uppercase tracking-wider ${isActive
-                    ? 'bg-[var(--accent)] text-[var(--accent-contrast)] font-semibold shadow-md'
-                    : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--bg-alt)]'
+                  `flex items-center gap-3 px-3.5 py-2.5 rounded-lg transition-all font-medium uppercase tracking-wider ${
+                    isActive
+                      ? 'admin-tab-active'
+                      : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--table-row-hover)] border border-transparent'
                   }`
                 }
               >
@@ -233,10 +241,24 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
           </Link>
 
           <div className="flex items-center justify-between text-xs text-[var(--text-muted)] px-1">
-            <div className="flex items-center gap-2.5 truncate">
-              <Shield className="w-3.5 h-3.5 text-[var(--accent)] shrink-0" />
+            <button
+              type="button"
+              onClick={() => setIsProfileModalOpen(true)}
+              className="flex items-center gap-2.5 truncate text-left p-1.5 -ml-1.5 rounded-lg hover:bg-[var(--bg-alt)] transition-colors group cursor-pointer focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+              title="Xem thông tin cá nhân & mật khẩu"
+              aria-label="Xem thông tin cá nhân và quản lý mật khẩu"
+            >
+              <div className="w-7 h-7 rounded-full bg-[var(--accent)]/15 border border-[var(--accent)]/40 flex items-center justify-center text-[var(--accent)] font-semibold text-xs shrink-0 group-hover:border-[var(--accent)] transition-colors overflow-hidden">
+                {user?.avatar ? (
+                  <img src={user.avatar} alt={user.name || 'Avatar'} className="w-full h-full object-cover" />
+                ) : user?.name ? (
+                  user.name.charAt(0).toUpperCase()
+                ) : (
+                  <Shield className="w-3.5 h-3.5" />
+                )}
+              </div>
               <div className="truncate text-left">
-                <span className="truncate block font-medium text-[var(--text)] text-xs">
+                <span className="truncate block font-medium text-[var(--text)] text-xs group-hover:text-[var(--accent)] transition-colors">
                   {user?.name || 'Quản Trị Viên'}
                 </span>
                 <span className="text-[9px] font-mono uppercase tracking-wider text-[var(--accent)] block font-semibold">
@@ -249,12 +271,12 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
                         : 'Thành Viên'}
                 </span>
               </div>
-            </div>
-            <div className="flex items-center gap-1 shrink-0">
+            </button>
+            <div className="flex items-center gap-1.5 shrink-0">
               <button
                 type="button"
                 onClick={toggleTheme}
-                className="text-[var(--text-muted)] hover:text-[var(--accent)] p-1.5 rounded-sm transition-colors"
+                className="text-[var(--text-muted)] hover:text-[var(--accent)] border border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--bg-alt)] p-1.5 rounded-lg shadow-xs hover:shadow-sm transition-all cursor-pointer"
                 title={theme === 'dark' ? 'Chuyển sang Chế độ Sáng' : 'Chuyển sang Chế độ Tối'}
                 aria-label="Đổi giao diện sáng tối"
               >
@@ -266,7 +288,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
                   logout();
                   navigate('/login');
                 }}
-                className="text-[var(--text-muted)] hover:text-red-500 p-1.5 rounded-sm transition-colors"
+                className="text-[var(--text-muted)] hover:text-red-500 border border-[var(--border)] bg-[var(--surface)] hover:bg-red-500/10 p-1.5 rounded-lg shadow-xs hover:shadow-sm transition-all cursor-pointer"
                 title="Đăng xuất"
                 aria-label="Đăng xuất"
               >
@@ -285,7 +307,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
             <button
               type="button"
               onClick={() => setIsMobileMenuOpen(true)}
-              className="lg:hidden p-2 text-[var(--text)] hover:text-[var(--accent)] border border-[var(--border)] hover:border-[var(--accent)] rounded-sm transition-colors"
+              className="lg:hidden p-2 text-[var(--text)] hover:text-[var(--accent)] border border-[var(--border)] hover:border-[var(--accent)] rounded-lg shadow-xs hover:shadow-sm transition-all cursor-pointer"
               title="Mở menu quản trị"
               aria-label="Mở menu quản trị"
             >
@@ -296,24 +318,16 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
               <p className="text-xs text-[var(--text-muted)] mt-0.5">{subtitle}</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            {/* Theme Toggle Button */}
+          <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={toggleTheme}
-              className="px-2.5 py-1.5 border border-[var(--border)] hover:border-[var(--accent)] text-[var(--text)] hover:text-[var(--accent)] bg-[var(--bg-card)] rounded-sm transition-colors flex items-center gap-2 text-xs font-mono uppercase shadow-sm"
-              aria-label={theme === 'dark' ? 'Chuyển sang chế độ sáng' : 'Chuyển sang chế độ tối'}
-              title={theme === 'dark' ? 'Chế độ Sáng' : 'Chế độ Tối'}
+              onClick={toggleAdminAi}
+              className="flex items-center gap-2 px-3.5 py-1.5 bg-[var(--accent)] text-[var(--accent-contrast)] hover:bg-[#9E7B15] rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-sm hover:scale-105 active:scale-95 cursor-pointer"
+              title="Mở Trợ Lý Admin AI Copilot"
             >
-              {theme === 'dark' ? <Sun className="w-4 h-4 text-[var(--accent)]" /> : <Moon className="w-4 h-4 text-[var(--accent)]" />}
-              <span className="hidden sm:inline text-[10px] font-mono font-semibold tracking-wider">
-                {theme === 'dark' ? 'CHẾ ĐỘ SÁNG' : 'CHẾ ĐỘ TỐI'}
-              </span>
+              <Sparkles className="w-4 h-4" />
+              <span>AI Copilot</span>
             </button>
-
-            <span className="px-3 py-1 rounded-full bg-[var(--accent)]/15 border border-[var(--accent)]/30 text-[var(--accent)] text-[11px] font-mono uppercase tracking-widest flex items-center gap-1.5 font-semibold">
-              <Sparkles className="w-3 h-3" /> Phiên Bản Hệ Thống 2.0
-            </span>
           </div>
         </header>
 
@@ -321,7 +335,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
         {fullHeight ? (
           <div
             ref={contentScrollRef}
-            className="flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col p-2 sm:p-4 md:p-6"
+            className="flex-1 min-h-0 min-w-0 overflow-y-auto flex flex-col p-2 sm:p-3 md:p-4 admin-content-scrollbar"
+            style={{ overscrollBehavior: 'contain', scrollbarGutter: 'stable' }}
           >
             {children}
           </div>
@@ -343,6 +358,15 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
           </div>
         )}
       </main>
+
+      {/* Admin AI Copilot Right Sidebar (Accessible on any Admin page) */}
+      <AdminAiSidebar />
+
+      {/* User Personal Information & OTP Password Modal */}
+      <UserProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+      />
     </div>
   );
 };

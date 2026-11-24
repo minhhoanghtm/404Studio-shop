@@ -32,6 +32,7 @@ const filterSettingsResponse = (settings, isAdmin = false) => {
       allowGuestCheckout: Boolean(raw.system?.allowGuestCheckout),
       enableVoucher: raw.system?.enableVoucher !== false,
       enableReviews: raw.system?.enableReviews !== false,
+      disallowReviewEditDelete: Boolean(raw.system?.disallowReviewEditDelete),
     },
     socialLinks: {
       facebook: raw.socialLinks?.facebook || "",

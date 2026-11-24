@@ -16,6 +16,7 @@ import { campaignsApi, bannersApi, uploadApi, categoriesApi } from '@/shared/api
 import { DestinationSelector, DestinationValue } from './components/DestinationSelector';
 import { PopupPreviewModal } from './components/PopupPreviewModal';
 import { useToastStore } from '@/shared/stores/useToastStore';
+import { StatusToggle } from '@/shared/components';
 
 export const AdminCampaignEditPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -274,7 +275,7 @@ export const AdminCampaignEditPage: React.FC = () => {
       <AdminLayout title="Đang Tải Chiến Dịch" subtitle="Đang lấy thông tin chi tiết từ hệ thống...">
         <div className="p-16 text-center text-xs text-white/50 flex flex-col items-center justify-center gap-3">
           <div className="w-8 h-8 rounded-full border border-champagne/40 border-t-champagne animate-spin" />
-          <span>Đang kết nối API Backend tải chi tiết chiến dịch...</span>
+          <span>Đang tải dữ liệu...</span>
         </div>
       </AdminLayout>
     );
@@ -299,15 +300,15 @@ export const AdminCampaignEditPage: React.FC = () => {
             <button
               type="button"
               onClick={() => setIsPreviewOpen(true)}
-              className="px-3.5 py-2 bg-noir-900 hover:bg-white/10 border border-white/10 text-white text-xs rounded-sm flex items-center gap-2 transition-colors"
+              className="px-3.5 py-2 bg-[var(--bg-card)] hover:bg-[var(--table-row-hover)] border border-[var(--border)] hover:border-[var(--accent)] text-[var(--text-primary)] text-xs font-mono uppercase tracking-wider rounded-lg flex items-center gap-2 transition-all shadow-xs hover:shadow-sm cursor-pointer"
             >
-              <Eye className="w-4 h-4 text-champagne" />
+              <Eye className="w-4 h-4 text-[var(--accent)]" />
               <span>Xem Trước Popup</span>
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="px-5 py-2 bg-champagne hover:bg-champagne-light text-noir-950 font-serif text-xs font-semibold uppercase tracking-wider rounded-sm flex items-center gap-2 transition-colors shadow-lg shadow-champagne/20 disabled:opacity-50"
+              className="px-5 py-2 bg-[var(--accent)] hover:brightness-105 text-[var(--accent-contrast)] border border-[var(--accent)] font-mono text-xs font-bold uppercase tracking-wider rounded-lg flex items-center gap-2 transition-all shadow-md hover:shadow-lg disabled:opacity-50 cursor-pointer"
             >
               <Save className="w-4 h-4" />
               <span>{submitting ? 'Đang lưu...' : 'Lưu Thay Đổi'}</span>
@@ -503,15 +504,14 @@ export const AdminCampaignEditPage: React.FC = () => {
               <Sparkles className="w-4 h-4" />
               <span>4. Cấu Hình Popup Banner & Smart Redirect</span>
             </div>
-            <label className="flex items-center gap-2 text-xs text-white cursor-pointer select-none">
-              <input
-                type="checkbox"
+            <div className="flex items-center gap-2.5">
+              <StatusToggle
                 checked={enablePopup}
-                onChange={(e) => setEnablePopup(e.target.checked)}
-                className="rounded border-white/20 bg-noir-950 text-champagne focus:ring-champagne w-4 h-4"
+                onChange={setEnablePopup}
+                ariaLabel="Bật Popup Banner trên Storefront"
               />
-              <span className="font-medium text-champagne">Bật Popup Banner trên Storefront</span>
-            </label>
+              <span className="font-medium text-xs text-champagne select-none">Bật Popup Banner trên Storefront</span>
+            </div>
           </div>
 
           {enablePopup && (
@@ -632,14 +632,14 @@ export const AdminCampaignEditPage: React.FC = () => {
         <div className="flex items-center justify-end gap-3 pt-4">
           <Link
             to={`/admin/campaigns/${id}`}
-            className="px-5 py-2.5 bg-noir-900 hover:bg-white/10 border border-white/10 text-white text-xs rounded-sm transition-colors"
+            className="px-5 py-2.5 bg-[var(--bg-card)] hover:bg-[var(--table-row-hover)] border border-[var(--border)] hover:border-[var(--accent)] text-[var(--text-primary)] text-xs font-mono uppercase tracking-wider rounded-lg transition-all shadow-xs hover:shadow-sm"
           >
             Hủy Bỏ
           </Link>
           <button
             type="submit"
             disabled={submitting}
-            className="px-7 py-2.5 bg-champagne hover:bg-champagne-light text-noir-950 font-serif text-xs font-semibold uppercase tracking-wider rounded-sm flex items-center gap-2 transition-colors shadow-lg shadow-champagne/20 disabled:opacity-50"
+            className="px-7 py-2.5 bg-[var(--accent)] hover:brightness-105 text-[var(--accent-contrast)] border border-[var(--accent)] font-mono text-xs font-bold uppercase tracking-wider rounded-lg flex items-center gap-2 transition-all shadow-md hover:shadow-lg disabled:opacity-50 cursor-pointer"
           >
             <Save className="w-4 h-4" />
             <span>{submitting ? 'Đang lưu...' : 'Lưu Thay Đổi'}</span>

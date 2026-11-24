@@ -1,5 +1,7 @@
 import reviewService from "./review.service.js";
 import { successResponse } from "../../common/responses/index.js";
+import { getSystemSettings } from "../../common/utils/featureFlags.js";
+import { AppError } from "../../common/exceptions/AppError.js";
 
 export const getReviewsByProductIdController = async (req, res, next) => {
   try {
@@ -24,6 +26,10 @@ export const createReviewController = async (req, res, next) => {
 export const updateReviewController = async (req, res, next) => {
   try {
     const { reviewId } = req.params;
+    const settings = await getSystemSettings();
+    if (settings?.disallowReviewEditDelete && req.user?.role !== "admin") {
+      throw new AppError("Chính sách hệ thống không cho phép chỉnh sửa đánh giá sản phẩm sau khi đã đăng.", 403, "REVIEW_MODIFICATION_DISABLED");
+    }
     const review = await reviewService.updateReview(reviewId, req.body);
     return successResponse(res, review, "Cập nhật đánh giá thành công");
   } catch (error) {
@@ -34,6 +40,10 @@ export const updateReviewController = async (req, res, next) => {
 export const deleteReviewController = async (req, res, next) => {
   try {
     const { reviewId } = req.params;
+    const settings = await getSystemSettings();
+    if (settings?.disallowReviewEditDelete && req.user?.role !== "admin") {
+      throw new AppError("Chính sách hệ thống không cho phép xóa đánh giá sản phẩm đã đăng.", 403, "REVIEW_MODIFICATION_DISABLED");
+    }
     await reviewService.deleteReview(reviewId);
     return successResponse(res, null, "Xóa đánh giá thành công");
   } catch (error) {
