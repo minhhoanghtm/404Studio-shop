@@ -473,9 +473,9 @@ test('P0 Checkout Atomicity on MongoDB Replica Set + Redis QA', async () => {
       if (unpurchasedProd) await Product.deleteOne({ _id: unpurchasedProd._id });
       if (user) await User.deleteOne({ _id: user._id });
     } finally {
-      clearInterval(keepAlive);
       await mongoose.disconnect().catch(() => {});
       await closeRedisConnection().catch(() => {});
+      clearInterval(keepAlive);
     }
   }
 });
@@ -531,10 +531,10 @@ test('P0 Checkout fails closed on standalone MongoDB when transactions are requi
     assert.equal((await Product.findById(isolatedProd._id).lean()).stock, 5);
     assert.equal(await Order.countDocuments({ user_id: userId }), 0);
   } finally {
-    clearInterval(keepAlive);
-    if (isolatedProd) await Product.deleteOne({ _id: isolatedProd._id });
+    if (isolatedProd) await Product.deleteOne({ _id: isolatedProd._id }).catch(() => {});
     if (prevRequire === undefined) delete process.env.REQUIRE_MONGO_TRANSACTIONS;
     else process.env.REQUIRE_MONGO_TRANSACTIONS = prevRequire;
-    await mongoose.disconnect();
+    await mongoose.disconnect().catch(() => {});
+    clearInterval(keepAlive);
   }
 });
