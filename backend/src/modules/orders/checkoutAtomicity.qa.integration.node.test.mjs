@@ -104,6 +104,8 @@ test('P0 Checkout Atomicity on MongoDB Replica Set + Redis QA', async () => {
   let campaignProd;
   const createdOrderIds = [];
   const createdReservationIds = [];
+  // Keep Node 22 event loop alive across .unref()'d driver/Redis I/O turns until finally cleanup
+  const keepAlive = setInterval(() => {}, 5000);
 
   try {
     user = await User.create({
@@ -471,6 +473,7 @@ test('P0 Checkout Atomicity on MongoDB Replica Set + Redis QA', async () => {
       if (unpurchasedProd) await Product.deleteOne({ _id: unpurchasedProd._id });
       if (user) await User.deleteOne({ _id: user._id });
     } finally {
+      clearInterval(keepAlive);
       await mongoose.disconnect().catch(() => {});
       await closeRedisConnection().catch(() => {});
     }
@@ -493,6 +496,7 @@ test('P0 Checkout fails closed on standalone MongoDB when transactions are requi
   ]);
   await mongoose.connect(standaloneUri);
   let isolatedProd;
+  const keepAlive = setInterval(() => {}, 5000);
   try {
     const unique = `${Date.now()}_${crypto.randomBytes(3).toString('hex')}`;
     const source = await Product.findOne({ slug: /^qa-product-image-/ }).lean();
@@ -527,6 +531,7 @@ test('P0 Checkout fails closed on standalone MongoDB when transactions are requi
     assert.equal((await Product.findById(isolatedProd._id).lean()).stock, 5);
     assert.equal(await Order.countDocuments({ user_id: userId }), 0);
   } finally {
+    clearInterval(keepAlive);
     if (isolatedProd) await Product.deleteOne({ _id: isolatedProd._id });
     if (prevRequire === undefined) delete process.env.REQUIRE_MONGO_TRANSACTIONS;
     else process.env.REQUIRE_MONGO_TRANSACTIONS = prevRequire;
