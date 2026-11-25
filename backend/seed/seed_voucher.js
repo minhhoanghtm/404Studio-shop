@@ -1,4 +1,6 @@
-use("webfashion");
+if (typeof db === "undefined" || db.getName() !== "atelier_verite_qa") {
+  throw new Error("QA_SEED_REFUSED: mongosh seed script requires atelier_verite_qa.");
+}
 
 const voucherResult = db.vouchers.insertOne({
   code: "WELCOMETO404",

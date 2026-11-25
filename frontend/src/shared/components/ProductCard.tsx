@@ -12,13 +12,15 @@ import { useBehaviorTracking } from '../tracking/useBehaviorTracking';
 interface ProductCardProps {
   product: Product;
   aspectRatio?: 'editorial' | 'square' | 'tall';
+  enableQuickAdd?: boolean;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
   product,
   aspectRatio = 'editorial',
+  enableQuickAdd = true,
 }) => {
-  const { isInWishlist, toggleWishlist } = useWishlistStore();
+  const { isInWishlist, toggleWishlist, isSyncing: wishlistPending } = useWishlistStore();
   const { addItem } = useCartStore();
   const { trackProductClick, trackAddToCart: trackAddCart, trackWishlist } = useBehaviorTracking();
   const prefersReducedMotion = useReducedMotion();
@@ -52,15 +54,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     ];
   }, [primaryVariant, product.sizes]);
 
-  const handleQuickAdd = (size: string, e: React.MouseEvent) => {
+  const handleQuickAdd = async (size: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setSelectedQuickSize(size);
-    trackAddCart(product.id, 1);
-
-    addItem({
+    const selected = primaryVariant?.sizes?.find((entry) => entry.size === size);
+    const added = await addItem({
       productId: product.id,
-      variantId: primaryVariant?.id,
+      variantId: selected?.variantId || primaryVariant?.id,
       productSlug: product.slug,
       name: product.name,
       price: product.price,
@@ -71,6 +72,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       image: product.featuredImage,
     });
 
+    if (!added) return;
+    trackAddCart(product.id, 1);
     setIsQuickAdded(true);
     setTimeout(() => setIsQuickAdded(false), 2000);
   };
@@ -107,13 +110,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           className="block w-full h-full"
         >
           {/* Primary Image */}
-          <img
+          {product.featuredImage ? <img
             src={product.featuredImage}
             alt={product.name}
             className={`w-full h-full object-cover transition-opacity duration-700 ${isHovered && secondaryImage ? 'opacity-0' : 'opacity-100'
               }`}
             loading="lazy"
-          />
+          /> : <span className="flex h-full items-center justify-center text-xs text-[var(--text-muted)]">Không có ảnh</span>}
 
           {/* Secondary Hover Reveal Image */}
           {secondaryImage && (
@@ -143,8 +146,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         {/* Compact Wishlist Button */}
         <button
           onClick={handleWishlistToggle}
+          disabled={wishlistPending}
           aria-label={isWishlisted ? `Bỏ ${product.name} khỏi danh sách yêu thích` : `Thêm ${product.name} vào danh sách yêu thích`}
-          className={`absolute top-2 right-2 z-10 p-1.5 sm:p-2 rounded-full transition-all duration-300 ${isWishlisted
+          className={`absolute top-2 right-2 z-10 p-1.5 sm:p-2 rounded-full transition-all duration-300 disabled:opacity-50 disabled:cursor-wait ${isWishlisted
               ? 'bg-[var(--accent)] text-[var(--accent-contrast)] shadow-lg scale-105'
               : 'bg-[var(--bg-card)]/90 backdrop-blur-md text-[var(--text-primary)] hover:text-[var(--accent)] hover:bg-[var(--bg-card)] border border-[var(--border)] shadow-sm'
             }`}
@@ -153,7 +157,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         </button>
 
         {/* Compact Quick Size Flyout on Hover */}
-        <div
+        {enableQuickAdd && <div
           className={`absolute inset-x-2 bottom-2 z-10 transition-all duration-300 ${isHovered ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none'
             }`}
         >
@@ -185,7 +189,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               })}
             </div>
           </div>
-        </div>
+        </div>}
       </div>
 
       {/* Meta / Info (Compact Typography & Spacing) */}

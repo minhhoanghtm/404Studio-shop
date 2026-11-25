@@ -6,6 +6,9 @@
   "type": "module",
   "scripts": {
     "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --runInBand",
+    "test:unit": "node src/scripts/unit-test-runner.mjs",
+    "test:qa:jest": "node --env-file=.env.qa --experimental-vm-modules ./node_modules/jest/bin/jest.js --runInBand",
+    "test:qa:node": "node --env-file=.env.qa src/scripts/qa-node-test-runner.mjs",
     "lint": "eslint src",
     "dev": "nodemon src/server.js",
     "start": "node  src/server.js",
@@ -23,7 +26,7 @@
     "migrate:drop-legacy-sessions": "node src/scripts/drop-legacy-sessions-collection.js",
     "migrate:product-slugs": "node src/migrations/ensureProductSlugs.js",
     "migrate:variant-skus": "node src/migrations/migrateVariantSkus.js",
-    "test:e2e": "node ../tests/e2e/runner.mjs"
+    "test:e2e": "node --env-file=.env.qa src/scripts/qa-node-test-runner.mjs"
   },
   "keywords": [],
   "author": "",
@@ -33,6 +36,7 @@
     "axios": "^1.18.0",
     "bcrypt": "^6.0.0",
     "bullmq": "^5.78.0",
+    "color": "^5.0.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",

@@ -1,10 +1,9 @@
 import mongoose from "mongoose";
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "@jest/globals";
-import Product, { ProductVariant } from "../product.model.js";
-import { buildVariantSku, createAdminFormProduct, slugifyProductName, updateAdminFormProduct } from "../productAdminForm.service.js";
+import { verifyQaSuiteTarget, assertConnectedQaDatabase } from "../../../common/qa/qaIsolationGuard.js";
+let Product; let ProductVariant;
+let buildVariantSku; let createAdminFormProduct; let slugifyProductName; let updateAdminFormProduct;
 
-const configuredTestDb = process.env.MONGO_URI_TEST || "mongodb://127.0.0.1:27017/atelier_verite_product_slug_test";
-const testDb = configuredTestDb.replace(/([?&])retryWrites=[^&]*/i, "$1");
 const categoryId = new mongoose.Types.ObjectId();
 const productPayload = (name) => ({
   name,
@@ -24,7 +23,13 @@ describe("admin product form automatic slug", () => {
   };
 
   beforeAll(async () => {
-    await mongoose.connect(testDb, { retryWrites: false, dbName: "atelier_verite_product_slug_test" });
+    const uri = await verifyQaSuiteTarget();
+    ({ default: Product, ProductVariant } = await import("../product.model.js"));
+    ({ buildVariantSku, createAdminFormProduct, slugifyProductName, updateAdminFormProduct } = await import("../productAdminForm.service.js"));
+    if (mongoose.connection.readyState === 0) {
+      await mongoose.connect(uri);
+    }
+    assertConnectedQaDatabase(mongoose);
     await Product.collection.createIndex({ slug: 1 }, { unique: true, name: "slug_1" });
   });
 
@@ -33,7 +38,10 @@ describe("admin product form automatic slug", () => {
   });
 
   afterAll(async () => {
-    await clearTestProducts();
+    if (Product) await clearTestProducts();
+    if (mongoose.connection.readyState !== 0) {
+      await mongoose.disconnect();
+    }
   });
 
   test("normalizes Vietnamese, Đ, whitespace and special characters", () => {

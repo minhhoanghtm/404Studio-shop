@@ -1,8 +1,11 @@
+import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
 import mongoose from 'mongoose';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import Redis from 'ioredis';
 import { requireEnv } from './require-env.js';
+
+await verifyQaSuiteTarget();
 
 const uri = requireEnv('MONGO_CONNECTIONSTRING');
 const JWT_SECRET = requireEnv('JWT_SECRET');

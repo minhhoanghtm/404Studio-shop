@@ -1,6 +1,9 @@
+import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import path from "path";
+
+await verifyQaSuiteTarget();
 
 dotenv.config({ path: path.resolve(".", ".env") });
 

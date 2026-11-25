@@ -1,3 +1,4 @@
+import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
 import mongoose from "mongoose";
 import { connectDB } from "../configs/db.js";
 import getRedisConnection from "../configs/redis.js";
@@ -14,6 +15,8 @@ import InventoryReservation from "../modules/inventory/inventoryReservation.mode
 import UserEvent from "../modules/tracking/userEvent.model.js";
 import { EVENT_TYPES } from "../modules/tracking/tracking.constants.js";
 import aiChatService from "../modules/communication/aiChat/aiChat.service.js";
+
+await verifyQaSuiteTarget({ liveProviders: true });
 
 async function runMasterSuite() {
   await connectDB();

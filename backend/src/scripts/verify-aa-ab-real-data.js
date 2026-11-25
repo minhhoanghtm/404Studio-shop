@@ -1,4 +1,4 @@
-import "dotenv/config";
+import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
 import mongoose from "mongoose";
 import { connectDB } from "../configs/db.js";
 import { getRedisConnection } from "../configs/redis.js";
@@ -8,6 +8,8 @@ import Experiment from "../modules/recommendations/experiments/experiment.model.
 import Product from "../modules/products/product.model.js";
 import User from "../modules/users/user.model.js";
 import UserEvent from "../modules/tracking/userEvent.model.js";
+
+await verifyQaSuiteTarget();
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 

@@ -1,9 +1,11 @@
+import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
 import dotenv from "dotenv";
-dotenv.config();
 
 import { connectDB } from "../configs/db.js";
 import vectorIndexService from "../modules/ai/services/vectorIndex.service.js";
 import embeddingService from "../modules/ai/services/embedding.service.js";
+
+await verifyQaSuiteTarget({ liveProviders: true });
 
 const runSync = async () => {
   try {

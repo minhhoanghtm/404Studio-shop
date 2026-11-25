@@ -1,3 +1,4 @@
+import { verifyQaSuiteTarget } from "../src/common/qa/qaIsolationGuard.js";
 import bcrypt from "bcrypt";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
@@ -6,7 +7,8 @@ import { Product, ProductVariant } from "../src/modules/products/product.model.j
 import User from "../src/modules/users/user.model.js";
 import { Order, OrderItem } from "../src/modules/orders/order.model.js";
 
-dotenv.config();
+await verifyQaSuiteTarget();
+
 
 const image = (id) =>
   `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=1200&q=80`;

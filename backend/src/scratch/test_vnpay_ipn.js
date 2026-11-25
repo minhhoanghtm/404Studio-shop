@@ -1,3 +1,4 @@
+import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import path from 'path';
@@ -12,6 +13,8 @@ import paymentController from '../modules/payments/payment.controller.js';
 import paymentService from '../modules/payments/payment.service.js';
 import { Order } from '../modules/orders/order.model.js';
 import PaymentTransaction from '../modules/payments/paymentTransaction.model.js';
+
+await verifyQaSuiteTarget();
 
 // Mock response helper
 function createMockResponse() {

@@ -15,6 +15,7 @@ import { ConsentProvider } from './shared/consent';
 import { ModalProvider } from './shared/context/ModalContext';
 import { Z_INDEX } from './shared/config/zIndex';
 import { useCartStore } from './shared/stores/useCartStore';
+import { useWishlistStore } from './shared/stores/useWishlistStore';
 import { useAuthStore } from './shared/stores/useAuthStore';
 import { useToastStore } from './shared/stores/useToastStore';
 import { ProtectedRoute } from './shared/components/ProtectedRoute';
@@ -182,6 +183,7 @@ const RootLayout: React.FC = () => {
   const location = useLocation();
   const isHomeRoute = location.pathname === '/';
   const validateCartWithBackend = useCartStore((s) => s.validateCartWithBackend);
+  const refreshWishlist = useWishlistStore((s) => s.refreshWishlist);
   const isHeaderVisible = useHeaderScroll();
 
   const { maintenanceMode } = useWebsiteSettingsStore();
@@ -191,8 +193,9 @@ const RootLayout: React.FC = () => {
   useEffect(() => {
     if (!maintenanceMode || isAdmin) {
       void validateCartWithBackend();
+      void refreshWishlist();
     }
-  }, [validateCartWithBackend, maintenanceMode, isAdmin]);
+  }, [validateCartWithBackend, refreshWishlist, maintenanceMode, isAdmin, isAuthenticated, user?.id]);
 
   useEffect(() => {
     const handleOpenAi = () => {

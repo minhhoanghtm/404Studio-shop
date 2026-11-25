@@ -40,16 +40,14 @@ export class AdminImageGenerationService {
 
     let realProduct = null;
     if (productId) {
-      realProduct = await Product.findById(productId).select("name price originalPrice salePrice images category").lean();
+      realProduct = await Product.findById(productId).select("name new_price displayProduct").lean();
     } else if (productName) {
-      realProduct = await Product.findOne({ name: new RegExp(productName, "i") }).select("name price originalPrice salePrice images category").lean();
-    } else {
-      // Find a featured or clearance product to use as star product
-      realProduct = await Product.findOne({ stock: { $gt: 0 } }).select("name price originalPrice salePrice images category").lean();
+      const literalName = String(productName).slice(0, 200).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      realProduct = await Product.findOne({ name: new RegExp(literalName, "i") }).select("name new_price displayProduct").lean();
     }
 
-    const formattedProductPrice = realProduct?.price
-      ? new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(realProduct.price)
+    const formattedProductPrice = realProduct?.new_price > 0
+      ? new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(realProduct.new_price)
       : null;
 
     // ── Step 3: Construct Creative Prompt & Brief ──
@@ -83,6 +81,7 @@ export class AdminImageGenerationService {
       });
 
       generatedBgUrl = imgRes.images?.[0]?.url || null;
+      if (!generatedBgUrl) throw new Error("Image provider returned no image URL");
       imageProviderUsed = imgRes.actualProvider || imgRes.primaryProvider || "openai";
       imageModelUsed = imgRes.model || "dall-e-3";
     } catch (err) {
@@ -95,7 +94,7 @@ export class AdminImageGenerationService {
     }
 
     // ── Step 5: Render Editable 2-Layer Poster Canvas ──
-    const layers = [
+    let layers = [
       {
         id: "badge-top-right",
         name: "Huy hiệu Freeship",
@@ -150,7 +149,7 @@ export class AdminImageGenerationService {
         id: "text-discount",
         name: "Mức giảm giá lớn",
         type: "text",
-        content: discountText || "Ưu đãi và thời gian đang chờ xác nhận",
+        content: discountText || "ƯU ĐÃI CHỜ XÁC NHẬN",
         x: 50,
         y: 40,
         width: width - 160,
@@ -188,7 +187,7 @@ export class AdminImageGenerationService {
         price: formattedProductPrice,
         x: 50,
         y: 68,
-        imageUrl: realProduct?.images?.[0] || null,
+        imageUrl: realProduct?.displayProduct?.[0] || null,
         zIndex: 8,
         visible: true,
       },
@@ -212,6 +211,31 @@ export class AdminImageGenerationService {
         visible: true,
       },
     ];
+    // Convert the generated brief to the editor's actual layer schema and
+    // canvas coordinates; do not add an empty or unrelated product image.
+    const placements = {
+      "badge-top-right": [0.70, 0.04, 0.24, 0.07],
+      "text-title": [0.07, 0.14, 0.86, 0.09],
+      "text-subtitle": [0.08, 0.25, 0.84, 0.07],
+      "text-discount": [0.08, 0.35, 0.84, 0.09],
+      "text-timeline": [0.08, 0.46, 0.44, 0.06],
+      "product-showcase": [0.26, 0.52, 0.48, 0.27],
+      "button-cta": [0.30, 0.84, 0.40, 0.07],
+    };
+    const foreground = style === "luxury_noir" ? "#FFFFFF" : "#1A1A1A";
+    layers = layers.filter((layer) => layer.id !== "product-showcase" || layer.imageUrl).map((layer, index) => {
+      const [x, y, w, h] = placements[layer.id];
+      const layerWidth = Math.max(1, Math.round(w * width));
+      const content = layer.id === "product-showcase" ? layer.imageUrl : layer.content;
+      const fitFontSize = typeof content === "string" && content.length ? Math.max(10, Math.min(layer.fontSize || 24, Math.floor((layerWidth - 24) / (content.length * 0.72)))) : layer.fontSize || 24;
+      return {
+        id: layer.id, type: layer.type, name: layer.name,
+        x: Math.round(x * width), y: Math.round(y * height), width: layerWidth, height: Math.max(1, Math.round(h * height)),
+        content,
+        visible: true, locked: false, rotation: 0, opacity: 1, zIndex: index + 1,
+        styles: { fontSize: fitFontSize, fontWeight: String(layer.fontWeight || "normal"), color: layer.type === "button" ? "#FFFFFF" : foreground, backgroundColor: layer.type === "button" ? "#1A1A1A" : "transparent", textAlign: "center", objectFit: "contain" },
+      };
+    });
 
     // ── Step 6 & 7: Validate & Save Design Project Asset ──
     const designName = `Poster — ${title || "Bản ý tưởng"} (${new Date().toLocaleDateString("vi-VN")})`;
@@ -222,7 +246,7 @@ export class AdminImageGenerationService {
       width,
       height,
       background: {
-        type: "texture",
+        type: generationType === "AI_GENERATED_IMAGE" ? "image" : "color",
         value: generatedBgUrl,
         textureName: style === "brick_red" ? "brick" : style === "luxury_noir" ? "studio" : "silk",
         textureStyle: style,
@@ -269,7 +293,7 @@ export class AdminImageGenerationService {
             id: realProduct._id,
             name: realProduct.name,
             price: formattedProductPrice,
-            image: realProduct.images?.[0] || null,
+            image: realProduct.displayProduct?.[0] || null,
           }
         : null,
       message:

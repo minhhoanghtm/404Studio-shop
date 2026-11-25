@@ -6,8 +6,9 @@ interface AddToCartButtonProps {
   quantity: number;
   onQuantityChange: (qty: number) => void;
   isAvailable: boolean;
-  onAddToCart: () => void;
+  onAddToCart: () => Promise<boolean>;
   isWishlisted: boolean;
+  wishlistPending: boolean;
   onToggleWishlist: () => void;
   onShare: () => void;
 }
@@ -18,16 +19,19 @@ export const AddToCartButton: React.FC<AddToCartButtonProps> = ({
   isAvailable,
   onAddToCart,
   isWishlisted,
+  wishlistPending,
   onToggleWishlist,
   onShare,
 }) => {
   const [justAdded, setJustAdded] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
 
-  const handleClickAdd = () => {
-    if (!isAvailable) return;
-    onAddToCart();
-    setJustAdded(true);
-    setTimeout(() => setJustAdded(false), 2000);
+  const handleClickAdd = async () => {
+    if (!isAvailable || isAdding) return;
+    setIsAdding(true);
+    try {
+      if (await onAddToCart()) { setJustAdded(true); setTimeout(() => setJustAdded(false), 2000); }
+    } finally { setIsAdding(false); }
   };
 
   return (
@@ -58,7 +62,7 @@ export const AddToCartButton: React.FC<AddToCartButtonProps> = ({
         <button
           type="button"
           onClick={handleClickAdd}
-          disabled={!isAvailable}
+          disabled={!isAvailable || isAdding}
           className={`flex-1 py-4 px-6 text-xs font-medium uppercase tracking-[0.2em] transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer ${
             isAvailable
               ? justAdded
@@ -84,9 +88,10 @@ export const AddToCartButton: React.FC<AddToCartButtonProps> = ({
         <button
           type="button"
           onClick={onToggleWishlist}
+          disabled={wishlistPending}
           title={isWishlisted ? 'Bỏ khỏi yêu thích' : 'Lưu vào yêu thích'}
           aria-label={isWishlisted ? 'Bỏ khỏi yêu thích' : 'Lưu vào yêu thích'}
-          className={`p-4 border transition-colors flex items-center justify-center cursor-pointer ${
+          className={`p-4 border transition-colors flex items-center justify-center cursor-pointer disabled:opacity-50 disabled:cursor-wait ${
             isWishlisted
               ? 'bg-[var(--accent)] text-white border-[var(--accent)] shadow-sm'
               : 'border-[var(--border)] bg-[var(--bg-card)] hover:border-[var(--text-primary)] text-[var(--text-primary)]'

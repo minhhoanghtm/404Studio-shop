@@ -6,15 +6,53 @@ import AdminAiConversation from "../models/adminAiConversation.model.js";
 import AdminDesignProject from "../models/adminDesignProject.model.js";
 import { requireSecret } from "../../../common/utils/requireSecret.js";
 import Product from "../../products/product.model.js";
+import productFacade from "../../products/product.facade.js";
 import Voucher from "../../vouchers/voucher.model.js";
-import Banner from "../../banners/banner.model.js";
+import voucherService from "../../vouchers/voucher.service.js";
+import bannerService from "../../banners/banner.service.js";
 import Campaign from "../../campaigns/campaign.model.js";
+import campaignService from "../../campaigns/campaign.service.js";
+import { createCampaignSchema } from "../../campaigns/campaign.validator.js";
 import { Order } from "../../orders/order.model.js";
 import * as tools from "./adminAiTools.service.js";
 import aiRouter from "./aiRouter.service.js";
 import adminImageGenerationService from "./adminImageGeneration.service.js";
+import { validateDesignAssets } from "../designAssetPolicy.js";
 
-const ACTION_SECRET = process.env.ACTION_SECRET || "dev_action_secret_key_minimum_32_characters_123456";
+const ACTION_SECRET = requireSecret("ACTION_SECRET");
+
+async function validateAdminProposal(toolName, args, userId) {
+  const invalid = () => { const error = new Error("Dữ liệu đề xuất không hợp lệ."); error.statusCode = 400; error.status = "fail"; error.isOperational = true; return error; };
+  if (!args || typeof args !== "object" || Array.isArray(args)) throw invalid();
+  if (toolName === "prepare_voucher") {
+    const kind = args.discountType || "percentage";
+    if (typeof args.code !== "string" || !/^[a-z0-9_-]{3,40}$/i.test(args.code) || !["percentage", "fixed"].includes(kind) || typeof args.discountValue !== "number" || !Number.isFinite(args.discountValue) || args.discountValue <= 0 || args.discountValue > (kind === "percentage" ? 100 : 1e9)) throw invalid();
+    for (const key of ["minOrderValue", "maxDiscount"]) if (args[key] !== undefined && (typeof args[key] !== "number" || !Number.isFinite(args[key]) || args[key] < 0 || args[key] > 1e9)) throw invalid();
+    for (const [key, max] of [["totalQuantity", 1000000], ["validDays", 3650]]) if (args[key] !== undefined && (!Number.isInteger(args[key]) || args[key] < 1 || args[key] > max)) throw invalid();
+    for (const [key, max] of [["name", 200], ["description", 2000]]) if (args[key] !== undefined && (typeof args[key] !== "string" || args[key].length > max)) throw invalid();
+    for (const key of ["startDate", "endDate"]) if (args[key] !== undefined && (typeof args[key] !== "string" || !Number.isFinite(Date.parse(args[key])))) throw invalid();
+    if (args.startDate && args.endDate && new Date(args.startDate) >= new Date(args.endDate)) throw invalid();
+    if (await Voucher.exists({ code: args.code.toUpperCase(), isDeleted: { $ne: true } })) throw invalid();
+  } else if (toolName === "prepare_product_description") {
+    if (Object.keys(args).some((key) => !["productId", "description", "expectedDescription"].includes(key)) || !mongoose.isValidObjectId(args.productId) || typeof args.description !== "string" || !args.description.trim() || args.description.length > 4000 || /[<>\x00-\x08\x0b\x0c\x0e-\x1f]/.test(args.description)) throw invalid();
+    const product = await Product.findById(args.productId).select("description").lean();
+    if (!product || (args.expectedDescription !== undefined && args.expectedDescription !== (product.description || ""))) throw invalid();
+  } else if (toolName === "prepare_campaign" || toolName === "prepare_promotion") {
+    if (Object.keys(args).some((key) => !["name", "slug", "type", "startAt", "endAt", "discountRule"].includes(key))) throw invalid();
+    if (toolName === "prepare_promotion" && (args.type !== "seasonal" || !["percentage", "fixed"].includes(args.discountRule?.discountType))) throw invalid();
+    const parsed = createCampaignSchema.safeParse({ ...args, status: "draft" });
+    if (!parsed.success || !Number.isFinite(Date.parse(args.startAt)) || !Number.isFinite(Date.parse(args.endAt)) || args.name.length > 200 || args.slug.length > 200 || (args.discountRule && (args.discountRule.scope !== "all" || (args.discountRule.discountType === "percentage" && args.discountRule.discountValue > 100)))) throw invalid();
+    if (await Campaign.exists({ slug: args.slug, isDeleted: false })) throw invalid();
+  } else if (toolName === "prepare_banner_publication") {
+    if (typeof args.title !== "string" || !args.title.trim() || args.title.length > 200 || typeof args.imageUrl !== "string" || args.imageUrl.length > 2000 || (args.position !== undefined && !["popup", "hero", "promotion"].includes(args.position))) throw invalid();
+    let image; try { image = new URL(args.imageUrl); } catch { throw invalid(); }
+    if (!["http:", "https:"].includes(image.protocol) || image.username || image.password) throw invalid();
+    if (args.linkUrl !== undefined && (typeof args.linkUrl !== "string" || !/^\/(?!\/)/.test(args.linkUrl) || /[\\\x00-\x1f]/.test(args.linkUrl) || args.linkUrl.length > 1000)) throw invalid();
+    for (const key of ["startDate", "endDate"]) if (args[key] !== undefined && (typeof args[key] !== "string" || !Number.isFinite(Date.parse(args[key])))) throw invalid();
+    if (args.startDate && args.endDate && new Date(args.startDate) >= new Date(args.endDate)) throw invalid();
+    await validateDesignAssets({ background: { type: "image", value: args.imageUrl } }, { adminId: userId });
+  } else throw invalid();
+}
 
 // ============================================================================
 // SECURITY & CONFIRMATION TOKEN ENGINE
@@ -25,7 +63,7 @@ export function generateAdminActionToken({ actionId, adminId, payload, expiresAt
     .createHash("sha256")
     .update(JSON.stringify(payload || {}))
     .digest("hex");
-  const material = `ADMIN_ACTION:${actionId}:${adminId}:${payloadDigest}:${expiresAt}`;
+  const material = `ADMIN_ACTION:${actionId}:${adminId}:${payloadDigest}:${new Date(expiresAt).toISOString()}`;
   return crypto.createHmac("sha256", ACTION_SECRET).update(material).digest("hex");
 }
 
@@ -202,8 +240,26 @@ export const ADMIN_TOOL_DEFINITIONS = [
     },
   },
   {
+    name: "prepare_promotion",
+    description: "Chuẩn bị chương trình ưu đãi nháp bằng chiến dịch seasonal, yêu cầu xác nhận.",
+    level: 3,
+    parameters: { type: "object", properties: { name: { type: "string" }, slug: { type: "string" }, type: { type: "string", enum: ["seasonal"] }, startAt: { type: "string" }, endAt: { type: "string" }, discountRule: { type: "object" } }, required: ["name", "slug", "type", "startAt", "endAt", "discountRule"] },
+  },
+  {
+    name: "prepare_product_description",
+    description: "Chuẩn bị cập nhật mô tả sản phẩm sau khi quản trị viên xác nhận.",
+    level: 3,
+    parameters: { type: "object", properties: { productId: { type: "string" }, description: { type: "string" } }, required: ["productId", "description"] },
+  },
+  {
+    name: "prepare_campaign",
+    description: "Chuẩn bị chiến dịch nháp, không kích hoạt, yêu cầu xác nhận.",
+    level: 3,
+    parameters: { type: "object", properties: { name: { type: "string" }, slug: { type: "string" }, type: { type: "string", enum: ["flash_sale", "seasonal"] }, startAt: { type: "string" }, endAt: { type: "string" }, discountRule: { type: "object" } }, required: ["name", "slug", "type", "startAt", "endAt"] },
+  },
+  {
     name: "prepare_voucher",
-    description: "Chuẩn bị tạo mã giảm giá voucher mới (yêu cầu Quản trị viên duyệt và xác nhận trước khi kích hoạt trên website).",
+    description: "Chuẩn bị tạo bản nháp voucher chưa kích hoạt, yêu cầu quản trị viên xác nhận.",
     level: 3,
     parameters: {
       type: "object",
@@ -276,7 +332,7 @@ export const ADMIN_TOOL_DEFINITIONS = [
   },
   {
     name: "prepare_banner_publication",
-    description: "Chuẩn bị đăng banner lên website (vị trí: popup, hero, promotion) — yêu cầu xác nhận.",
+    description: "Chuẩn bị bản nháp banner chưa hiển thị trên website, yêu cầu xác nhận.",
     level: 3,
     parameters: {
       type: "object",
@@ -400,6 +456,11 @@ export class AdminAiAgentService {
 
     // Level 3 Handling: Prepare Mutation & Generate Signed Confirmation Token
     if (actionLevel === 3) {
+      await validateAdminProposal(toolName, args, userId);
+      if (toolName === "prepare_product_description") {
+        const product = await Product.findById(args.productId).select("name description").lean();
+        args = { productId: args.productId, description: args.description, expectedDescription: product.description || "" };
+      }
       const actionId = `ACT_${Date.now()}_${crypto.randomBytes(4).toString("hex")}`;
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes TTL
       const confirmationToken = generateAdminActionToken({
@@ -409,7 +470,7 @@ export class AdminAiAgentService {
         expiresAt,
       });
 
-      await this.recordAudit({
+      await AdminAiAuditLog.create({
         adminId: userId,
         adminEmail: email,
         adminRole: role,
@@ -418,6 +479,7 @@ export class AdminAiAgentService {
         inputParams: args,
         status: "pending_confirmation",
         actionId,
+        expiresAt,
         ipAddress,
         userAgent,
       });
@@ -538,29 +600,44 @@ export class AdminAiAgentService {
   /**
    * Execute a Confirmed Mutation Action after verifying signature and TTL
    */
+  async cancelConfirmedAction(actionId, { userId, role } = {}) {
+    if (!["admin", "manager"].includes(role) || typeof actionId !== "string" || actionId.length > 120) return false;
+    const cancelled = await AdminAiAuditLog.findOneAndUpdate({ actionId, adminId: userId, actionLevel: 3, status: "pending_confirmation", expiresAt: { $gt: new Date() } }, { $set: { status: "cancelled" } }, { returnDocument: "after" });
+    if (cancelled) await AdminAiConversation.updateMany({ adminId: userId, "messages.actionProposal.actionId": actionId }, { $set: { "messages.$[item].actionProposal.status": "cancelled", "messages.$[item].cardData.status": "cancelled" } }, { arrayFilters: [{ "item.actionProposal.actionId": actionId }] });
+    return Boolean(cancelled);
+  }
+
   async executeConfirmedAction({ actionId, confirmationToken, payload, actionType }, authContext = {}) {
-    const { userId, role, email, ipAddress, userAgent } = authContext;
+    const { userId, role } = authContext;
 
     if (role !== "admin" && role !== "manager") {
       throw new Error("Chỉ Quản trị viên mới có quyền xác nhận hành động");
     }
 
-    // Verify token
-    const isValid = verifyAdminActionToken({
-      actionId,
-      adminId: userId,
-      payload,
-      expiresAt: payload?._expiresAt || new Date(Date.now() + 10000), // fallback if contained
-      token: confirmationToken,
-    });
-
-    // In local testing/dev, if token matches expected HMAC format
+    const reject = () => { const error = new Error("Xác nhận không hợp lệ, đã hết hạn hoặc đã được sử dụng."); error.statusCode = 403; error.status = "fail"; error.isOperational = true; return error; };
+    if (!["prepare_voucher", "prepare_banner_publication", "prepare_campaign", "prepare_promotion", "prepare_product_description"].includes(actionType)) throw reject();
+    const pending = await AdminAiAuditLog.findOne({ actionId, adminId: userId, toolName: actionType, actionLevel: 3, status: "pending_confirmation", expiresAt: { $gt: new Date() } });
+    if (!pending || !verifyAdminActionToken({ actionId, adminId: userId, payload: pending.inputParams, expiresAt: pending.expiresAt, token: confirmationToken }) || !verifyAdminActionToken({ actionId, adminId: userId, payload, expiresAt: pending.expiresAt, token: confirmationToken })) throw reject();
+    const claimed = await AdminAiAuditLog.findOneAndUpdate({ _id: pending._id, status: "pending_confirmation", expiresAt: { $gt: new Date() } }, { $set: { status: "confirmed" } }, { returnDocument: "after" });
+    if (!claimed) throw reject();
+    payload = pending.inputParams;
     let actionExecuted = false;
     let executionResult = null;
 
-    if (actionType === "prepare_voucher") {
+    try {
+    if (actionType === "prepare_product_description") {
+      await validateAdminProposal(actionType, payload, userId);
+      const product = await productFacade.updateProduct(payload.productId, { description: payload.description }, { expectedDescription: payload.expectedDescription });
+      actionExecuted = true;
+      executionResult = { message: `Đã cập nhật mô tả sản phẩm ${product.name}`, productId: product._id };
+    } else if (actionType === "prepare_campaign" || actionType === "prepare_promotion") {
+      await validateAdminProposal(actionType, payload, userId);
+      const campaign = await campaignService.createCampaign(userId, { ...payload, status: "draft" });
+      actionExecuted = true;
+      executionResult = { message: `Đã lưu bản nháp ${actionType === "prepare_promotion" ? "ưu đãi" : "chiến dịch"} ${campaign.name} chưa kích hoạt`, campaignId: campaign._id };
+    } else if (actionType === "prepare_voucher") {
       const qty = Number(payload.totalQuantity || 100);
-      const voucher = new Voucher({
+      const voucher = await voucherService.createVoucher(userId, {
         code: payload.code.toUpperCase(),
         name: payload.name || `Mã ưu đãi ${payload.code.toUpperCase()}`,
         description: payload.description || "Mã giảm giá được tạo và phê duyệt qua Admin AI Copilot",
@@ -576,17 +653,16 @@ export class AdminAiAgentService {
         usedQuantity: 0,
         startDate: payload.startDate ? new Date(payload.startDate) : new Date(),
         endDate: payload.endDate ? new Date(payload.endDate) : new Date(Date.now() + (payload.validDays || 7) * 86400 * 1000),
-        status: "ACTIVE",
+        status: "INACTIVE",
         isDeleted: false,
       });
-      await voucher.save();
       actionExecuted = true;
       executionResult = {
-        message: `Đã kích hoạt thành công mã voucher ${voucher.code}`,
+        message: `Đã lưu bản nháp voucher ${voucher.code} chưa kích hoạt`,
         voucherId: voucher._id,
       };
     } else if (actionType === "prepare_banner_publication") {
-      const banner = new Banner({
+      const banner = await bannerService.createBanner(userId, {
         title: payload.title,
         imageUrl: payload.imageUrl,
         position: payload.position || "popup",
@@ -594,29 +670,18 @@ export class AdminAiAgentService {
         buttonText: payload.buttonText || "MUA NGAY",
         startDate: payload.startDate ? new Date(payload.startDate) : new Date(),
         endDate: payload.endDate ? new Date(payload.endDate) : new Date(Date.now() + 14 * 86400 * 1000),
-        isActive: true,
+        isActive: false,
       });
-      await banner.save();
       actionExecuted = true;
       executionResult = {
-        message: `Đã xuất bản banner "${banner.title}" thành công lên vị trí ${banner.position}`,
+        message: `Đã lưu bản nháp banner "${banner.title}" chưa xuất bản`,
         bannerId: banner._id,
       };
     }
 
-    await this.recordAudit({
-      adminId: userId,
-      adminEmail: email,
-      adminRole: role,
-      toolName: actionType,
-      actionLevel: 3,
-      inputParams: payload,
-      status: "confirmed",
-      actionId,
-      outputSummary: executionResult?.message || "Đã thực hiện hành động xác nhận",
-      ipAddress,
-      userAgent,
-    });
+    if (!actionExecuted) throw reject();
+    await AdminAiAuditLog.updateOne({ _id: claimed._id }, { $set: { outputSummary: executionResult?.message || "Đã thực hiện hành động xác nhận" } });
+    await AdminAiConversation.updateMany({ adminId: userId, "messages.actionProposal.actionId": actionId }, { $set: { "messages.$[item].actionProposal.status": "confirmed", "messages.$[item].cardData.status": "confirmed" } }, { arrayFilters: [{ "item.actionProposal.actionId": actionId }] });
 
     return {
       success: true,
@@ -624,6 +689,10 @@ export class AdminAiAgentService {
       actionType,
       result: executionResult,
     };
+    } catch (error) {
+      await AdminAiAuditLog.updateOne({ _id: claimed._id }, { $set: { status: "failed", outputSummary: "Thao tác xác nhận thất bại." } });
+      throw error;
+    }
   }
 
   /**
@@ -633,8 +702,9 @@ export class AdminAiAgentService {
   async createLivePlan(history, message, mode, provider, authContext) {
     const plannerPrompt = [
       "Return ONLY valid JSON for an authenticated fashion-commerce admin assistant.",
-      'Schema: {"intent":"GENERAL_CHAT|BUSINESS_ANALYTICS|REVENUE_ANALYSIS|ORDER_ANALYSIS|INVENTORY_ANALYSIS|CUSTOMER_ANALYSIS|MARKETING_STRATEGY|MARKETING_COPYWRITING|CAMPAIGN_PLANNING|POSTER_GENERATION|BANNER_GENERATION|IMAGE_EDITING|PRODUCT_MANAGEMENT|PROMOTION_MANAGEMENT|REPORT_GENERATION|MULTI_STEP_TASK|CLARIFICATION_REQUIRED","toolCalls":[{"name":"get_revenue_summary|compare_revenue|get_revenue_trend|get_sales_statistics|get_top_selling_products|get_slow_moving_products|get_inventory_summary|get_low_stock_products|get_order_statistics|get_customer_statistics|get_profit_summary|search_admin_products","args":{}}],"creativeBrief":{"title":"","subtitle":"","dateText":"","ctaText":"","style":"editorial_neutral","visualDirection":""}}',
+      'Schema: {"intent":"GENERAL_CHAT|BUSINESS_ANALYTICS|REVENUE_ANALYSIS|ORDER_ANALYSIS|INVENTORY_ANALYSIS|CUSTOMER_ANALYSIS|MARKETING_STRATEGY|MARKETING_COPYWRITING|CAMPAIGN_PLANNING|POSTER_GENERATION|BANNER_GENERATION|IMAGE_EDITING|PRODUCT_MANAGEMENT|PROMOTION_MANAGEMENT|REPORT_GENERATION|MULTI_STEP_TASK|CLARIFICATION_REQUIRED","toolCalls":[{"name":"get_revenue_summary|compare_revenue|get_revenue_trend|get_sales_statistics|get_top_selling_products|get_slow_moving_products|get_inventory_summary|get_low_stock_products|get_order_statistics|get_customer_statistics|get_profit_summary|search_admin_products|prepare_voucher|prepare_banner_publication|prepare_campaign|prepare_promotion|prepare_product_description","args":{}}],"creativeBrief":{"title":"","subtitle":"","dateText":"","ctaText":"","style":"editorial_neutral","visualDirection":""}}',
       "Choose tools only when live business data is needed. Never invent discounts, dates, products, vouchers, or campaigns.",
+      "Only prepare a voucher, banner or campaign draft when the user explicitly supplies the required details; missing details require clarification. These actions require confirmation. For prepare_product_description require an existing productId and explicitly supplied description. For prepare_promotion supply a seasonal campaign with an explicit discountRule. For prepare_campaign supply name, slug, type (flash_sale or seasonal), startAt and endAt as ISO dates; seasonal also needs discountRule with scope all, discountType and discountValue.",
       "A poster/banner request needs a concise creativeBrief grounded in the current request. General chat and copywriting need no business tool.",
       `User request: ${message}`,
     ].join("\\n");
@@ -671,6 +741,7 @@ export class AdminAiAgentService {
       "get_revenue_summary", "compare_revenue", "get_revenue_trend", "get_sales_statistics", "get_top_selling_products",
       "get_slow_moving_products", "get_inventory_summary", "get_low_stock_products", "get_order_statistics",
       "get_customer_statistics", "get_profit_summary", "search_admin_products",
+      "prepare_voucher", "prepare_banner_publication", "prepare_campaign", "prepare_promotion", "prepare_product_description",
     ]);
     const toolExecutions = [];
 
@@ -681,6 +752,7 @@ export class AdminAiAgentService {
     }
     for (const call of Array.isArray(plan.toolCalls) ? plan.toolCalls.slice(0, 3) : []) {
       if (!allowedTools.has(call?.name)) continue;
+      if (["prepare_voucher", "prepare_banner_publication", "prepare_campaign", "prepare_promotion", "prepare_product_description"].includes(call.name) && toolExecutions.some((entry) => entry.result?.requiresConfirmation)) continue;
       const args = call.args && typeof call.args === "object" ? call.args : {};
       const result = await this.executeTool(call.name, args, authContext);
       toolExecutions.push({ id: `tool_${Date.now()}_${toolExecutions.length}`, toolName: call.name, args, result });
@@ -704,9 +776,10 @@ export class AdminAiAgentService {
       "Respond in Vietnamese Markdown using the execution evidence below.",
       "Do not claim an image was generated if generationType is AI_ASSISTED_LAYOUT; say it is an editable concept because no image provider was available.",
       "Use business numbers only from TOOL_RESULTS. Do not invent discounts, dates, voucher codes, products, or policies.",
+      "If confirmation is required, explain that the draft has not been created yet; never claim the action was executed.",
       `USER_REQUEST: ${message}`,
       `SEMANTIC_PLAN: ${JSON.stringify(plan)}`,
-      `TOOL_RESULTS: ${JSON.stringify(toolExecutions.map(({ toolName, result }) => ({ toolName, result })))} `,
+      `TOOL_RESULTS: ${JSON.stringify(toolExecutions.map(({ toolName, result }) => ({ toolName, result: result?.requiresConfirmation ? { requiresConfirmation: true, title: result.title, summary: result.summary, expiresAt: result.expiresAt } : result })))} `,
     ].join("\\n\\n");
     const finalResult = await aiRouter.executeChatWithFallback({
       messages: [{ role: "system", content: ADMIN_SYSTEM_PROMPT }, ...history.slice(-10), { role: "user", content: finalPrompt }],
@@ -718,9 +791,10 @@ export class AdminAiAgentService {
     if (!assistantContent) throw new Error("AI_PROVIDER_EMPTY_RESPONSE: Provider returned no answer");
 
     const poster = toolExecutions.find((entry) => entry.toolName === "generate_poster");
+    const actionProposal = toolExecutions.find((entry) => entry.result?.requiresConfirmation)?.result || null;
     const primaryTool = toolExecutions[0];
-    const cardType = poster ? "poster_preview" : primaryTool?.toolName === "get_revenue_summary" ? "kpi_metrics" : primaryTool?.toolName === "get_revenue_trend" ? "chart_line" : primaryTool?.toolName === "compare_revenue" ? "chart_bar" : primaryTool?.toolName === "get_slow_moving_products" ? "product_list" : "none";
-    const cardData = poster?.result || (cardType === "none" ? null : primaryTool?.result);
+    const cardType = actionProposal ? "confirmation_required" : poster ? "poster_preview" : primaryTool?.toolName === "get_revenue_summary" ? "kpi_metrics" : primaryTool?.toolName === "get_revenue_trend" ? "chart_line" : primaryTool?.toolName === "compare_revenue" ? "chart_bar" : primaryTool?.toolName === "get_slow_moving_products" ? "product_list" : "none";
+    const cardData = actionProposal || poster?.result || (cardType === "none" ? null : primaryTool?.result);
     const providerUsed = finalResult.actualProvider || finalResult.primaryProvider || finalResult.provider;
 
     conv.messages.push({
@@ -729,6 +803,7 @@ export class AdminAiAgentService {
       toolCalls: toolExecutions.map((entry) => ({ id: entry.id, name: entry.toolName, args: entry.args, result: entry.result, status: "success" })),
       cardType,
       cardData,
+      actionProposal,
     });
     await conv.save();
     return {
@@ -738,6 +813,7 @@ export class AdminAiAgentService {
       message: assistantContent,
       cardType,
       cardData,
+      actionProposal,
       toolCalls: toolExecutions,
       providerUsed,
       providerModel: finalResult.model,
@@ -751,17 +827,23 @@ export class AdminAiAgentService {
   }
 
   getMutationTitle(toolName, args) {
-    if (toolName === "prepare_voucher") return `Tạo Mã Giảm Giá Mới [${args.code || "VOUCHER"}]`;
-    if (toolName === "prepare_banner_publication") return `Đăng Banner Lên Website [${args.title || "Banner"}]`;
+    if (toolName === "prepare_promotion") return `Tạo Bản Nháp Ưu Đãi [${args.name}]`;
+    if (toolName === "prepare_product_description") return `Cập Nhật Mô Tả Sản Phẩm [${args.productId}]`;
+    if (toolName === "prepare_campaign") return `Tạo Bản Nháp Chiến Dịch [${args.name}]`;
+    if (toolName === "prepare_voucher") return `Tạo Bản Nháp Voucher [${args.code || "VOUCHER"}]`;
+    if (toolName === "prepare_banner_publication") return `Tạo Bản Nháp Banner [${args.title || "Banner"}]`;
     return `Xác Nhận Thao Tác Nghiệp Vụ [${toolName}]`;
   }
 
   getMutationSummary(toolName, args) {
+    if (toolName === "prepare_promotion") return `Lưu ưu đãi nháp "${args.name}" (${args.startAt} – ${args.endAt}) với mức giảm ${args.discountRule.discountValue}${args.discountRule.discountType === 'percentage' ? '%' : 'đ'}; chưa kích hoạt.`;
+    if (toolName === "prepare_product_description") return `Mô tả hiện tại: ${args.expectedDescription || "(trống)"}\nMô tả đề xuất: ${args.description}`;
+    if (toolName === "prepare_campaign") return `Lưu bản nháp chiến dịch "${args.name}" (${args.startAt} – ${args.endAt}); chiến dịch chưa được kích hoạt.`;
     if (toolName === "prepare_voucher") {
-      return `Kích hoạt mã voucher ${args.code} giảm ${args.discountValue}${args.discountType === "percentage" ? "%" : "đ"} cho đơn từ ${new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(args.minOrderValue || 0)}.`;
+      return `Lưu bản nháp voucher ${args.code} giảm ${args.discountValue}${args.discountType === "percentage" ? "%" : "đ"} cho đơn từ ${new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(args.minOrderValue || 0)}; voucher chưa được kích hoạt.`;
     }
     if (toolName === "prepare_banner_publication") {
-      return `Xuất bản banner "${args.title}" tại vị trí "${args.position || "popup"}" với liên kết "${args.linkUrl || "/collections/sale"}".`;
+      return `Lưu bản nháp banner "${args.title}" tại vị trí "${args.position || "popup"}" với liên kết "${args.linkUrl || "/collections/sale"}"; banner chưa được xuất bản.`;
     }
     return JSON.stringify(args);
   }

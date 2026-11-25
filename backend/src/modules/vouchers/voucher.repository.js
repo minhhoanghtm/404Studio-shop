@@ -19,8 +19,10 @@ class VoucherRepository {
       .lean();
   }
 
-  async findOne(query) {
-    return await Voucher.findOne(query);
+  async findOne(query, options = {}) {
+    let q = Voucher.findOne(query);
+    if (options.session) q = q.session(options.session);
+    return await q;
   }
 
   async findById(id) {
@@ -70,8 +72,10 @@ class VoucherRepository {
       .sort({ createdAt: -1 });
   }
 
-  async findOneUserVoucher(query) {
-    return await UserVoucher.findOne(query);
+  async findOneUserVoucher(query, options = {}) {
+    let q = UserVoucher.findOne(query);
+    if (options.session) q = q.session(options.session);
+    return await q;
   }
 
   async createUserVoucher(data, options = {}) {

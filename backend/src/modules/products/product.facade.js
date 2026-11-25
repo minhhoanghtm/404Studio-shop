@@ -14,8 +14,8 @@ class ProductFacade {
     return await addProduct(productData);
   }
 
-  async updateProduct(id, productData) {
-    return await updateProduct(id, productData);
+  async updateProduct(id, productData, options) {
+    return await updateProduct(id, productData, options);
   }
 
   async deleteProduct(id) {

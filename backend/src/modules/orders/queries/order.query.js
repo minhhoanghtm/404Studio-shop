@@ -163,6 +163,7 @@ export const getKPIs = async () => {
     {
       $match: {
         status: "delivered",
+        payment_status: { $ne: "refunded" },
         $or: [
           { payment_method: "cod" },
           { payment_status: "paid" }
@@ -181,6 +182,7 @@ export const getKPIs = async () => {
 
   const totalOrders = await orderRepository.countDocuments({
     status: "delivered",
+    payment_status: { $ne: "refunded" },
     $or: [
       { payment_method: "cod" },
       { payment_status: "paid" }
@@ -205,6 +207,7 @@ export const getKPIs = async () => {
     {
       $match: {
         "order.status": "delivered",
+        "order.payment_status": { $ne: "refunded" },
         $or: [
           { "order.payment_method": "cod" },
           { "order.payment_status": "paid" },
@@ -255,6 +258,7 @@ export const getRevenueOverview = async (type) => {
     {
       $match: {
         status: "delivered",
+        payment_status: { $ne: "refunded" },
         $or: [{ payment_method: "cod" }, { payment_status: "paid" }],
         createdAtDate: {
           $gte: startDate,

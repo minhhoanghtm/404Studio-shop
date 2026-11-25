@@ -239,7 +239,8 @@ export const categoriesApi = {
 // ============================================================================
 export const cartApi = {
   getCart: () => api.get<ApiResponse<any>>('/cart'),
-  addItem: (payload: { product_id: string; variant_id?: string; quantity: number }) =>
+  getItems: (cartId: string) => api.get<ApiResponse<any[]>>(`/cart_items/${encodeURIComponent(cartId)}`),
+  addItem: (payload: { product_id: string; variant_id?: string; color?: string; size?: string; quantity: number }) =>
     api.post<ApiResponse<any>>('/cart_items', payload),
   updateItem: (id: string, quantity: number) =>
     api.put<ApiResponse<any>>(`/cart_items/${id}`, { quantity }),
@@ -251,6 +252,8 @@ export const cartApi = {
 // ORDERS APIs
 // ============================================================================
 export const ordersApi = {
+  quote: (payload: { items: Array<{ product_id: string; variant_id?: string; quantity: number }>; voucher_code?: string; reservation_id?: string }) =>
+    api.post<ApiResponse<{ items: Array<{ product_id: string; variant_id: string | null; quantity: number; unitPrice: number }>; subtotal: number; shipping: number; discount: number; tax: number; total: number }>>('/order/quote', payload),
   createOrder: (orderPayload: {
     items: Array<{ product_id: string; variant_id?: string; quantity: number; price?: number }>;
     shipping_address: Record<string, unknown>;
@@ -265,6 +268,10 @@ export const ordersApi = {
 
   lookupOrder: (orderCode: string, phone: string) =>
     api.get<ApiResponse<any>>(`/order/guest-lookup?orderCode=${encodeURIComponent(orderCode)}&phone=${encodeURIComponent(phone)}`),
+};
+
+export const checkoutReservationsApi = {
+  get: (id: string) => api.get<ApiResponse<any>>(`/checkout/reservations/${encodeURIComponent(id)}`),
 };
 
 // ============================================================================
@@ -299,6 +306,7 @@ export const favoritesApi = {
   getFavorites: () => api.get<ApiResponse<any[]>>('/favorites'),
   addFavorite: (productId: string) => api.post<ApiResponse<any>>('/favorites', { product_id: productId }),
   removeFavorite: (id: string) => api.delete<ApiResponse<any>>(`/favorites/${id}`),
+  clearFavorites: () => api.delete<ApiResponse<any[]>>('/favorites'),
 };
 
 // ============================================================================

@@ -1,4 +1,4 @@
-import "dotenv/config";
+import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
 import mongoose from "mongoose";
 import { connectDB } from "../configs/db.js";
 import aiToolRegistry from "../modules/ai/services/aiAgent.service.js";
@@ -6,6 +6,8 @@ import aiChatService from "../modules/communication/aiChat/aiChat.service.js";
 import inventoryReservationService from "../modules/inventory/inventoryReservation.service.js";
 import { Product, ProductVariant } from "../modules/products/product.model.js";
 import User from "../modules/users/user.model.js";
+
+await verifyQaSuiteTarget({ liveProviders: true });
 
 async function runAudit() {
   console.log("=== 1. AUDITING AI SHOPPING INTENT ROUTING ===");

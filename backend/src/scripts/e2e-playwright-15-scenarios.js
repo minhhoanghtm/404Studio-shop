@@ -1,3 +1,4 @@
+import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
 import { chromium } from "playwright";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
@@ -15,6 +16,8 @@ import User from "../modules/users/user.model.js";
 import Order from "../modules/orders/order.model.js";
 import { getRedisConnection } from "../configs/redis.js";
 import trackingService from "../modules/tracking/tracking.service.js";
+
+await verifyQaSuiteTarget({ liveProviders: true });
 
 const SCREENSHOTS_DIR = "C:\\Users\\apple fix nts\\.gemini\\antigravity\\brain\\5569998e-4f92-4c47-afdd-c80b7192a933\\screenshots";
 const FRONTEND_URL = "http://localhost:5173";

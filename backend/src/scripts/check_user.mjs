@@ -1,6 +1,9 @@
+import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
 import mongoose from 'mongoose';
 import bcrypt from 'bcrypt';
 import { requireEnv } from './require-env.js';
+
+await verifyQaSuiteTarget();
 
 const STAGING_URI = requireEnv('MONGO_CONNECTIONSTRING');
 const adminPassword = requireEnv('STAGING_ADMIN_PASSWORD');

@@ -90,6 +90,9 @@ export const enqueueVectorSyncJob = (jobData = {}) => {
   if (process.env.NODE_ENV === "test" && process.env.ENABLE_VECTOR_SYNC_IN_TEST !== "true") {
     return Promise.resolve({ queued: false, skippedInTest: true });
   }
+  if (process.env.APP_ENV === "qa" && process.env.QA_ALLOW_LIVE_PROVIDER_TESTS !== "true") {
+    return Promise.resolve({ queued: false, skippedInQaBudgetGuard: true });
+  }
 
   const queue = getVectorSyncQueue();
   const dedupJobId =

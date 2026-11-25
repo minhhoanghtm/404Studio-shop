@@ -1,7 +1,9 @@
-import "dotenv/config";
+import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
 import mongoose from "mongoose";
 import Product from "../modules/products/product.model.js";
 import { slugifyProductName } from "../modules/products/productAdminForm.service.js";
+
+await verifyQaSuiteTarget();
 
 const connect = async () => {
   if (!process.env.MONGO_URI) throw new Error("MONGO_URI is required");

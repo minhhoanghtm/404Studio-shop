@@ -1,12 +1,11 @@
-import dotenv from "dotenv";
-dotenv.config();
 import mongoose from "mongoose";
-import providerRegistry from "../providers/ProviderRegistry.js";
-import usageCostTracker from "../services/usageCostTracker.service.js";
-import aiRouter from "../services/aiRouter.service.js";
+import { verifyQaSuiteTarget } from "./qaSuiteGuard.mjs";
 
 async function testRegistry() {
-  await mongoose.connect(process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/atelier_verite");
+  const uri = await verifyQaSuiteTarget({ liveProviders: true });
+  const [{ default: providerRegistry }, { default: usageCostTracker }] = await Promise.all([import("../providers/ProviderRegistry.js"), import("../services/usageCostTracker.service.js")]);
+  await mongoose.connect(uri);
+  if (mongoose.connection.name !== "atelier_verite_qa" || mongoose.connection.port !== 27018) throw new Error("QA database verification failed.");
   console.log("--- 1. Testing Provider Registry ---");
   const statuses = await providerRegistry.getProvidersStatus();
   console.log("Registered providers count:", statuses.length);

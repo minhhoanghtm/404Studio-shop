@@ -72,6 +72,7 @@ jest.unstable_mockModule("../../../middlewares/auth.middleware.js", () => ({
 }));
 
 jest.unstable_mockModule("../../../middlewares/rbac.middleware.js", () => ({
+  getEffectivePermissions: async (user) => user.role === "admin" ? ["order:view", "order:update"] : [],
   authenticate: (req, res, next) => {
     if (!authState.authenticated) {
       return res.status(401).json({ success: false, message: "Khong tim thay access token" });

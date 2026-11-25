@@ -1,9 +1,11 @@
-import "dotenv/config";
+import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
 import mongoose from "mongoose";
 import { connectDB } from "../configs/db.js";
 import { getRedisConnection } from "../configs/redis.js";
 import Experiment from "../modules/recommendations/experiments/experiment.model.js";
 import experimentService from "../modules/recommendations/experiments/experiment.service.js";
+
+await verifyQaSuiteTarget();
 
 export const STAGING_AA_EXP_ID = "AA_Recommendation_Validation";
 

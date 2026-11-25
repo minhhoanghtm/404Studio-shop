@@ -1,4 +1,15 @@
+import mongoose from "mongoose";
 import WebsiteSettings from "../../modules/websiteSettings/websiteSettings.model.js";
+
+const DEFAULT_SYSTEM_SETTINGS = {
+  maintenanceMode: false,
+  maintenanceMessage: "Hệ thống đang được nâng cấp để mang đến trải nghiệm tốt hơn. Quý khách vui lòng quay lại sau ít phút.",
+  maintenanceUntil: null,
+  allowGuestCheckout: false,
+  enableVoucher: true,
+  enableReviews: true,
+  disallowReviewEditDelete: false,
+};
 
 let cachedSystemSettings = null;
 let cacheExpiry = 0;
@@ -13,12 +24,17 @@ export const getSystemSettings = async (forceFresh = false) => {
     return cachedSystemSettings;
   }
 
+  const isMocked = Boolean(WebsiteSettings.findOne && typeof WebsiteSettings.findOne.mock === "object");
+  if (mongoose.connection?.readyState !== 1 && !isMocked) {
+    return cachedSystemSettings || { ...DEFAULT_SYSTEM_SETTINGS };
+  }
+
   try {
     const doc = await WebsiteSettings.findOne({ singletonKey: "default" }).lean();
     if (doc?.system) {
       cachedSystemSettings = {
         maintenanceMode: Boolean(doc.system.maintenanceMode),
-        maintenanceMessage: doc.system.maintenanceMessage || "Hệ thống đang được nâng cấp để mang đến trải nghiệm tốt hơn. Quý khách vui lòng quay lại sau ít phút.",
+        maintenanceMessage: doc.system.maintenanceMessage || DEFAULT_SYSTEM_SETTINGS.maintenanceMessage,
         maintenanceUntil: doc.system.maintenanceUntil || null,
         allowGuestCheckout: Boolean(doc.system.allowGuestCheckout),
         enableVoucher: doc.system.enableVoucher !== false,
@@ -26,28 +42,12 @@ export const getSystemSettings = async (forceFresh = false) => {
         disallowReviewEditDelete: Boolean(doc.system.disallowReviewEditDelete),
       };
     } else {
-      cachedSystemSettings = {
-        maintenanceMode: false,
-        maintenanceMessage: "Hệ thống đang được nâng cấp để mang đến trải nghiệm tốt hơn. Quý khách vui lòng quay lại sau ít phút.",
-        maintenanceUntil: null,
-        allowGuestCheckout: false,
-        enableVoucher: true,
-        enableReviews: true,
-        disallowReviewEditDelete: false,
-      };
+      cachedSystemSettings = { ...DEFAULT_SYSTEM_SETTINGS };
     }
   } catch (err) {
     console.error("Failed to fetch system settings in featureFlags:", err.message);
     if (!cachedSystemSettings) {
-      cachedSystemSettings = {
-        maintenanceMode: false,
-        maintenanceMessage: "Hệ thống đang được nâng cấp để mang đến trải nghiệm tốt hơn. Quý khách vui lòng quay lại sau ít phút.",
-        maintenanceUntil: null,
-        allowGuestCheckout: false,
-        enableVoucher: true,
-        enableReviews: true,
-        disallowReviewEditDelete: false,
-      };
+      cachedSystemSettings = { ...DEFAULT_SYSTEM_SETTINGS };
     }
   }
 

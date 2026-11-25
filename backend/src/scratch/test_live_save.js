@@ -1,3 +1,4 @@
+import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
@@ -5,7 +6,8 @@ import crypto from "crypto";
 import axios from "axios";
 import { getRedisConnection } from "../configs/redis.js";
 
-dotenv.config();
+await verifyQaSuiteTarget();
+
 
 const run = async () => {
   let redis;

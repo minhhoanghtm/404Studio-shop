@@ -1,3 +1,4 @@
+import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
 import express from "express";
 import { chromium } from "playwright";
 import mongoose from "mongoose";
@@ -24,6 +25,8 @@ import trackingRouter from "../modules/tracking/tracking.route.js";
 import recommendationRouter from "../modules/recommendations/recommendation.route.js";
 import experimentRouter from "../modules/recommendations/experiments/experiment.route.js";
 import { orderRouter } from "../modules/orders/order.route.js";
+
+await verifyQaSuiteTarget({ liveProviders: true });
 
 const PORT = 5096;
 const APP_URL = `http://127.0.0.1:${PORT}`;

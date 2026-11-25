@@ -1,13 +1,80 @@
-import otpService from "../otp.service.js";
+import { jest } from "@jest/globals";
+
+const store = new Map();
+const fakeRedis = {
+  async get(key) {
+    const entry = store.get(key);
+    if (!entry) return null;
+    if (entry.expiresAt && entry.expiresAt <= Date.now()) {
+      store.delete(key);
+      return null;
+    }
+    return entry.value;
+  },
+  async set(key, value, mode, ttlSec) {
+    const expiresAt = mode === "EX" && Number(ttlSec) > 0 ? Date.now() + Number(ttlSec) * 1000 : null;
+    store.set(key, { value: String(value), expiresAt });
+    return "OK";
+  },
+  async ttl(key) {
+    const entry = store.get(key);
+    if (!entry) return -2;
+    if (!entry.expiresAt) return -1;
+    const rem = Math.ceil((entry.expiresAt - Date.now()) / 1000);
+    if (rem <= 0) {
+      store.delete(key);
+      return -2;
+    }
+    return rem;
+  },
+  async del(...keys) {
+    let deleted = 0;
+    for (const k of keys) {
+      if (store.delete(k)) deleted += 1;
+    }
+    return deleted;
+  },
+  pipeline() {
+    const ops = [];
+    const pipe = {
+      set: (k, v, m, t) => { ops.push(() => fakeRedis.set(k, v, m, t)); return pipe; },
+      incr: (k) => {
+        ops.push(async () => {
+          const cur = Number((await fakeRedis.get(k)) || "0") + 1;
+          const prev = store.get(k);
+          store.set(k, { value: String(cur), expiresAt: prev?.expiresAt || null });
+          return cur;
+        });
+        return pipe;
+      },
+      expire: (k, t) => {
+        ops.push(async () => {
+          const entry = store.get(k);
+          if (entry) entry.expiresAt = Date.now() + Number(t) * 1000;
+          return 1;
+        });
+        return pipe;
+      },
+      exec: async () => Promise.all(ops.map((fn) => fn().then((res) => [null, res]))),
+    };
+    return pipe;
+  },
+};
+
+jest.unstable_mockModule("../../../configs/redis.js", () => ({
+  default: () => fakeRedis,
+  getRedisConnection: () => fakeRedis,
+  closeRedisConnection: async () => {},
+}));
+
+const { default: otpService } = await import("../otp.service.js");
 
 describe("Secure OTP Service", () => {
   const testPhone = "+84901234567";
   const purpose = "register";
 
   beforeEach(async () => {
-    for (const phone of ["+84901234567", "+84901234568", "+84901234569", "+84901234570"]) {
-      await otpService.deleteOtp(phone, purpose, true);
-    }
+    store.clear();
   });
 
   afterEach(async () => {

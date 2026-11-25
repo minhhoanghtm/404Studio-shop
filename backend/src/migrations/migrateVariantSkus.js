@@ -1,8 +1,10 @@
-import "dotenv/config";
+import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
 import mongoose from "mongoose";
 import { Product, ProductVariant } from "../modules/products/product.model.js";
 import { OrderItem } from "../modules/orders/order.model.js";
 import { buildVariantSku, normalizeVariantColorKey } from "../modules/products/productAdminForm.service.js";
+
+await verifyQaSuiteTarget();
 
 const dryRun = process.argv.includes("--dry-run");
 const nextSku = async (base, excludeId) => {

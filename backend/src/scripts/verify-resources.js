@@ -1,7 +1,9 @@
-import "dotenv/config";
+import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
 import mongoose from "mongoose";
 import { connectDB } from "../configs/db.js";
 import { getRedisConnection } from "../configs/redis.js";
+
+await verifyQaSuiteTarget();
 
 async function verifyResources() {
   console.log("================================================================================");

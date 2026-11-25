@@ -1,0 +1,19 @@
+services:
+  mongo-qa-rs:
+    image: mongo:7.0
+    container_name: atelier_qa_mongo_rs
+    command: ["mongod", "--replSet", "rs0", "--port", "27019", "--bind_ip_all"]
+    ports:
+      - "127.0.0.1:27019:27019"
+    volumes:
+      - atelier_qa_mongo_rs_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--port", "27019", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+volumes:
+  atelier_qa_mongo_rs_data:
+    driver: local

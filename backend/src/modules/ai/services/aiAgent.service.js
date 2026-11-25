@@ -639,15 +639,22 @@ export class AiToolRegistry {
             };
           }
 
+          let existingReservation = null;
+          if (rawArgs.reservation_id) {
+            existingReservation = await inventoryReservationService.getReservation(rawArgs.reservation_id);
+            if (!existingReservation || existingReservation.status !== "ACTIVE" || String(existingReservation.userId) !== String(userId)) return { success: false, code: "INVALID_RESERVATION", message: "Phiên giữ hàng không hợp lệ hoặc không thuộc tài khoản này." };
+          }
+
           const verifiedItems = [];
           const unavailableItems = [];
 
           for (const reqItem of rawItems) {
             let product = null;
-            if (mongoose.Types.ObjectId.isValid(reqItem.product_id)) {
+            const requestedProductId = mongoose.Types.ObjectId.isValid(reqItem.product_id);
+            if (requestedProductId) {
               product = await Product.findOne({ _id: reqItem.product_id, is_active: true }).lean();
             }
-            if (!product && reqItem.product_id) {
+            if (!product && reqItem.product_id && !requestedProductId) {
               const kw = String(reqItem.product_id).trim();
               const escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
               const noAccentKw = toNoAccent(kw).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -660,7 +667,7 @@ export class AiToolRegistry {
                 ],
               }).lean();
             }
-            if (!product && reqItem.product_id) {
+            if (!product && reqItem.product_id && !requestedProductId) {
               try {
                 const semRes = await semanticSearchService.search(
                   { query: String(reqItem.product_id).trim(), sourceType: "product", topK: 1 },
@@ -685,10 +692,19 @@ export class AiToolRegistry {
             let chosenVariant = null;
             let availableStock = Number(product.stock || 0);
 
+            if (reqItem.variant_id && allVariants.length === 0) {
+              unavailableItems.push({ product_id: String(product._id), name: product.name, reason: "Phiên bản sản phẩm đã chọn không khả dụng" });
+              continue;
+            }
+
             if (allVariants.length > 0) {
               const inStockVariants = allVariants.filter((v) => Number(v.stock || 0) > 0);
               if (reqItem.variant_id && mongoose.Types.ObjectId.isValid(reqItem.variant_id)) {
                 chosenVariant = inStockVariants.find((v) => String(v._id) === String(reqItem.variant_id));
+              }
+              if (reqItem.variant_id && !chosenVariant) {
+                unavailableItems.push({ product_id: String(product._id), name: product.name, reason: "Phiên bản sản phẩm đã chọn không khả dụng" });
+                continue;
               }
               if (!chosenVariant && (reqItem.color || reqItem.size)) {
                 chosenVariant = inStockVariants.find((v) => {
@@ -702,8 +718,16 @@ export class AiToolRegistry {
                   return matchColor && matchSize;
                 });
               }
+              if (!chosenVariant && (reqItem.color || reqItem.size)) {
+                unavailableItems.push({ product_id: String(product._id), name: product.name, reason: "Màu hoặc kích cỡ đã chọn không khả dụng" });
+                continue;
+              }
               if (!chosenVariant && inStockVariants.length > 0) {
                 chosenVariant = inStockVariants[0];
+              }
+              if (!chosenVariant) {
+                unavailableItems.push({ product_id: String(product._id), name: product.name, reason: "Không còn phiên bản khả dụng" });
+                continue;
               }
               availableStock = chosenVariant ? Number(chosenVariant.stock || 0) : 0;
             }
@@ -711,7 +735,8 @@ export class AiToolRegistry {
             const qty = Math.min(Math.max(Number(reqItem.quantity || 1), 1), 10);
             const sku = inventoryReservationService.getSku(product._id, chosenVariant?._id || chosenVariant?.sku);
             const activeReserved = await inventoryReservationService.getReservedStock(sku);
-            const realAvailable = Math.max(0, availableStock - activeReserved);
+            const ownHeld = (existingReservation?.items || []).filter((item) => item.sku === sku).reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+            const realAvailable = Math.max(0, availableStock - Math.max(0, activeReserved - ownHeld));
 
             if (realAvailable < qty) {
               unavailableItems.push({
@@ -751,7 +776,7 @@ export class AiToolRegistry {
             });
           }
 
-          if (verifiedItems.length === 0) {
+          if (verifiedItems.length === 0 || unavailableItems.length > 0) {
             return {
               success: false,
               code: "OUT_OF_STOCK_OR_INVALID",
@@ -761,9 +786,12 @@ export class AiToolRegistry {
           }
 
           // Create or retrieve 300s Redis reservation
-          let reservation = null;
+          let reservation = existingReservation;
           if (rawArgs.reservation_id) {
-            reservation = await inventoryReservationService.getReservation(rawArgs.reservation_id);
+            const comparable = (items) => items.map((item) => `${item.productId || item.product_id}:${item.variantId || item.product_variant_id || ""}:${Number(item.quantity)}`).sort().join("|");
+            if (comparable(reservation.items || []) !== comparable(verifiedItems)) {
+              return { success: false, code: "INVALID_RESERVATION", message: "Phiên giữ hàng không hợp lệ hoặc không thuộc tài khoản này." };
+            }
           }
           if (!reservation || reservation.status !== "ACTIVE") {
             reservation = await inventoryReservationService.createReservation({
@@ -825,8 +853,11 @@ export class AiToolRegistry {
         }
 
         case "cancel_checkout": {
+          if (!userId || userRole === "admin") return { success: false, code: "AUTH_REQUIRED", message: "Bạn cần đăng nhập tài khoản khách hàng để hủy giữ hàng." };
           const resId = rawArgs.reservation_id;
           if (resId) {
+            const reservation = await inventoryReservationService.getReservation(resId);
+            if (!reservation || String(reservation.userId) !== String(userId) || reservation.status !== "ACTIVE") return { success: false, code: "INVALID_RESERVATION", message: "Phiên giữ hàng không hợp lệ hoặc không thuộc tài khoản này." };
             await inventoryReservationService.releaseReservation(resId, "USER_CANCELLED");
           } else if (userId) {
             const activeRes = await (await import("../../inventory/inventoryReservation.model.js")).default.findOne({ userId, status: "ACTIVE" }).lean();
@@ -926,12 +957,21 @@ export class AiToolRegistry {
             let chosenVariant = null;
             let availableStock = Number(product.stock || 0);
 
+            if (reqItem.variant_id && variants.length === 0) {
+              unavailableItems.push({ product_id: String(product._id), name: product.name, reason: "Phiên bản sản phẩm đã chọn không khả dụng" });
+              continue;
+            }
+
             if (variants.length > 0) {
-              const inStockVariants = variants.filter((v) => Number(v.stock || 0) > 0);
+              const inStockVariants = variants.filter((v) => v.is_active !== false && Number(v.stock || 0) > 0);
               if (reqItem.variant_id && mongoose.Types.ObjectId.isValid(reqItem.variant_id)) {
                 chosenVariant = inStockVariants.find(
                   (v) => String(v._id) === String(reqItem.variant_id)
                 );
+              }
+              if (reqItem.variant_id && !chosenVariant) {
+                unavailableItems.push({ product_id: String(product._id), name: product.name, reason: "Phiên bản sản phẩm đã chọn không khả dụng" });
+                continue;
               }
               if (!chosenVariant && (reqItem.color || reqItem.size)) {
                 chosenVariant = inStockVariants.find((v) => {
@@ -945,11 +985,21 @@ export class AiToolRegistry {
                   return matchColor && matchSize;
                 });
               }
+              if (!chosenVariant && (reqItem.color || reqItem.size)) {
+                unavailableItems.push({ product_id: String(product._id), name: product.name, reason: "Màu hoặc kích cỡ đã chọn không khả dụng" });
+                continue;
+              }
               if (!chosenVariant && inStockVariants.length > 0) {
                 chosenVariant = inStockVariants[0];
               }
               availableStock = chosenVariant ? Number(chosenVariant.stock || 0) : 0;
             }
+
+            if (variants.length > 0 && !chosenVariant) {
+              unavailableItems.push({ product_id: String(product._id), name: product.name, reason: "Không còn phiên bản khả dụng" });
+              continue;
+            }
+            availableStock = await inventoryReservationService.getAvailableStock(product._id, chosenVariant?._id || null);
 
             const qty = Math.min(Math.max(Number(reqItem.quantity || 1), 1), 10);
             if (availableStock < qty) {
@@ -985,7 +1035,7 @@ export class AiToolRegistry {
             });
           }
 
-          if (verifiedItems.length === 0) {
+          if (verifiedItems.length === 0 || unavailableItems.length > 0) {
             return {
               success: false,
               code: "OUT_OF_STOCK_OR_INVALID",
@@ -1087,7 +1137,7 @@ export class AiToolRegistry {
           if (!cart || !cart.total_items) {
             return "Giỏ hàng của bạn hiện đang trống.";
           }
-          const items = await cartService.getCartItems(cart._id);
+          const items = await cartService.getCartItems(cart._id, userId);
           this.metrics.successfulCalls++;
           return {
             total_items: cart.total_items,
@@ -1396,7 +1446,7 @@ export class AiToolRegistry {
           if (!itemId || isNaN(quantity)) {
             return { success: false, code: "INVALID_ARGS", message: "Vui lòng cung cấp mã món hàng (itemId) và số lượng hợp lệ." };
           }
-          const updated = await cartService.updateCartItem(itemId, { quantity });
+          const updated = await cartService.updateCartItem(itemId, { quantity }, userId);
           this.metrics.successfulCalls++;
           return {
             success: true,
@@ -1417,7 +1467,7 @@ export class AiToolRegistry {
           if (!itemId) {
             return { success: false, code: "INVALID_ARGS", message: "Vui lòng cung cấp mã món hàng (itemId) cần xóa." };
           }
-          const removed = await cartService.deleteCartItem(itemId);
+          const removed = await cartService.deleteCartItem(itemId, userId);
           this.metrics.successfulCalls++;
           return {
             success: true,

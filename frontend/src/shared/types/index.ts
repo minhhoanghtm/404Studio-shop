@@ -73,6 +73,7 @@ export interface Collection {
 }
 
 export interface CartItem {
+  cartItemId?: string;
   productId: string;
   variantId?: string;
   productSlug: string;

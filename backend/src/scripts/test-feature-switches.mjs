@@ -1,6 +1,8 @@
-import "dotenv/config";
+import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
 import { connectDB } from "../configs/db.js";
 import Product from "../modules/products/product.model.js";
+
+await verifyQaSuiteTarget();
 
 const BACKEND_URL = "http://localhost:5000";
 

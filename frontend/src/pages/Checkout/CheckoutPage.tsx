@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useCartStore } from '@/shared/stores/useCartStore';
 import { useAuthStore } from '@/shared/stores/useAuthStore';
 import { useToastStore } from '@/shared/stores/useToastStore';
-import { ordersApi, paymentsApi } from '@/shared/api';
-import { ShippingAddress } from '@/shared/types';
+import { checkoutReservationsApi, ordersApi, paymentsApi } from '@/shared/api';
+import { CartItem, ShippingAddress } from '@/shared/types';
 import { ShippingAddressForm } from './components/ShippingAddressForm';
 import { DeliveryMethodSelector } from './components/DeliveryMethodSelector';
 import { PaymentMethodSelector } from './components/PaymentMethodSelector';
@@ -15,49 +15,79 @@ import { ArrowLeft, AlertTriangle, Trash2 } from 'lucide-react';
 
 export const CheckoutPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const reservationId = searchParams.get('reservationId');
   const {
     items,
-    getSubtotal,
-    getDiscount,
-    getShippingFee,
-    getTax,
+    appliedCoupon,
     clearCart,
     removeInvalidItems,
   } = useCartStore();
 
   const { user } = useAuthStore();
   const { addToast } = useToastStore();
+  const [reservedItems, setReservedItems] = useState<CartItem[]>([]);
+  const [reservationLoading, setReservationLoading] = useState(Boolean(reservationId));
+  const [reservationError, setReservationError] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    if (!reservationId) { setReservedItems([]); setReservationLoading(false); setReservationError(''); return () => { active = false; }; }
+    setReservationLoading(true); setReservationError('');
+    void checkoutReservationsApi.get(reservationId).then((response) => {
+      if (!active) return;
+      const reservation = response.data;
+      if (!reservation || reservation.status !== 'ACTIVE' || !Array.isArray(reservation.items) || reservation.items.length === 0) throw new Error('Phiên giữ hàng đã hết hạn hoặc không hợp lệ.');
+      setReservedItems(reservation.items.map((item: any) => ({ productId: String(item.productId || item.product_id || ''), variantId: item.variantId || item.product_variant_id || undefined, productSlug: String(item.slug || ''), name: String(item.name || 'Sản phẩm'), price: Number(item.unitPrice ?? item.price ?? 0), quantity: Number(item.quantity), selectedColor: String(item.color || 'Mặc định'), selectedColorHex: '#1E1E24', selectedSize: String(item.size || 'Freesize'), image: String(item.image || '') })));
+    }).catch((error) => { if (active) { setReservedItems([]); setReservationError(error instanceof Error ? error.message : 'Không thể tải phiên giữ hàng.'); } }).finally(() => { if (active) setReservationLoading(false); });
+    return () => { active = false; };
+  }, [reservationId]);
+
+  const checkoutItems = reservationId ? reservedItems : items;
+  const quoteKey = JSON.stringify({ items: checkoutItems.map((item) => ({ product_id: item.productId, ...(item.variantId && /^[a-f\d]{24}$/i.test(item.variantId) ? { variant_id: item.variantId } : {}), quantity: item.quantity })), ...(appliedCoupon?.code ? { voucher_code: appliedCoupon.code } : {}), ...(reservationId ? { reservation_id: reservationId } : {}) });
+  const [quote, setQuote] = useState<NonNullable<Awaited<ReturnType<typeof ordersApi.quote>>['data']> | null>(null);
+  const [quoteLoading, setQuoteLoading] = useState(false);
+  const [quoteError, setQuoteError] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    const input = JSON.parse(quoteKey);
+    if (reservationLoading || reservationError || !input.items.length) { setQuote(null); setQuoteLoading(false); setQuoteError(''); return () => { active = false; }; }
+    setQuote(null); setQuoteLoading(true); setQuoteError('');
+    void ordersApi.quote(input).then((response) => { if (active && response.data) setQuote(response.data); }).catch((error) => { if (active) setQuoteError(error instanceof Error ? error.message : 'Không thể tính đơn hàng.'); }).finally(() => { if (active) setQuoteLoading(false); });
+    return () => { active = false; };
+  }, [quoteKey, reservationLoading, reservationError]);
 
   const objectId = /^[a-f\d]{24}$/i;
-  const invalidItems = items.filter((item) => !objectId.test(item.productId));
+  const invalidItems = checkoutItems.filter((item) => !objectId.test(item.productId));
 
   const [formData, setFormData] = useState<ShippingAddress>({
-    firstName: user?.name.split(' ')[0] || 'Geneviève',
-    lastName: user?.name.split(' ')[1] || 'Laurent',
-    email: user?.email || 'g.laurent@verite-atelier.com',
-    phone: user?.phone || '+84 90 123 4567',
-    addressLine1: user?.addresses[0]?.addressLine1 || '68 Nguyễn Du, Bến Nghé, Quận 1',
-    addressLine2: user?.addresses[0]?.addressLine2 || 'Phòng VIP 4B',
-    city: user?.addresses[0]?.city || 'TP. Hồ Chí Minh',
-    state: user?.addresses[0]?.state || 'Hồ Chí Minh',
-    postalCode: user?.addresses[0]?.postalCode || '700000',
+    firstName: user?.name.split(' ')[0] || '',
+    lastName: user?.name.split(' ').slice(1).join(' ') || '',
+    email: user?.email || '',
+    phone: user?.phone || '',
+    addressLine1: user?.addresses[0]?.addressLine1 || '',
+    addressLine2: user?.addresses[0]?.addressLine2 || '',
+    city: user?.addresses[0]?.city || '',
+    state: user?.addresses[0]?.state || '',
+    postalCode: user?.addresses[0]?.postalCode || '',
     country: user?.addresses[0]?.country || 'Việt Nam',
   });
 
-  const [shippingMethod, setShippingMethod] = useState<'white-glove' | 'express'>('white-glove');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cod');
   const [isProcessing, setIsProcessing] = useState(false);
   const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
 
-  const subtotal = getSubtotal();
-  const discount = getDiscount();
-  const baseShipping = getShippingFee();
-  const extraShipping = shippingMethod === 'express' ? 500000 : 0;
-  const shipping = baseShipping + extraShipping;
-  const tax = getTax();
-  const total = subtotal - discount + shipping + tax;
+  const subtotal = quote?.subtotal ?? 0;
+  const discount = quote?.discount ?? 0;
+  const shipping = quote?.shipping ?? 0;
+  const tax = quote?.tax ?? 0;
+  const total = quote?.total ?? 0;
+  const quotedItems = checkoutItems.map((item) => ({ ...item, price: quote?.items.find((line) => line.product_id === item.productId && String(line.variant_id || '') === String(item.variantId && objectId.test(item.variantId) ? item.variantId : ''))?.unitPrice ?? item.price }));
 
-  if (items.length === 0) {
+  if (reservationLoading) return <div role="status" className="p-8">Đang tải phiên giữ hàng...</div>;
+  if (reservationError) return <div role="alert" className="p-8">{reservationError}</div>;
+  if (checkoutItems.length === 0) {
     return (
       <div className="w-full bg-[var(--bg)] text-[var(--text)] min-h-[70vh] flex items-center justify-center p-8">
         <div className="text-center space-y-4">
@@ -81,6 +111,7 @@ export const CheckoutPage: React.FC = () => {
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!quote || quoteLoading || quoteError) return;
 
     if (!formData.firstName || !formData.lastName || !formData.addressLine1 || !formData.city || !formData.postalCode) {
       addToast({
@@ -107,7 +138,7 @@ export const CheckoutPage: React.FC = () => {
       let order: any;
       if (!orderId) {
         const response = await ordersApi.createOrder({
-          items: items.map((item) => ({ product_id: item.productId, quantity: item.quantity, price: item.price })),
+          items: quotedItems.map((item) => ({ product_id: item.productId, ...(item.variantId && objectId.test(item.variantId) ? { variant_id: item.variantId } : {}), quantity: item.quantity, price: item.price })),
           shipping_address: {
             full_name: `${formData.firstName} ${formData.lastName}`.trim(),
             phone: formData.phone,
@@ -117,6 +148,8 @@ export const CheckoutPage: React.FC = () => {
             address_detail: formData.addressLine1,
           },
           payment_method: paymentMethod,
+          ...(reservationId ? { reservation_id: reservationId } : {}),
+          ...(appliedCoupon?.code ? { voucher_code: appliedCoupon.code } : {}),
         });
         order = response.order || response.data?.order || response.data;
         orderId = order?._id || order?.id;
@@ -209,11 +242,7 @@ export const CheckoutPage: React.FC = () => {
         <form onSubmit={handlePlaceOrder} className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
           <div className="lg:col-span-8 space-y-8">
             <ShippingAddressForm formData={formData} onChange={handleChange} />
-            <DeliveryMethodSelector
-              method={shippingMethod}
-              onSelectMethod={setShippingMethod}
-              baseShipping={baseShipping}
-            />
+            {quote && <DeliveryMethodSelector baseShipping={shipping} />}
             <PaymentMethodSelector
               method={paymentMethod}
               onSelectMethod={(method) => {
@@ -231,8 +260,8 @@ export const CheckoutPage: React.FC = () => {
           </div>
 
           <div className="lg:col-span-4">
-            <CheckoutSummary
-              items={items}
+            {quoteLoading ? <div role="status" className="p-4">Đang tính đơn hàng...</div> : quoteError ? <div role="alert" className="p-4">{quoteError}</div> : quote && <CheckoutSummary
+              items={quotedItems}
               subtotal={subtotal}
               discount={discount}
               shipping={shipping}
@@ -240,7 +269,7 @@ export const CheckoutPage: React.FC = () => {
               total={total}
               isProcessing={isProcessing}
               onSubmit={handlePlaceOrder}
-            />
+            />}
           </div>
         </form>
       </div>

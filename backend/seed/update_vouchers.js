@@ -1,9 +1,11 @@
+import { verifyQaSuiteTarget } from "../src/common/qa/qaIsolationGuard.js";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import Voucher from "../src/modules/vouchers/voucher.model.js";
 import WebsiteSettings from "../src/modules/websiteSettings/websiteSettings.model.js";
 
-dotenv.config();
+await verifyQaSuiteTarget();
+
 
 const run = async () => {
   try {

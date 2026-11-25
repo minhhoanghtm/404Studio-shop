@@ -1,3 +1,4 @@
+import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
 import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 import path from "path";
@@ -21,6 +22,8 @@ import Review from "../modules/reviews/review.model.js";
 import Conversation from "../modules/conversations/conversation.model.js";
 import Message from "../modules/messages/message.model.js";
 import { requireEnv } from "./require-env.js";
+
+await verifyQaSuiteTarget();
 
 const LOCAL_DEV_MONGO_URI = process.env.LOCAL_DEV_MONGO_URI || requireEnv("MONGO_CONNECTIONSTRING");
 

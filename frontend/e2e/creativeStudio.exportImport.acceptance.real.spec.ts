@@ -96,6 +96,23 @@ test.describe('Creative Studio — focused raster export and editable JSON impor
     await page.reload();
     await expect(page.getByLabel('Tên thiết kế')).toHaveValue(originalName);
 
+    await page.getByRole('button', { name: 'QA Export Text', exact: true }).click();
+    await page.getByRole('textbox', { name: 'Nội dung', exact: true }).fill('CHỈNH SỬA SAU IMPORT');
+    await page.getByLabel('x layer').fill('175');
+    const edited = await saveDesign(page, target._id);
+    expect(edited.layers.find((layer) => layer.id === 'export-text')?.content).toBe('CHỈNH SỬA SAU IMPORT');
+    await page.reload();
+    const secondJsonWaiting = page.waitForEvent('download');
+    await page.getByRole('button', { name: 'JSON', exact: true }).click();
+    const secondJson = JSON.parse(await readFile((await (await secondJsonWaiting).path())!, 'utf8'));
+    expect(secondJson.project.layers.find((layer: QaLayer) => layer.id === 'export-text').content).toBe('CHỈNH SỬA SAU IMPORT');
+    expect(secondJson.project.layers.find((layer: QaLayer) => layer.id === 'export-text').x).toBe(175);
+    expect(secondJson.project.layers.find((layer: QaLayer) => layer.id === 'export-image').styles.cropZoom).toBe(1.4);
+    expect(secondJson.project.layers.find((layer: QaLayer) => layer.id === 'export-shape').rotation).toBe(18);
+    expect(secondJson.project.layers.find((layer: QaLayer) => layer.id === 'export-shape').opacity).toBe(0.65);
+    expect(secondJson.project.layers.find((layer: QaLayer) => layer.id === 'export-hidden').visible).toBe(false);
+    expect(JSON.parse(secondJson.project.layers.find((layer: QaLayer) => layer.type === 'group').content)).toEqual(['export-text', 'export-image', 'export-shape']);
+
     await page.getByLabel('Chọn JSON để nhập').setInputFiles({ name: 'invalid.json', mimeType: 'application/json', buffer: Buffer.from('{not json}') });
     await expect(page.getByRole('alert')).toContainText('Không thể đọc JSON import');
 

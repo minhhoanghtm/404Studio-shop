@@ -1,5 +1,8 @@
+import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
 import mongoose from 'mongoose';
 import { requireEnv } from './require-env.js';
+
+await verifyQaSuiteTarget();
 const uri = requireEnv('MONGO_CONNECTIONSTRING');
 async function main() {
   await mongoose.connect(uri);

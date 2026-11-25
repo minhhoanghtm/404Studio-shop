@@ -1,4 +1,4 @@
-import "dotenv/config";
+import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
 import path from "path";
 import { fileURLToPath } from "url";
 import { chromium } from "playwright";
@@ -11,6 +11,8 @@ import experimentAnalyticsService from "../modules/recommendations/experiments/e
 import UserEvent from "../modules/tracking/userEvent.model.js";
 import Product from "../modules/products/product.model.js";
 import User from "../modules/users/user.model.js";
+
+await verifyQaSuiteTarget({ liveProviders: true });
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SCREENSHOTS_DIR = "C:\\Users\\apple fix nts\\.gemini\\antigravity\\brain\\5569998e-4f92-4c47-afdd-c80b7192a933\\screenshots";

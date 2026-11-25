@@ -46,11 +46,10 @@ const campaignProductSchema = new mongoose.Schema(
   }
 );
 
-campaignProductSchema.pre("validate", function (next) {
+campaignProductSchema.pre("validate", function () {
   if (this.sold !== undefined && this.quota !== undefined && this.sold > this.quota) {
-    return next(new Error("Số lượng đã bán (sold) không thể vượt quá tổng suất khuyến mãi (quota)"));
+    throw new Error("Số lượng đã bán (sold) không thể vượt quá tổng suất khuyến mãi (quota)");
   }
-  next();
 });
 
 // Unique compound index: mỗi campaign chỉ có 1 cấu hình cho cùng một product + variant (variant_id có thể là null)

@@ -11,7 +11,8 @@ export const updateOrder = async (id, orderBody) => {
   }
 
   const oldStatus = order.status;
-  const oldPaymentStatus = order.payment_status;
+  if (orderBody.status !== undefined && orderBody.status !== "cancelled") throw new AppError("Khách hàng chỉ có thể yêu cầu hủy đơn hàng", 403);
+  if (orderBody.status === "cancelled" && oldStatus !== "cancelled" && !["pending", "confirmed"].includes(oldStatus)) throw new AppError("Đơn hàng không thể hủy ở trạng thái hiện tại", 400);
 
   // BẢO MẬT: Chống Mass Assignment - Whitelist các trường thông tin được phép cập nhật
   const safeCustomerFields = ["shipping_address", "phone_number", "note", "recipient_name"];
@@ -22,38 +23,17 @@ export const updateOrder = async (id, orderBody) => {
   }
 
   // Cập nhật trạng thái nếu hợp lệ
-  if (orderBody.status && ["cancelled", "shipping", "delivered", "confirmed"].includes(orderBody.status)) {
+  if (orderBody.status === "cancelled") {
     order.status = orderBody.status;
   }
 
-  if (
-    (order.status === "cancelled" && oldStatus !== "cancelled") ||
-    (order.payment_status === "failed" && oldPaymentStatus !== "failed")
-  ) {
+  if (order.status === "cancelled" && oldStatus !== "cancelled") {
     await restoreOrderStock(order);
-  }
-
-  if (order.status === "delivered" && order.payment_method === "cod") {
-    order.payment_status = "paid";
-    if (!order.paid_at) {
-      order.paid_at = new Date();
-    }
-  }
-
-  if (order.status === "delivered" && oldStatus !== "delivered") {
-    import("../../tracking/tracking.service.js")
-      .then(({ default: trackingService }) => {
-        trackingService.trackPurchaseCompleted(order);
-      })
-      .catch((err) =>
-        console.warn("[Tracking] Lỗi ghi nhận purchase_completed khi cập nhật giao hàng:", err.message)
-      );
   }
 
   await order.save();
 
   if (order.status !== oldStatus) emitOrderStatusChanged(order);
-  if (order.payment_status !== oldPaymentStatus) emitPaymentUpdated(order);
 
   return order;
 };

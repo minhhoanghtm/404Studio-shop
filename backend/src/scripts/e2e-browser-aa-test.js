@@ -1,3 +1,4 @@
+import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
 import http from "http";
 import express from "express";
 import { chromium } from "playwright";
@@ -8,6 +9,8 @@ import experimentService, { DEFAULT_REC_EXPERIMENT_ID, AA_EXPERIMENT_ID } from "
 import recommendationRouter from "../modules/recommendations/recommendation.route.js";
 import experimentRouter from "../modules/recommendations/experiments/experiment.route.js";
 import trackingRouter from "../modules/tracking/tracking.route.js";
+
+await verifyQaSuiteTarget();
 
 async function runBrowserE2EValidation() {
   console.log("================================================================================");

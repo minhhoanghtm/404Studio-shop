@@ -1,3 +1,4 @@
+import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
 import { connectDB } from "../configs/db.js";
@@ -8,7 +9,8 @@ import User from "../modules/users/user.model.js";
 import Category from "../modules/categories/category.model.js";
 import recommendationService from "../modules/recommendations/recommendation.service.js";
 
-dotenv.config();
+await verifyQaSuiteTarget();
+
 
 const DEMO_ANON_ID = "anon_demo_recommendation_seed";
 

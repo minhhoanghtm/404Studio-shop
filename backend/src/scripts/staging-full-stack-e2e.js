@@ -1,3 +1,4 @@
+import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
 const STAGING_URL = "http://localhost:8081";
 const STAGING_API_URL = "http://localhost:8081/api";
 import { requireEnv } from "./require-env.js";
@@ -19,6 +20,8 @@ import Redis from "ioredis";
 import path from "path";
 import { fileURLToPath } from "url";
 import crypto from "crypto";
+
+await verifyQaSuiteTarget({ liveProviders: true });
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 

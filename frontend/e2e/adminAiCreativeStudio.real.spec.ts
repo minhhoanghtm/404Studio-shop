@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
+import { createIsolatedDesign, openDesignInStudio, seededLayer } from './support/creativeStudioQa';
 
 const enabled = process.env.QA_E2E_ENABLED === 'true';
 const password = process.env.QA_SEED_PASSWORD;
@@ -15,7 +16,9 @@ test.describe('Admin AI + Creative Studio — authenticated QA', () => {
     await page.getByPlaceholder('Tối thiểu 8 ký tự').fill(password);
     await page.getByRole('button', { name: 'Đăng Nhập', exact: true }).click();
     await expect(page).toHaveURL(/\/(admin|profile|)$/);
-    await page.goto('/admin/ai-assistant?tab=creative');
+    const designName = `QA Legacy Editor ${testInfo.project.name} ${Date.now()}`;
+    await createIsolatedDesign(page, designName, [seededLayer({ id: 'qa-caption', type: 'text', name: 'QA Caption', content: 'QA Caption' })]);
+    await openDesignInStudio(page, designName);
     await expect(page.getByRole('button', { name: 'Creative Studio (Poster & Banner)' })).toBeVisible();
     await expect(page.getByLabel('Tên thiết kế')).toBeVisible();
     await page.getByRole('button', { name: 'Văn bản', exact: true }).click();

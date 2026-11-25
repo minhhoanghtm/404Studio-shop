@@ -1,8 +1,10 @@
+import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
 import { connectDB } from "../configs/db.js";
 
-dotenv.config();
+await verifyQaSuiteTarget();
+
 
 const BATCH_SIZE = 100;
 

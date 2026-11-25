@@ -1,5 +1,7 @@
-import "dotenv/config";
+import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
 import mongoose from "mongoose";
+
+await verifyQaSuiteTarget();
 
 const APPLY_FLAG = "--apply";
 const environment = process.env.NODE_ENV || "development";

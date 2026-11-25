@@ -4,6 +4,8 @@ import path from "node:path";
 import ExcelJS from "exceljs";
 import sharp from "sharp";
 import mongoose from "mongoose";
+import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
+import { verifyQaSuiteTarget, assertConnectedQaDatabase } from "../../../common/qa/qaIsolationGuard.js";
 import {
   isSsrfSafeUrl,
   detectImageFormatFromMagicBytes,
@@ -50,24 +52,33 @@ describe("Product Excel Embedded Images Suite", () => {
   let samplePngBuffer;
 
   beforeAll(async () => {
-    // Ensure MongoDB connection (if already connected in Jest or mock)
+    const uri = await verifyQaSuiteTarget();
     if (mongoose.connection.readyState === 0) {
-      const uri = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/atelier_verite_test";
       await mongoose.connect(uri);
     }
+    assertConnectedQaDatabase(mongoose);
 
     samplePngBuffer = await createTestPngBuffer();
 
     sampleCategory = await Category.findOneAndUpdate(
       { slug: "ao-khoac-test-excel" },
       { name: "Áo Khoác Dạ", slug: "ao-khoac-test-excel" },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: "after" }
     );
   });
 
   afterAll(async () => {
     if (sampleCategory) {
+      const testProds = await Product.find({ category_id: sampleCategory._id }).select("_id").lean();
+      const testIds = testProds.map((p) => p._id);
+      if (testIds.length) {
+        await ProductVariant.deleteMany({ product_id: { $in: testIds } });
+        await Product.deleteMany({ _id: { $in: testIds } });
+      }
       await Category.deleteOne({ _id: sampleCategory._id });
+    }
+    if (mongoose.connection.readyState !== 0) {
+      await mongoose.disconnect();
     }
   });
 

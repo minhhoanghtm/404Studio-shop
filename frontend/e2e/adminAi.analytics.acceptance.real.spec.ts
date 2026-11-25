@@ -1,0 +1,54 @@
+import { expect, test } from '@playwright/test';
+
+test('business analytics renders real API totals without invoking AI chat', async ({ page, request }) => {
+  test.skip(process.env.QA_E2E_ENABLED !== 'true', 'Requires isolated QA.');
+  const login = await request.post('http://127.0.0.1:5002/api/auth/login', { data: { email: 'qa.superadmin@atelier.local', passWord: process.env.QA_SEED_PASSWORD } });
+  expect(login.ok()).toBeTruthy();
+  const session = (await login.json()).data;
+  await page.goto('/');
+  const cookies = page.getByRole('button', { name: 'Chấp nhận tất cả' });
+  if (await cookies.isVisible().catch(() => false)) await cookies.click();
+  await page.evaluate((auth) => localStorage.setItem('atelier_patron_auth', JSON.stringify({ state: { token: auth.accessToken, refreshToken: auth.refreshToken, user: auth.user } })), session);
+  const aiCalls: string[] = [];
+  page.on('request', (outgoing) => { if (outgoing.url().includes('/api/admin/ai/chat')) aiCalls.push(outgoing.url()); });
+  const responsePromise = page.waitForResponse((response) => response.url().includes('/api/admin/ai/analytics?period=this_month'));
+  await page.goto('/admin/ai-assistant?tab=analytics');
+  const response = await responsePromise;
+  expect(response.status()).toBe(200);
+  const result = (await response.json()).data;
+  const revenueCard = page.getByText('Tổng Doanh Thu', { exact: true }).locator('..').locator('..');
+  await expect(revenueCard.getByText(result.summary.formattedRevenue, { exact: true })).toBeVisible();
+  await expect(page.getByText('Tổng Đơn Hàng', { exact: true })).toBeVisible();
+  await expect(page.getByText('Tồn kho hiện tại', { exact: true })).toBeVisible();
+  await expect(page.getByText('Sản phẩm bán chạy', { exact: true })).toBeVisible();
+  await expect(page.getByText('Sản phẩm bán chậm', { exact: true })).toBeVisible();
+  await expect(page.getByText('Hiệu quả chiến dịch', { exact: true })).toBeVisible();
+  await expect(page.getByText(`Tổng tài khoản khách hàng: ${result.customers.totalRegisteredUsers}`, { exact: true })).toBeVisible();
+  if (process.env.QA_VIDEO_EVIDENCE === 'true') await page.waitForTimeout(1800);
+  const todayResponse = page.waitForResponse((item) => item.url().includes('/api/admin/ai/analytics?period=today'));
+  await page.getByRole('button', { name: 'Hôm nay', exact: true }).click();
+  expect((await todayResponse).status()).toBe(200);
+  await expect(page.getByText(/Chỉ số kinh doanh \(Hôm nay\)/)).toBeVisible();
+  if (process.env.QA_VIDEO_EVIDENCE === 'true') await page.waitForTimeout(1800);
+  await page.getByLabel('Từ ngày').fill('2020-01-02');
+  await page.getByLabel('Đến ngày').fill('2020-01-01');
+  await page.getByRole('button', { name: 'Xem khoảng ngày' }).click();
+  await expect(page.getByRole('alert')).toContainText('khoảng ngày hợp lệ');
+  if (process.env.QA_VIDEO_EVIDENCE === 'true') await page.waitForTimeout(1800);
+  await page.getByLabel('Từ ngày').fill('2020-01-01');
+  const customResponse = page.waitForResponse((item) => item.url().includes('/api/admin/ai/analytics?period=custom'));
+  await page.getByRole('button', { name: 'Xem khoảng ngày' }).click();
+  const custom = await customResponse;
+  expect(custom.status()).toBe(200);
+  const customData = (await custom.json()).data;
+  await expect(revenueCard.getByText(customData.summary.formattedRevenue, { exact: true })).toBeVisible();
+  if (process.env.QA_VIDEO_EVIDENCE === 'true') await page.waitForTimeout(1800);
+  if (process.env.QA_VIDEO_EVIDENCE === 'true') {
+    await page.getByText('Tồn kho hiện tại', { exact: true }).scrollIntoViewIfNeeded();
+    await page.waitForTimeout(1800);
+    await page.getByText('Khách hàng', { exact: true }).last().scrollIntoViewIfNeeded();
+    await page.waitForTimeout(1800);
+  }
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBeTruthy();
+  expect(aiCalls).toEqual([]);
+});

@@ -18,6 +18,10 @@ test-*.js
 check_redis.js
 ssh_deploy*.js
 src/scratch/
+src/common/qa/
+**/__tests__/
+**/*.test.js
+**/*.node.test.mjs
 jest.config.js
 .git
 .github

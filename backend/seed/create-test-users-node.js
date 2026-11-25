@@ -1,8 +1,10 @@
+import { verifyQaSuiteTarget } from "../src/common/qa/qaIsolationGuard.js";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import User from "../src/modules/users/user.model.js";
 
-dotenv.config();
+await verifyQaSuiteTarget();
+
 
 const run = async () => {
   try {

@@ -101,11 +101,10 @@ const orderSchema = new mongoose.Schema(
       default: 0,
       min: 0,
     },
-    reservation_id: {
-      type: String,
-      default: null,
-      index: true,
-    },
+    shipping_fee: { type: Number, default: 0, min: 0 },
+    reservation_id: { type: String, default: null },
+    idempotency_key: { type: String, default: null },
+    idempotency_request_hash: { type: String, default: null, select: false },
     original_price: {
       type: Number,
       default: 0,
@@ -122,6 +121,14 @@ orderSchema.index({ user_id: 1, createdAt: -1 });
 orderSchema.index({ status: 1, createdAt: -1 });
 orderSchema.index({ payment_status: 1 });
 orderSchema.index({ transaction_id: 1 });
+orderSchema.index(
+  { reservation_id: 1 },
+  { name: "reservation_id_unique_partial", unique: true, partialFilterExpression: { reservation_id: { $type: "string" } } }
+);
+orderSchema.index(
+  { user_id: 1, idempotency_key: 1 },
+  { name: "user_id_idempotency_key_unique_partial", unique: true, partialFilterExpression: { idempotency_key: { $type: "string" } } }
+);
 
 orderSchema.methods.isPaid = function () {
   return this.payment_status === "paid";
@@ -152,7 +159,7 @@ const orderItemSchema = new mongoose.Schema(
     },
     variant_id: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "ProductVariant",
+      ref: "product_variants",
       index: true,
     },
     quantity: {

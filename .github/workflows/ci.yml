@@ -6,6 +6,7 @@ on:
       - main
       - master
       - develop
+      - 'ci/**'
   pull_request:
     branches:
       - main
@@ -37,7 +38,6 @@ jobs:
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        continue-on-error: true
 
       - name: Setup Node.js 22
         uses: actions/setup-node@v4
@@ -48,7 +48,7 @@ jobs:
 
       - name: Frontend Dependency Vulnerability Audit
         working-directory: ./frontend
-        run: npm audit --audit-level=high || true
+        run: npm audit --audit-level=high
 
   # ── JOB 2: FRONTEND LINT, TYPECHECK, UNIT TESTS & PRODUCTION BUILD ───────────
   frontend:
@@ -69,7 +69,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install Frontend Dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
 
       - name: Lint Codebase (Oxlint)
         run: npm run lint
@@ -90,10 +90,13 @@ jobs:
             exit 1
           fi
 
-  # ── JOB 3: BACKEND STATIC CHECKS & TESTS ─────────────────────────────────────
+  # ── JOB 3: BACKEND STATIC CHECKS & UNIT TESTS ────────────────────────────────
   backend:
     name: Backend Quality Gates
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@v4
@@ -102,20 +105,94 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install Backend Dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Backend Lint
+        run: npm run lint
+
+      - name: Run Backend Pure Unit Tests (Jest)
+        run: npm run test:unit
+
+      - name: Run Backend Deterministic Node Unit Tests
+        run: |
+          node --test --test-force-exit \
+            src/modules/ai/__tests__/designOperations.controller.node.test.mjs \
+            src/modules/ai/__tests__/designOperations.security.node.test.mjs \
+            src/modules/ai/__tests__/designPayload.validator.node.test.mjs \
+            src/modules/ai/__tests__/revenueSummary.node.test.mjs
+
+  # ── JOB 4: CHECKOUT ATOMICITY (ISOLATED MONGO REPLICA SET + REDIS) ───────────
+  backend-atomicity:
+    name: Backend Checkout Atomicity & RS Transactions
+    runs-on: ubuntu-latest
+    needs: [backend]
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Start Isolated CI MongoDB Standalone, Replica Set & Redis
+        run: |
+          docker run -d --name ci_redis -p 127.0.0.1:6381:6379 redis:7-alpine
+          docker run -d --name ci_mongo_standalone -p 127.0.0.1:27018:27017 mongo:7.0
+          docker run -d --name ci_mongo_rs -p 127.0.0.1:27019:27019 mongo:7.0 mongod --replSet rs0 --port 27019 --bind_ip_all
+          for i in $(seq 1 30); do
+            if docker exec ci_mongo_rs mongosh --port 27019 --quiet --eval "db.adminCommand('ping')" >/dev/null 2>&1; then
+              break
+            fi
+            sleep 1
+          done
+          docker exec ci_mongo_rs mongosh --port 27019 --quiet --eval "rs.initiate({_id:'rs0',members:[{_id:0,host:'127.0.0.1:27019'}]})"
+          for i in $(seq 1 30); do
+            if docker exec ci_mongo_rs mongosh --port 27019 --quiet --eval "quit(rs.status().myState === 1 ? 0 : 1)" >/dev/null 2>&1; then
+              break
+            fi
+            sleep 1
+          done
 
       - name: Install Backend Dependencies
         working-directory: ./backend
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
 
-      - name: Backend Lint
+      - name: Run Checkout Atomicity Integration Tests
         working-directory: ./backend
-        run: npm run lint || true
+        env:
+          NODE_ENV: test
+          APP_ENV: qa
+          QA_E2E_ENABLED: "true"
+          QA_API_URL: http://127.0.0.1:5002/api
+          QA_SEED_PASSWORD: ci_disposable_qa_password
+          MONGO_CONNECTIONSTRING: mongodb://127.0.0.1:27018/atelier_verite_qa
+          LOCAL_DEV_MONGO_URI: mongodb://127.0.0.1:27018/atelier_verite_qa
+          QA_RS_MONGO_URI: mongodb://127.0.0.1:27019/atelier_verite_qa_rs?replicaSet=rs0
+          REDIS_URL: redis://127.0.0.1:6381
+          REDIS_HOST: 127.0.0.1
+          REDIS_PORT: "6381"
+          ACCESS_TOKEN_SECRET: ci_disposable_access_token_secret_at_least_32_chars
+          REFRESH_TOKEN_SECRET: ci_disposable_refresh_token_secret_at_least_32_chars
+          ACTION_SECRET: ci_disposable_action_secret_key_at_least_32_chars
+          OTP_SECRET: ci_disposable_otp_secret_key_at_least_32_chars
+        run: node --test --test-force-exit src/modules/orders/checkoutAtomicity.qa.integration.node.test.mjs
 
-  # ── JOB 4: DOCKER CONTAINER VERIFICATION ─────────────────────────────────────
+      - name: Cleanup Isolated CI Containers
+        if: always()
+        run: docker rm -f ci_redis ci_mongo_standalone ci_mongo_rs || true
+
+  # ── JOB 5: DOCKER CONTAINER VERIFICATION ─────────────────────────────────────
   docker:
     name: Docker Build & Compose Verification
     runs-on: ubuntu-latest
-    needs: [frontend, backend]
+    needs: [frontend, backend, backend-atomicity]
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@v4
@@ -128,6 +205,8 @@ jobs:
           docker compose -f compose.yaml config --quiet
           docker compose -f compose.yaml -f compose.dev.yaml config --quiet
           docker compose -f compose.yaml -f compose.prod.yaml config --quiet
+          docker compose -f compose.qa.yaml config --quiet
+          docker compose -f compose.qa-rs.yaml config --quiet
 
       - name: Build Frontend Docker Image (Dry-Run Cache Test)
         uses: docker/build-push-action@v6
@@ -145,7 +224,15 @@ jobs:
           push: false
           tags: atelier-verite/backend:ci-test
 
-  # ── JOB 5: PLAYWRIGHT E2E & CONSENT NETWORK AUDIT ────────────────────────────
+      - name: Build Worker Docker Image (Dry-Run Cache Test)
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile.worker
+          push: false
+          tags: atelier-verite/worker:ci-test
+
+  # ── JOB 6: PLAYWRIGHT E2E & CONSENT NETWORK AUDIT ────────────────────────────
   e2e:
     name: Playwright E2E & Legal Privacy Suite
     runs-on: ubuntu-latest
@@ -165,13 +252,13 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install Dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
 
       - name: Install Playwright Chromium Browser
         run: npx playwright install --with-deps chromium
 
       - name: Run Playwright Privacy & Legal Compliance Suite
-        run: npx playwright test e2e/privacyCompliance.spec.ts --project="Desktop Viewport"
+        run: npx playwright test --config=playwright.ci.config.ts --project="Desktop Viewport"
 
       - name: Upload Test Artifacts on Failure
         if: failure()

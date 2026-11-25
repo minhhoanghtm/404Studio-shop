@@ -1,4 +1,4 @@
-import "dotenv/config";
+import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
 import mongoose from "mongoose";
 import { connectDB } from "../configs/db.js";
 import { VectorEmbedding } from "../modules/ai/models/vectorEmbedding.model.js";
@@ -21,6 +21,8 @@ import {
   processVectorSyncJob,
   enqueueVectorSyncJob,
 } from "../modules/ai/queues/vectorSync.queue.js";
+
+await verifyQaSuiteTarget({ liveProviders: true });
 
 async function runBenchmark() {
   console.log("================================================================================");

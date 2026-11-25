@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { AdminLayout } from './AdminLayout';
 import {
   Sparkles,
@@ -36,6 +36,7 @@ import {
   AdminAiConfirmationCard,
   AdminAiProductListCard,
 } from '@/shared/components/adminAi/cards/AdminAiCards';
+import { SafeMarkdown } from '@/shared/components/adminAi/SafeMarkdown';
 import CreativeStudioEditor from './components/CreativeStudioEditor';
 
 export const AdminAiWorkspacePage: React.FC = () => {
@@ -81,10 +82,22 @@ export const AdminAiWorkspacePage: React.FC = () => {
 
   // BI Data State
   const [biPeriod, setBiPeriod] = useState('this_month');
+  const [biStart, setBiStart] = useState('');
+  const [biEnd, setBiEnd] = useState('');
+  const [biCustomRange, setBiCustomRange] = useState<{ startDate: string; endDate: string } | null>(null);
+  const [biRangeError, setBiRangeError] = useState('');
   const [biSummary, setBiSummary] = useState<any>(null);
+  const [biInventory, setBiInventory] = useState<any>(null);
+  const [biLowStock, setBiLowStock] = useState<any>(null);
+  const [biCustomers, setBiCustomers] = useState<any>(null);
+  const [biTopProducts, setBiTopProducts] = useState<any>(null);
+  const [biSlowProducts, setBiSlowProducts] = useState<any>(null);
+  const [biCampaigns, setBiCampaigns] = useState<any>(null);
   const [biTrend, setBiTrend] = useState<any>(null);
   const [biComparison, setBiComparison] = useState<any>(null);
   const [biLoading, setBiLoading] = useState(false);
+  const [biError, setBiError] = useState('');
+  const biRequest = useRef(0);
 
   // Creative Studio State
   const [designs, setDesigns] = useState<AdminDesignProject[]>([]);
@@ -200,25 +213,42 @@ export const AdminAiWorkspacePage: React.FC = () => {
   // Fetch BI Data when tab is analytics
   useEffect(() => {
     if (activeTab === 'analytics') {
-      fetchBiData(biPeriod);
+      if (biPeriod !== 'custom' || biCustomRange) fetchBiData(biPeriod, biPeriod === 'custom' ? biCustomRange || undefined : undefined);
     }
-  }, [activeTab, biPeriod]);
+  }, [activeTab, biPeriod, biCustomRange]);
 
-  const fetchBiData = async (period: string) => {
+  const fetchBiData = async (period: string, range?: { startDate: string; endDate: string }) => {
+    const requestId = ++biRequest.current;
     setBiLoading(true);
+    setBiError('');
     try {
-      // Call AI tools directly or through chat
-      const [sumRes, trendRes] = await Promise.all([
-        adminAiApi.chat({ message: `Thống kê doanh thu ${period}`, mode: 'analytics' }),
-        adminAiApi.chat({ message: `Biểu đồ xu hướng doanh thu ${period}`, mode: 'analytics' }),
-      ]);
-      if (sumRes?.data?.cardData) setBiSummary(sumRes.data.cardData);
-      if (trendRes?.data?.cardData) setBiTrend(trendRes.data.cardData);
+      const response = await adminAiApi.getBusinessAnalytics(period, range);
+      if (requestId !== biRequest.current) return;
+      setBiSummary(response.data?.summary || null);
+      setBiTrend(response.data?.trend || null);
+      setBiInventory(response.data?.inventory || null);
+      setBiLowStock(response.data?.lowStock || null);
+      setBiCustomers(response.data?.customers || null);
+      setBiTopProducts(response.data?.topProducts || null);
+      setBiSlowProducts(response.data?.slowProducts || null);
+      setBiCampaigns(response.data?.campaignPerformance || null);
     } catch {
-      // Handled
+      if (requestId === biRequest.current) { setBiSummary(null); setBiTrend(null); setBiInventory(null); setBiLowStock(null); setBiCustomers(null); setBiTopProducts(null); setBiSlowProducts(null); setBiCampaigns(null); setBiError('Không thể tải dữ liệu kinh doanh. Vui lòng thử lại.'); }
     } finally {
-      setBiLoading(false);
+      if (requestId === biRequest.current) setBiLoading(false);
     }
+  };
+
+  const applyBiRange = () => {
+    const start = Date.parse(`${biStart}T00:00:00Z`);
+    const end = Date.parse(`${biEnd}T00:00:00Z`);
+    if (!biStart || !biEnd || !Number.isFinite(start) || !Number.isFinite(end) || end < start || end - start >= 366 * 86400000) {
+      setBiRangeError('Chọn khoảng ngày hợp lệ, tối đa 366 ngày.');
+      return;
+    }
+    setBiRangeError('');
+    setBiCustomRange({ startDate: biStart, endDate: biEnd });
+    setBiPeriod('custom');
   };
 
   // Fetch Designs when tab is creative
@@ -231,9 +261,12 @@ export const AdminAiWorkspacePage: React.FC = () => {
   const loadCreativeStudio = async () => {
     try {
       const res = await adminAiApi.getDesigns();
+      const requestedId = new URLSearchParams(window.location.search).get('designId');
       if (res?.data && res.data.length > 0) {
         setDesigns(res.data);
-        setActiveDesign(res.data[0]);
+        setActiveDesign(requestedId ? res.data.find((item) => item._id === requestedId) || null : res.data[0]);
+      } else if (requestedId) {
+        setActiveDesign(null);
       } else if (!activeDesign) {
         const defaultPoster: AdminDesignProject = {
           _id: 'default_atelier_poster',
@@ -334,7 +367,10 @@ export const AdminAiWorkspacePage: React.FC = () => {
   };
 
   const handleSaveDesign = async (design: AdminDesignProject) => {
-    const response = await adminAiApi.saveDesign(design);
+    // History is maintained by the server; sending snapshots back on each save
+    // unnecessarily grows the request and does not affect persistence.
+    const { _id, name, preset, width, height, background, layers } = design;
+    const response = await adminAiApi.saveDesign({ _id, name, preset, width, height, background, layers });
     return response?.data;
   };
 
@@ -475,7 +511,7 @@ export const AdminAiWorkspacePage: React.FC = () => {
                           : 'bg-[var(--surface)] border border-[var(--border)] text-[var(--text)] rounded-tl-xs shadow-sm'
                       }`}
                     >
-                      {msg.content}
+                      {msg.role === 'assistant' ? <SafeMarkdown content={msg.content || ''} /> : msg.content}
                     </div>
 
                     {/* Generative Cards */}
@@ -538,12 +574,12 @@ export const AdminAiWorkspacePage: React.FC = () => {
         {/* TAB 2: BUSINESS INTELLIGENCE & ANALYTICS */}
         {activeTab === 'analytics' && (
           <div className="space-y-6">
-            <div className="flex items-center justify-between p-4 rounded-xl bg-[var(--surface)] border border-[var(--border)]">
+            <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-xl bg-[var(--surface)] border border-[var(--border)]">
               <div className="text-xs font-mono font-bold uppercase tracking-wider text-[var(--accent)] flex items-center gap-2">
                 <TrendingUp className="w-4 h-4" />
                 <span>Bảng điều khiển kinh doanh & doanh thu thực tế</span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 {['today', 'this_week', 'this_month', 'last_month', 'this_quarter'].map((p) => (
                   <button
                     key={p}
@@ -560,12 +596,20 @@ export const AdminAiWorkspacePage: React.FC = () => {
                 ))}
               </div>
             </div>
+            <div className="flex flex-wrap items-end gap-3">
+              <label className="text-xs text-[var(--text-muted)]">Từ ngày<input aria-label="Từ ngày" type="date" value={biStart} onChange={(event) => setBiStart(event.target.value)} className="block rounded-lg border border-[var(--border)] bg-[var(--surface)] p-2 text-[var(--text)]" /></label>
+              <label className="text-xs text-[var(--text-muted)]">Đến ngày<input aria-label="Đến ngày" type="date" value={biEnd} onChange={(event) => setBiEnd(event.target.value)} className="block rounded-lg border border-[var(--border)] bg-[var(--surface)] p-2 text-[var(--text)]" /></label>
+              <button type="button" onClick={applyBiRange} className="rounded-lg bg-[var(--accent)] px-3 py-2 text-xs text-[var(--accent-contrast)]">Xem khoảng ngày</button>
+              {biRangeError && <p role="alert" className="text-xs text-red-600">{biRangeError}</p>}
+            </div>
 
             {biLoading ? (
               <div className="p-12 text-center text-xs text-[var(--text-muted)] flex items-center justify-center gap-2">
                 <Loader2 className="w-5 h-5 animate-spin text-[var(--accent)]" />
                 <span>Đang trích xuất dữ liệu từ MongoDB...</span>
               </div>
+            ) : biError ? (
+              <div role="alert" className="p-4 text-sm text-red-600">{biError}</div>
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div>
@@ -573,6 +617,34 @@ export const AdminAiWorkspacePage: React.FC = () => {
                 </div>
                 <div>
                   <AdminAiChartCard data={biTrend} type="line" />
+                  {!biTrend?.dataPoints?.length && <p className="p-4 text-sm text-[var(--text-muted)]">Chưa có dữ liệu doanh thu trong kỳ này.</p>}
+                </div>
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 text-sm space-y-2">
+                  <h3 className="font-semibold">Tồn kho hiện tại</h3>
+                  <p>Sản phẩm đang bán: {biInventory?.totalActiveProducts ?? '—'} · Tổng tồn: {biInventory?.totalStockUnits ?? '—'}</p>
+                  <p>Sắp hết hàng: {biInventory?.lowStockCount ?? '—'} · Hết hàng: {biInventory?.outOfStockCount ?? '—'}</p>
+                  {biLowStock?.products?.length ? <ul className="space-y-1">{biLowStock.products.map((item: any) => <li key={item.id}>{item.name}: {item.stock}</li>)}</ul> : <p className="text-[var(--text-muted)]">Không có sản phẩm sắp hết hàng.</p>}
+                </div>
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 text-sm space-y-2">
+                  <h3 className="font-semibold">Khách hàng</h3>
+                  <p>Tổng tài khoản khách hàng: {biCustomers?.totalRegisteredUsers ?? '—'}</p>
+                  <p>Đăng ký trong kỳ: {biCustomers?.newUsersInPeriod ?? '—'}</p>
+                  <p>Khách đặt hàng trong kỳ: {biCustomers?.activeBuyingCustomers ?? '—'}</p>
+                </div>
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 text-sm space-y-2">
+                  <h3 className="font-semibold">Sản phẩm bán chạy</h3>
+                  <p className="text-xs text-[var(--text-muted)]">Theo số lượng trong đơn đã giao đủ điều kiện ghi nhận.</p>
+                  {biTopProducts?.products?.length ? <ol className="space-y-1">{biTopProducts.products.map((item: any) => <li key={item.productId}>{item.rank}. {item.name}: {item.totalSold}</li>)}</ol> : <p className="text-[var(--text-muted)]">Chưa có sản phẩm bán trong kỳ.</p>}
+                </div>
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 text-sm space-y-2">
+                  <h3 className="font-semibold">Sản phẩm bán chậm</h3>
+                  <p className="text-xs text-[var(--text-muted)]">Tối đa một sản phẩm ghi nhận trong 30 ngày gần đây, ưu tiên tồn kho cao.</p>
+                  {biSlowProducts?.products?.length ? <ul className="space-y-1">{biSlowProducts.products.map((item: any) => <li key={item.id}>{item.name}: tồn {item.stock}, đã bán {item.soldRecent}</li>)}</ul> : <p className="text-[var(--text-muted)]">Không có sản phẩm bán chậm.</p>}
+                </div>
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 text-sm space-y-2">
+                  <h3 className="font-semibold">Hiệu quả chiến dịch</h3>
+                  <p className="text-xs text-[var(--text-muted)]">Đơn đã giao đủ điều kiện; doanh số sản phẩm trước voucher và phí vận chuyển.</p>
+                  {biCampaigns?.campaigns?.length ? <ul className="space-y-1">{biCampaigns.campaigns.map((item: any) => <li key={item.id}>{item.name}: {item.units} sản phẩm, {item.orders} đơn, {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.itemRevenue)}</li>)}</ul> : <p className="text-[var(--text-muted)]">Chưa có doanh số chiến dịch trong kỳ.</p>}
                 </div>
               </div>
             )}
@@ -654,7 +726,7 @@ export const AdminAiWorkspacePage: React.FC = () => {
                   Bản Thảo Nội Dung Sáng Tạo
                 </div>
                 <div className="p-4 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--text)] leading-relaxed whitespace-pre-wrap min-h-[300px]">
-                  {generatedCopy || 'Nhấp "Sáng Tạo Nội Dung Bằng AI" để tạo bài viết quảng cáo đa kênh theo phong cách lựa chọn.'}
+                  {generatedCopy ? <SafeMarkdown content={String(generatedCopy)} /> : 'Nhấp "Sáng Tạo Nội Dung Bằng AI" để tạo bài viết quảng cáo đa kênh theo phong cách lựa chọn.'}
                 </div>
               </div>
             </div>

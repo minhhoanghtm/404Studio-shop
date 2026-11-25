@@ -20,13 +20,14 @@ export type QaLayer = {
 export type QaDesign = {
   _id: string;
   name: string;
-  background: { type: 'color' | 'gradient'; value: string; secondaryValue?: string };
+  background: { type: 'color' | 'gradient' | 'image'; value: string; secondaryValue?: string };
   layers: QaLayer[];
   versionHistory?: Array<{ version: number; name: string; layers: QaLayer[]; background: QaDesign['background'] }>;
 };
 
 const qaPassword = process.env.QA_SEED_PASSWORD;
 const qaApiBase = (process.env.QA_API_URL || process.env.VITE_API_URL || 'http://127.0.0.1:5002/api').replace(/\/$/, '');
+const isolatedDesigns = new WeakMap<Page, Map<string, string>>();
 
 const browserApi = async <T>(page: Page, path: string, method: 'GET' | 'POST', body?: unknown): Promise<T> => {
   const apiPath = path.startsWith('/api/') ? path.slice(4) : path;
@@ -62,14 +63,21 @@ const testSkipIfMissingPassword = () => {
   if (!qaPassword) throw new Error('QA_SEED_PASSWORD is required for authenticated QA browser tests.');
 };
 
-export const createIsolatedDesign = async (page: Page, name: string, layers: QaLayer[]): Promise<QaDesign> => browserApi<QaDesign>(page, '/api/admin/ai/designs', 'POST', {
-  name,
-  preset: 'instagram_portrait',
-  width: 1080,
-  height: 1350,
-  background: { type: 'gradient', value: '#241B3B', secondaryValue: '#101827' },
-  layers,
-});
+export const createIsolatedDesign = async (page: Page, name: string, layers: QaLayer[], background: QaDesign['background'] = { type: 'gradient', value: '#241B3B', secondaryValue: '#101827' }): Promise<QaDesign> => {
+  const api = new URL(qaApiBase);
+  if (process.env.QA_E2E_ENABLED !== 'true' || !['127.0.0.1', 'localhost'].includes(api.hostname) || api.port !== '5002' || !/^QA .+\d{10,}/.test(name)) throw new Error('QA isolation guard refused non-QA endpoint or non-unique design name.');
+  const context = await browserApi<{ environment: string; database: string; databaseHost: string; databasePort: number; connected: boolean; redisQa: boolean }>(page, '/api/admin/ai/qa-context', 'GET');
+  if (context.environment !== 'qa' || context.database !== 'atelier_verite_qa' || !['127.0.0.1', 'localhost'].includes(context.databaseHost) || context.databasePort !== 27018 || !context.connected || !context.redisQa) throw new Error('QA isolation guard refused backend database or Redis target.');
+  const existing = await browserApi<QaDesign[]>(page, '/api/admin/ai/designs', 'GET');
+  if (existing.some((item) => item.name === name)) throw new Error('QA isolation guard refused a duplicate project name.');
+  const design = await browserApi<QaDesign>(page, '/api/admin/ai/designs', 'POST', {
+    name, preset: 'instagram_portrait', width: 1080, height: 1350,
+    background, layers,
+  });
+  const designs = isolatedDesigns.get(page) || new Map<string, string>();
+  designs.set(name, design._id); isolatedDesigns.set(page, designs);
+  return design;
+};
 
 export const readDesign = async (page: Page, designId: string): Promise<QaDesign> => {
   const designs = await browserApi<QaDesign[]>(page, '/api/admin/ai/designs', 'GET');
@@ -79,12 +87,16 @@ export const readDesign = async (page: Page, designId: string): Promise<QaDesign
 };
 
 export const openDesignInStudio = async (page: Page, expectedName: string) => {
-  await page.goto('/admin/ai-assistant?tab=creative');
+  const designId = isolatedDesigns.get(page)?.get(expectedName);
+  if (!designId) throw new Error('QA isolation guard refused a design not created by this page.');
+  await page.goto(`/admin/ai-assistant?tab=creative&designId=${encodeURIComponent(designId)}`);
   await expect(page.getByRole('button', { name: 'Creative Studio (Poster & Banner)' })).toBeVisible();
   await expect(page.getByLabel('Tên thiết kế')).toHaveValue(expectedName);
 };
 
 export const saveDesign = async (page: Page, designId: string): Promise<QaDesign> => {
+  const ownedIds = isolatedDesigns.get(page);
+  if (!ownedIds || ![...ownedIds.values()].includes(designId) || new URL(page.url()).searchParams.get('designId') !== designId) throw new Error('QA isolation guard refused saving a design not created and opened by this page.');
   const response = page.waitForResponse((candidate) => candidate.url().includes('/api/admin/ai/designs') && candidate.request().method() === 'POST' && candidate.ok());
   await page.getByRole('button', { name: 'Lưu', exact: true }).click();
   await response;

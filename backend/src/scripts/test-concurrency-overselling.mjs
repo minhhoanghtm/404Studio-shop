@@ -1,8 +1,11 @@
+import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
 import mongoose from "mongoose";
 import { connectDB } from "../configs/db.js";
 import getRedisConnection from "../configs/redis.js";
 import { Product, ProductVariant } from "../modules/products/product.model.js";
 import inventoryReservationService from "../modules/inventory/inventoryReservation.service.js";
+
+await verifyQaSuiteTarget();
 
 async function runConcurrencyScenario() {
   await connectDB();

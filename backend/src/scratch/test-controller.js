@@ -1,3 +1,4 @@
+import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import path from 'path';
@@ -9,6 +10,8 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 import { getLookbookBySlug } from '../modules/pages/page.controller.js';
+
+await verifyQaSuiteTarget();
 
 async function test() {
   const uri = process.env.MONGO_CONNECTIONSTRING;

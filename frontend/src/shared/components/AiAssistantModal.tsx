@@ -550,23 +550,8 @@ export const AiAssistantModal: React.FC<{ isOpen: boolean; onClose: () => void }
   // Synchronize cart state if AI tool executed cart additions
   const syncCartFromResponse = (data: any) => {
     const actionResult = data?.actionResult;
-    const addedItems =
-      actionResult?.addedItems || actionResult?.items || data?.addedItems;
-
-    if (Array.isArray(addedItems) && addedItems.length > 0) {
-      for (const it of addedItems) {
-        useCartStore.getState().addItem({
-          productId: it.product_id || it.productId || 'p-item',
-          productSlug: it.slug || 'product',
-          name: it.name || 'Sản phẩm Atelier Vérité',
-          price: Number(it.unit_price || it.price || 0),
-          selectedColor: it.color || 'Tiêu chuẩn',
-          selectedColorHex: '#000000',
-          selectedSize: it.size || 'Freesize',
-          quantity: Number(it.quantity || 1),
-          image: it.image || '',
-        });
-      }
+    if (actionResult?.success && actionResult?.status === 'EXECUTED' && actionResult?.actionType === 'add_to_cart') {
+      void useCartStore.getState().validateCartWithBackend();
       addToast('Đã đồng bộ giỏ hàng từ Stylist AI!', 'success');
     }
   };
@@ -849,14 +834,17 @@ export const AiAssistantModal: React.FC<{ isOpen: boolean; onClose: () => void }
   };
 
   // Quick action: Fast add to cart from product card icon
-  const handleQuickAddToCart = (prod: CandidateProduct) => {
+  const handleQuickAddToCart = async (prod: CandidateProduct) => {
     const prodKey = prod.id || prod._id || prod.slug || 'p';
     const chosenColor = selectedVariants[prodKey]?.color || prod.available_colors?.[0] || 'Đen';
     const chosenSize = selectedVariants[prodKey]?.size || prod.available_sizes?.[0] || 'M';
     const finalPrice = prod.finalPrice ?? prod.price_number ?? prod.price ?? 0;
 
-    useCartStore.getState().addItem({
+    const variant = prod.variants?.find((entry) => entry.color === chosenColor && entry.size === chosenSize && Number(entry.stock || 0) > 0);
+    if (prod.variants?.length && !variant) { addToast('Màu hoặc kích cỡ đã chọn không còn khả dụng.', 'error'); return; }
+    const added = await useCartStore.getState().addItem({
       productId: prodKey,
+      variantId: variant?.variant_id,
       productSlug: prod.slug || '',
       name: prod.name || 'Thiết kế Atelier Vérité',
       price: finalPrice,
@@ -866,7 +854,7 @@ export const AiAssistantModal: React.FC<{ isOpen: boolean; onClose: () => void }
       quantity: 1,
       image: prod.image || '',
     });
-    addToast(`Đã thêm nhanh ${prod.name || 'sản phẩm'} vào giỏ hàng!`, 'success');
+    if (added) addToast(`Đã thêm nhanh ${prod.name || 'sản phẩm'} vào giỏ hàng!`, 'success');
   };
 
   const selectColor = (prodKey: string, color: string) => {

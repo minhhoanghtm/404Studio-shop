@@ -2,6 +2,8 @@ import { Product, ProductVariant } from "../product.model.js";
 import { AppError } from "../../../common/exceptions/AppError.js";
 
 export const deductStock = async (items, session = null) => {
+  const applied = [];
+  try {
   for (const item of items) {
     const { product_id, variant_id, quantity } = item;
     const qty = Number(quantity);
@@ -27,12 +29,17 @@ export const deductStock = async (items, session = null) => {
         );
       }
 
+      const change = { product_id, variant_id, qty, parentUpdated: false };
+      applied.push(change);
+
       // 3. Synchronize parent Product total stock and sold count
-      await Product.updateOne(
+      const parentResult = await Product.updateOne(
         { _id: product_id },
         { $inc: { stock: -qty, sold: qty } },
         { session }
       );
+      if (parentResult.matchedCount !== 1) throw new AppError("Sản phẩm không tồn tại hoặc đã bị xóa", 404);
+      change.parentUpdated = true;
     } else {
       // 1. Check if product exists
       const product = await Product.findOne({ _id: product_id }).session(session);
@@ -52,7 +59,23 @@ export const deductStock = async (items, session = null) => {
           400
         );
       }
+      applied.push({ product_id, qty, parentUpdated: true });
     }
+  }
+  } catch (error) {
+    // Transactions roll back their own writes. Standalone MongoDB needs to
+    // compensate earlier successful items when a later deduction fails.
+    if (!session) {
+      for (const change of applied.reverse()) {
+        try {
+          if (change.variant_id) await ProductVariant.updateOne({ _id: change.variant_id, product_id: change.product_id }, { $inc: { stock: change.qty } });
+          if (change.parentUpdated) await Product.updateOne({ _id: change.product_id }, { $inc: { stock: change.qty, sold: -change.qty } });
+        } catch (rollbackError) {
+          console.error("Stock deduction compensation failed:", rollbackError.message);
+        }
+      }
+    }
+    throw error;
   }
 };
 
