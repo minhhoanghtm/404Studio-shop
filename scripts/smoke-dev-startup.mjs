@@ -61,13 +61,41 @@ const killProcessTree = (child) => {
   });
 };
 
+const SYSTEM_ENV_KEYS = [
+  "PATH",
+  "Path",
+  "PATHEXT",
+  "SystemRoot",
+  "SYSTEMROOT",
+  "COMSPEC",
+  "ComSpec",
+  "TEMP",
+  "TMP",
+  "HOME",
+  "USERPROFILE",
+  "APPDATA",
+  "LOCALAPPDATA",
+];
+
+const buildCleanChildEnv = (overrides = {}) => {
+  const clean = {};
+  for (const key of SYSTEM_ENV_KEYS) {
+    if (process.env[key] !== undefined) {
+      clean[key] = process.env[key];
+    }
+  }
+  for (const [key, value] of Object.entries(overrides)) {
+    if (value !== undefined) {
+      clean[key] = value;
+    }
+  }
+  return clean;
+};
+
 const runExpectFailure = (label, args, envOverrides, expectedPattern, cwd = repoRoot) => {
   const result = spawnSync(process.execPath, args, {
     cwd,
-    env: {
-      ...process.env,
-      ...envOverrides,
-    },
+    env: buildCleanChildEnv(envOverrides),
     encoding: "utf8",
     timeout: 20000,
   });
@@ -112,10 +140,7 @@ const startService = (label, args, envOverrides, cwd = repoRoot) => {
   let logs = "";
   const child = spawn(process.execPath, args, {
     cwd,
-    env: {
-      ...process.env,
-      ...envOverrides,
-    },
+    env: buildCleanChildEnv(envOverrides),
     stdio: ["ignore", "pipe", "pipe"],
   });
 
@@ -232,8 +257,7 @@ async function main() {
     ],
     {
       cwd: repoRoot,
-      env: {
-        ...process.env,
+      env: buildCleanChildEnv({
         NODE_ENV: "test",
         APP_ENV: "ci",
         BACKEND_HOST: "127.0.0.1",
@@ -244,14 +268,13 @@ async function main() {
         FRONTEND_URL: `http://127.0.0.1:${frontendPort}`,
         CORS_ORIGINS: `http://127.0.0.1:${frontendPort}`,
         REDIS_HOST: "127.0.0.1",
-        REDIS_PORT: process.env.REDIS_PORT || "16379",
-        REDIS_URL: process.env.REDIS_URL || `redis://127.0.0.1:${process.env.REDIS_PORT || "16379"}`,
+        REDIS_PORT: "16379",
         MONGO_CONNECTIONSTRING: `mongodb://127.0.0.1:${backendPort + 1}/atelier_verite_smoke`,
         ACCESS_TOKEN_SECRET: dummyTokenSecret,
         REFRESH_TOKEN_SECRET: dummyTokenSecret,
         ACTION_SECRET: dummyTokenSecret,
         OTP_SECRET: dummyTokenSecret,
-      },
+      }),
       encoding: "utf8",
       timeout: 20000,
     }
@@ -284,6 +307,13 @@ async function main() {
         FRONTEND_URL: `http://127.0.0.1:${frontendPort}`,
         CLIENT_URL: `http://127.0.0.1:${frontendPort}`,
         CORS_ORIGINS: `http://127.0.0.1:${frontendPort}`,
+        MONGO_HOST: process.env.MONGO_HOST || "127.0.0.1",
+        MONGO_PORT: process.env.MONGO_PORT,
+        MONGO_DATABASE: process.env.MONGO_DATABASE,
+        MONGO_CONNECTIONSTRING: process.env.MONGO_CONNECTIONSTRING,
+        REDIS_HOST: process.env.REDIS_HOST || "127.0.0.1",
+        REDIS_PORT: process.env.REDIS_PORT,
+        REDIS_URL: process.env.REDIS_URL,
         SPRING_AI_SERVICE_URL: `http://127.0.0.1:${aiPort}`,
         AI_SERVICE_SHARED_SECRET: sharedSecret,
         ACCESS_TOKEN_SECRET: process.env.ACCESS_TOKEN_SECRET || dummyTokenSecret,

@@ -12,7 +12,7 @@ export function loadAiServiceEnv(): void {
   if (envBootstrapped) return;
   envBootstrapped = true;
 
-  if (process.env.NODE_ENV === 'test' || process.env.VITEST) {
+  if (process.env.NODE_ENV === 'test' || process.env.APP_ENV === 'ci' || process.env.VITEST) {
     return;
   }
 
