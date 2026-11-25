@@ -67,6 +67,7 @@ backups/
 # UPLOADS / PRIVATE USER DATA
 # ==========================================
 uploads/
+!/backend/src/modules/uploads/
 storage/private/
 private-uploads/
 user-data/

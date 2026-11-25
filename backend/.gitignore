@@ -3,6 +3,7 @@
 !.env.example
 !.env.*.example
 uploads/
+!/src/modules/uploads/
 
 # k6 raw output files (chỉ commit summary.md)
 load-tests/results/*.txt
