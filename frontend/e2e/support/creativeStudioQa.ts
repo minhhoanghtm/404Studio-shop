@@ -1,4 +1,5 @@
 import { expect, type Page } from '@playwright/test';
+import { getQaApiUrl, getQaDatabaseExpectation, getQaRedisPort, isLoopbackHostname } from './qaEnv';
 
 export type QaLayer = {
   id: string;
@@ -26,10 +27,10 @@ export type QaDesign = {
 };
 
 const qaPassword = process.env.QA_SEED_PASSWORD;
-const qaApiBase = (process.env.QA_API_URL || process.env.VITE_API_URL || 'http://127.0.0.1:5002/api').replace(/\/$/, '');
 const isolatedDesigns = new WeakMap<Page, Map<string, string>>();
 
 const browserApi = async <T>(page: Page, path: string, method: 'GET' | 'POST', body?: unknown): Promise<T> => {
+  const qaApiBase = getQaApiUrl();
   const apiPath = path.startsWith('/api/') ? path.slice(4) : path;
   const result = await page.evaluate(async ({ url, method, body }) => {
     const raw = localStorage.getItem('atelier_patron_auth');
@@ -64,10 +65,12 @@ const testSkipIfMissingPassword = () => {
 };
 
 export const createIsolatedDesign = async (page: Page, name: string, layers: QaLayer[], background: QaDesign['background'] = { type: 'gradient', value: '#241B3B', secondaryValue: '#101827' }): Promise<QaDesign> => {
-  const api = new URL(qaApiBase);
-  if (process.env.QA_E2E_ENABLED !== 'true' || !['127.0.0.1', 'localhost'].includes(api.hostname) || api.port !== '5002' || !/^QA .+\d{10,}/.test(name)) throw new Error('QA isolation guard refused non-QA endpoint or non-unique design name.');
-  const context = await browserApi<{ environment: string; database: string; databaseHost: string; databasePort: number; connected: boolean; redisQa: boolean }>(page, '/api/admin/ai/qa-context', 'GET');
-  if (context.environment !== 'qa' || context.database !== 'atelier_verite_qa' || !['127.0.0.1', 'localhost'].includes(context.databaseHost) || context.databasePort !== 27018 || !context.connected || !context.redisQa) throw new Error('QA isolation guard refused backend database or Redis target.');
+  getQaApiUrl();
+  if (process.env.QA_E2E_ENABLED !== 'true' || !/^QA .+\d{10,}/.test(name)) throw new Error('QA isolation guard refused non-QA endpoint or non-unique design name.');
+  const expectedDb = getQaDatabaseExpectation();
+  const expectedRedisPort = getQaRedisPort();
+  const context = await browserApi<{ environment: string; database: string; databaseHost: string; databasePort: number; redisPort?: number; connected: boolean; redisQa: boolean }>(page, '/api/admin/ai/qa-context', 'GET');
+  if (context.environment !== 'qa' || context.database !== expectedDb.database || !isLoopbackHostname(context.databaseHost) || Number(context.databasePort) !== expectedDb.port || !context.connected || !context.redisQa || (context.redisPort !== undefined && Number(context.redisPort) !== expectedRedisPort)) throw new Error('QA isolation guard refused backend database or Redis target.');
   const existing = await browserApi<QaDesign[]>(page, '/api/admin/ai/designs', 'GET');
   if (existing.some((item) => item.name === name)) throw new Error('QA isolation guard refused a duplicate project name.');
   const design = await browserApi<QaDesign>(page, '/api/admin/ai/designs', 'POST', {

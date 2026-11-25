@@ -1,11 +1,11 @@
 import mongoose from "mongoose";
-import { verifyQaSuiteTarget } from "./qaSuiteGuard.mjs";
+import { verifyQaSuiteTarget, assertConnectedQaDatabase } from "./qaSuiteGuard.mjs";
 
 async function testRegistry() {
   const uri = await verifyQaSuiteTarget({ liveProviders: true });
   const [{ default: providerRegistry }, { default: usageCostTracker }] = await Promise.all([import("../providers/ProviderRegistry.js"), import("../services/usageCostTracker.service.js")]);
   await mongoose.connect(uri);
-  if (mongoose.connection.name !== "atelier_verite_qa" || mongoose.connection.port !== 27018) throw new Error("QA database verification failed.");
+  assertConnectedQaDatabase(mongoose);
   console.log("--- 1. Testing Provider Registry ---");
   const statuses = await providerRegistry.getProvidersStatus();
   console.log("Registered providers count:", statuses.length);

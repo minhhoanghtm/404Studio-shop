@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import { createIsolatedDesign, loginQaAdmin, openDesignInStudio, readDesign, saveDesign, seededLayer, type QaLayer } from './support/creativeStudioQa';
+import { getQaApiUrl } from './support/qaEnv';
 
 const enabled = process.env.QA_E2E_ENABLED === 'true';
 
@@ -116,12 +117,13 @@ test.describe('Creative Studio — focused raster export and editable JSON impor
     await page.getByLabel('Chọn JSON để nhập').setInputFiles({ name: 'invalid.json', mimeType: 'application/json', buffer: Buffer.from('{not json}') });
     await expect(page.getByRole('alert')).toContainText('Không thể đọc JSON import');
 
-    const serverValidation = await page.evaluate(async ({ designId, name }) => {
+    const qaApiUrl = getQaApiUrl();
+    const serverValidation = await page.evaluate(async ({ designId, name, qaApiUrl }) => {
       const raw = localStorage.getItem('atelier_patron_auth'); const token = raw ? (JSON.parse(raw)?.state?.token || JSON.parse(raw)?.state?.accessToken) : null;
       const duplicate = { id: 'duplicate-id', type: 'text', name: 'duplicate', x: 0, y: 0, width: 100, height: 100, rotation: 0, opacity: 1, zIndex: 1, visible: true, locked: false, content: 'x', styles: {} };
-      const response = await fetch('http://127.0.0.1:5002/api/admin/ai/designs', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify({ _id: designId, name, preset: 'instagram_portrait', width: 1080, height: 1350, background: { type: 'color', value: '#FFFFFF' }, layers: [duplicate, duplicate] }) });
+      const response = await fetch(`${qaApiUrl}/admin/ai/designs`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify({ _id: designId, name, preset: 'instagram_portrait', width: 1080, height: 1350, background: { type: 'color', value: '#FFFFFF' }, layers: [duplicate, duplicate] }) });
       return response.status;
-    }, { designId: target._id, name: originalName });
+    }, { designId: target._id, name: originalName, qaApiUrl });
     expect(serverValidation).toBe(400);
     const reloaded = await readDesign(page, target._id);
     expect(reloaded.layers.some((layer) => layer.id === 'duplicate-id')).toBeFalsy();

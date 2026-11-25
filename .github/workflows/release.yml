@@ -31,13 +31,21 @@ jobs:
       - name: Checkout Source Code
         uses: actions/checkout@v4
 
+      - name: Load Non-Secret Network Configuration
+        run: grep -E '^[A-Z0-9_]+=' .env.ci >> "$GITHUB_ENV"
+
       - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
           node-version: 22
 
       - name: Validate Compose Production Config
-        run: docker compose -f compose.yaml -f compose.prod.yaml config --quiet
+        run: |
+          export ACCESS_TOKEN_SECRET="$(openssl rand -hex 32)"
+          export REFRESH_TOKEN_SECRET="$(openssl rand -hex 32)"
+          export ACTION_SECRET="$(openssl rand -hex 32)"
+          export OTP_SECRET="$(openssl rand -hex 32)"
+          docker compose --env-file .env.ci -f compose.yaml -f compose.prod.yaml config --quiet
 
   build-release-images:
     name: Build OCI Release Images
@@ -46,6 +54,9 @@ jobs:
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@v4
+
+      - name: Load Non-Secret Network Configuration
+        run: grep -E '^[A-Z0-9_]+=' .env.ci >> "$GITHUB_ENV"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -57,6 +68,12 @@ jobs:
           file: ./frontend/Dockerfile
           push: false
           tags: atelier-verite/frontend:${{ github.ref_name }}
+          build-args: |
+            VITE_API_BASE_URL=${{ env.VITE_API_BASE_URL }}
+            VITE_API_URL=${{ env.VITE_API_BASE_URL }}
+            FRONTEND_INTERNAL_PORT=${{ env.FRONTEND_INTERNAL_PORT }}
+            BACKEND_HOST=backend
+            BACKEND_INTERNAL_PORT=${{ env.BACKEND_INTERNAL_PORT }}
 
       - name: Build Backend Image
         uses: docker/build-push-action@v6
@@ -65,3 +82,5 @@ jobs:
           file: ./backend/Dockerfile
           push: false
           tags: atelier-verite/backend:${{ github.ref_name }}
+          build-args: |
+            BACKEND_INTERNAL_PORT=${{ env.BACKEND_INTERNAL_PORT }}

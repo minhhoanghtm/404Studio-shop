@@ -22,6 +22,7 @@ import {
 import { validatePasswordStrength } from "../../common/utils/password.js";
 import { requireSecret } from "../../common/utils/requireSecret.js";
 import { PRIVACY_POLICY_VERSION } from "../../common/constants/privacyPolicy.js";
+import { getFrontendConfig } from "../../configs/network.config.js";
 
 const { OAuth2Client } = googleAuth;
 dotenv.config();
@@ -1042,7 +1043,8 @@ class AuthService {
     user.resetPasswordExpires = expiresAt;
     await user.save();
 
-    const clientOrigin = req?.headers?.origin || process.env.FRONTEND_URL || process.env.CLIENT_URL || "http://localhost:5173";
+    const clientOrigin =
+      req?.headers?.origin || getFrontendConfig(process.env, { required: true }).url;
     const baseUrl = clientOrigin.trim().replace(/\/$/, "");
     const resetUrl = `${baseUrl}/reset-password/${resetToken}`;
 

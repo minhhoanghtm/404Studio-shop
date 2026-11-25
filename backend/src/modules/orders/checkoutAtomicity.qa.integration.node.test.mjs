@@ -5,22 +5,17 @@ import { spawnSync } from 'node:child_process';
 import crypto from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { validateQaTargetConfig, assertConnectedQaDatabase } from '../../common/qa/qaIsolationGuard.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const RS_URI = 'mongodb://127.0.0.1:27019/atelier_verite_qa_rs?replicaSet=rs0';
 
-function assertQaEnv() {
-  if (process.env.APP_ENV !== 'qa' || process.env.QA_E2E_ENABLED !== 'true') {
-    throw new Error('QA guard refused checkout atomicity suite.');
-  }
-  const redisUrl = process.env.REDIS_URL ? new URL(process.env.REDIS_URL) : null;
-  if (!redisUrl || !['127.0.0.1', 'localhost'].includes(redisUrl.hostname) || redisUrl.port !== '6381') {
-    throw new Error('QA guard refused non-QA Redis target.');
-  }
+function getValidatedRsUri() {
+  const validated = validateQaTargetConfig({ allowReplicaSet: true });
+  return validated.mongoUri.toString();
 }
 
 test('P0 Checkout Atomicity on MongoDB Replica Set + Redis QA', async () => {
-  assertQaEnv();
+  const RS_URI = getValidatedRsUri();
 
   const [
     { createOrder },
@@ -60,8 +55,7 @@ test('P0 Checkout Atomicity on MongoDB Replica Set + Redis QA', async () => {
 
   const orderRepository = orderRepoModule.default;
   const conn = await mongoose.connect(RS_URI);
-  assert.equal(mongoose.connection.name, 'atelier_verite_qa_rs');
-  assert.equal(mongoose.connection.port, 27019);
+  assertConnectedQaDatabase(mongoose, { allowReplicaSet: true });
 
   // Ensure collections & unique indexes exist before multi-document transactions
   await Promise.all([
@@ -481,13 +475,10 @@ test('P0 Checkout Atomicity on MongoDB Replica Set + Redis QA', async () => {
 });
 
 test('P0 Checkout fails closed on standalone MongoDB when transactions are required', async () => {
-  assertQaEnv();
+  const validated = validateQaTargetConfig({ allowReplicaSet: false });
   const prevRequire = process.env.REQUIRE_MONGO_TRANSACTIONS;
   process.env.REQUIRE_MONGO_TRANSACTIONS = 'true';
-  const standaloneUri = process.env.LOCAL_DEV_MONGO_URI || process.env.MONGO_CONNECTIONSTRING;
-  const parsed = new URL(standaloneUri);
-  assert.equal(parsed.port, '27018');
-  assert.equal(parsed.pathname, '/atelier_verite_qa');
+  const standaloneUri = validated.mongoUri.toString();
 
   const [{ createOrder }, { Product }, { Order }] = await Promise.all([
     import('./commands/createOrder.command.js'),
@@ -495,6 +486,7 @@ test('P0 Checkout fails closed on standalone MongoDB when transactions are requi
     import('./order.model.js'),
   ]);
   await mongoose.connect(standaloneUri);
+  assertConnectedQaDatabase(mongoose, { allowReplicaSet: false });
   let isolatedProd;
   const keepAlive = setInterval(() => {}, 5000);
   try {

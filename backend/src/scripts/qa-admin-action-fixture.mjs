@@ -1,20 +1,17 @@
 import mongoose from 'mongoose';
 import jwt from 'jsonwebtoken';
+import { verifyQaSuiteTarget, assertConnectedQaDatabase } from '../common/qa/qaIsolationGuard.js';
 
-let api; let uri; let redis;
-try { api = new URL(process.env.QA_API_URL || ''); uri = new URL(process.env.LOCAL_DEV_MONGO_URI || process.env.MONGO_CONNECTIONSTRING || ''); redis = process.env.REDIS_URL ? new URL(process.env.REDIS_URL) : { hostname: process.env.REDIS_HOST || '', port: process.env.REDIS_PORT || '' }; } catch { throw new Error('QA fixture guard refused configuration.'); }
-if (process.env.APP_ENV !== 'qa' || process.env.QA_E2E_ENABLED !== 'true' || api.protocol !== 'http:' || !['127.0.0.1', 'localhost'].includes(api.hostname) || api.port !== '5002' || api.pathname !== '/api' || !['127.0.0.1', 'localhost'].includes(uri.hostname) || uri.port !== '27018' || uri.pathname !== '/atelier_verite_qa' || !['127.0.0.1', 'localhost'].includes(redis.hostname) || redis.port !== '6381' || !process.env.QA_SEED_PASSWORD) throw new Error('QA fixture guard refused target.');
+const uri = await verifyQaSuiteTarget();
+const api = new URL(process.env.QA_API_URL);
 const login = await fetch(`${api.origin}/api/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'qa.superadmin@atelier.local', passWord: process.env.QA_SEED_PASSWORD }) });
 if (!login.ok) throw new Error('QA login failed.');
 const token = (await login.json()).data.accessToken;
-const response = await fetch(`${api.origin}/api/admin/ai/qa-context`, { headers: { Authorization: `Bearer ${token}` } });
-const context = (await response.json()).data;
-if (!response.ok || context?.environment !== 'qa' || context.database !== 'atelier_verite_qa' || context.databasePort !== 27018 || !context.redisQa) throw new Error('QA runtime verification failed.');
 const adminId = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET).userId;
 const [{ default: agent }, { default: Conversation }, { default: Audit }, { default: Voucher }, { default: History }, { closeRedisConnection }] = await Promise.all([import('../modules/ai/services/adminAiAgent.service.js'), import('../modules/ai/models/adminAiConversation.model.js'), import('../modules/ai/models/adminAiAuditLog.model.js'), import('../modules/vouchers/voucher.model.js'), import('../modules/vouchers/voucherHistory.model.js'), import('../configs/redis.js')]);
-await mongoose.connect(uri.toString());
+await mongoose.connect(uri);
 try {
-  if (mongoose.connection.name !== 'atelier_verite_qa' || mongoose.connection.port !== 27018) throw new Error('QA database verification failed.');
+  assertConnectedQaDatabase(mongoose);
   if (['create', 'create-campaign', 'create-promotion', 'create-description', 'create-banner'].includes(process.argv[2])) {
     const suffix = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`.toUpperCase();
     const promotion = process.argv[2] === 'create-promotion';

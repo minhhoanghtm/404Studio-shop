@@ -6,10 +6,11 @@ import User from "../modules/users/user.model.js";
 import Product from "../modules/products/product.model.js";
 import Campaign from "../modules/campaigns/campaign.model.js";
 import { whitelistAccess } from "../modules/auth/auth.redis.service.js";
+import { getBackendListenConfig } from "../configs/network.config.js";
 
 await verifyQaSuiteTarget();
 
-const BACKEND_URL = "http://localhost:5000";
+const BACKEND_URL = getBackendListenConfig(process.env).publicUrl;
 
 async function run() {
   console.log("==================================================================");

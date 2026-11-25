@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import { mock } from 'node:test';
-import { verifyQaSuiteTarget } from '../modules/ai/__tests__/qaSuiteGuard.mjs';
+import { verifyQaSuiteTarget, assertConnectedQaDatabase } from '../modules/ai/__tests__/qaSuiteGuard.mjs';
 
 const uri = await verifyQaSuiteTarget();
 const [{ default: service }, { default: router }, { default: Design }, { default: User }, { closeRedisConnection }] = await Promise.all([
@@ -8,7 +8,7 @@ const [{ default: service }, { default: router }, { default: Design }, { default
 ]);
 await mongoose.connect(uri);
 try {
-  if (mongoose.connection.name !== 'atelier_verite_qa' || mongoose.connection.port !== 27018) throw new Error('QA database verification failed.');
+  assertConnectedQaDatabase(mongoose);
   const admin = await User.findOne({ email: 'qa.superadmin@atelier.local' }).lean();
   if (!admin) throw new Error('QA admin missing.');
   if (process.argv[2] === 'create') {

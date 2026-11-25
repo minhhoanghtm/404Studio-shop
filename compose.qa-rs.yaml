@@ -2,13 +2,13 @@ services:
   mongo-qa-rs:
     image: mongo:7.0
     container_name: atelier_qa_mongo_rs
-    command: ["mongod", "--replSet", "rs0", "--port", "27019", "--bind_ip_all"]
+    command: ["mongod", "--replSet", "${MONGO_RS_NAME:-rs0}", "--port", "${MONGO_RS_INTERNAL_PORT:?MONGO_RS_INTERNAL_PORT is required}", "--bind_ip_all"]
     ports:
-      - "127.0.0.1:27019:27019"
+      - "${MONGO_RS_HOST:?MONGO_RS_HOST is required}:${MONGO_RS_PORT:?MONGO_RS_PORT is required}:${MONGO_RS_INTERNAL_PORT:?MONGO_RS_INTERNAL_PORT is required}"
     volumes:
       - atelier_qa_mongo_rs_data:/data/db
     healthcheck:
-      test: ["CMD", "mongosh", "--port", "27019", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      test: ["CMD", "mongosh", "--port", "${MONGO_RS_INTERNAL_PORT:?MONGO_RS_INTERNAL_PORT is required}", "--quiet", "--eval", "db.adminCommand('ping').ok"]
       interval: 5s
       timeout: 5s
       retries: 10

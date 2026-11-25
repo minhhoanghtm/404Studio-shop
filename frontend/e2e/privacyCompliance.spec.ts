@@ -136,6 +136,10 @@ test.describe('Phase 11 — Legal Compliance, Privacy & Cookie Consent Suite', (
       }));
     });
 
+    await page.addLocatorHandler(page.getByTestId('promotional-popup'), async () => {
+      await page.getByTestId('popup-close').click();
+    });
+
     await page.goto('/data-privacy');
     await page.waitForSelector('h1', { timeout: 10000 });
     await expect(page.locator('h1')).toContainText('Trung Tâm Quyền Riêng Tư');
@@ -145,7 +149,9 @@ test.describe('Phase 11 — Legal Compliance, Privacy & Cookie Consent Suite', (
     await withdrawBtn.click();
 
     // Verify preferences modal opens allowing instant withdrawal
-    const modal = page.locator('div[role="dialog"][aria-modal="true"]');
+    const modal = page.locator('div[role="dialog"][aria-modal="true"]').filter({
+      has: page.locator('button:has-text("Từ chối tất cả tùy chọn")'),
+    });
     await expect(modal).toBeVisible();
     await modal.locator('button:has-text("Từ chối tất cả tùy chọn")').click();
 

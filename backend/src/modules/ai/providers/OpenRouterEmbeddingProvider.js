@@ -1,4 +1,5 @@
 import { EmbeddingProvider } from "./EmbeddingProvider.js";
+import { getFrontendConfig } from "../../../configs/network.config.js";
 
 // Default cost per 1M tokens for text-embedding-3-small is $0.02 ($2e-8 per token)
 const DEFAULT_COST_PER_TOKEN = 2e-8;
@@ -38,7 +39,9 @@ export class OpenRouterEmbeddingProvider extends EmbeddingProvider {
         headers: {
           Authorization: `Bearer ${this.apiKey}`,
           "Content-Type": "application/json",
-          "HTTP-Referer": process.env.CLIENT_URL || "http://localhost:5173",
+          ...(getFrontendConfig(process.env, { required: false }).url
+            ? { "HTTP-Referer": getFrontendConfig(process.env, { required: false }).url }
+            : {}),
           "X-Title": "WebFashion",
         },
         body: JSON.stringify({

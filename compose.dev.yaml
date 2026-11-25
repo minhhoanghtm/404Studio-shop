@@ -11,4 +11,4 @@ services:
 
   frontend:
     ports:
-      - "5173:80"
+      - "${FRONTEND_PORT:?FRONTEND_PORT is required}:${FRONTEND_INTERNAL_PORT:?FRONTEND_INTERNAL_PORT is required}"

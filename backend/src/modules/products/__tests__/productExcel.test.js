@@ -92,8 +92,9 @@ describe("Product Excel Embedded Images Suite", () => {
     });
 
     test("isSsrfSafeUrl rejects localhost, internal IPs and dangerous protocols", () => {
-      expect(isSsrfSafeUrl("http://localhost:5000/api/secret")).toBe(false);
-      expect(isSsrfSafeUrl("http://127.0.0.1:5000")).toBe(false);
+      const testPort = process.env.BACKEND_PORT || process.env.PORT;
+      expect(isSsrfSafeUrl(`http://localhost:${testPort}/api/secret`)).toBe(false);
+      expect(isSsrfSafeUrl(`http://127.0.0.1:${testPort}`)).toBe(false);
       expect(isSsrfSafeUrl("http://10.0.0.1/admin")).toBe(false);
       expect(isSsrfSafeUrl("http://192.168.1.100")).toBe(false);
       expect(isSsrfSafeUrl("http://172.20.0.1")).toBe(false);

@@ -10,13 +10,7 @@ import {
   ALL_PERMISSIONS,
 } from "../modules/roles/role.constant.js";
 
-await verifyQaSuiteTarget();
-
-
-const MONGO_URI =
-  process.env.LOCAL_DEV_MONGO_URI ||
-  process.env.MONGO_CONNECTIONSTRING ||
-  "mongodb://127.0.0.1:27017/atelier_verite";
+const MONGO_URI = await verifyQaSuiteTarget();
 
 export async function seedRolesAndAdmin(options = {}) {
   const shouldDisconnect = options.disconnect !== false;

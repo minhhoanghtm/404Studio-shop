@@ -3,26 +3,23 @@ import assert from 'node:assert/strict';
 import mongoose from 'mongoose';
 import bcrypt from 'bcrypt';
 import ExcelJS from 'exceljs';
+import { verifyQaSuiteTarget, assertConnectedQaDatabase } from './qaSuiteGuard.mjs';
 
 test('QA revenue aggregation reconciles final totals and discounts against isolated orders', async () => {
-  let api; let uri; let redis;
-  try { api = new URL(process.env.QA_API_URL || ''); uri = new URL(process.env.LOCAL_DEV_MONGO_URI || process.env.MONGO_CONNECTIONSTRING || ''); redis = process.env.REDIS_URL ? new URL(process.env.REDIS_URL) : { hostname: process.env.REDIS_HOST || '', port: process.env.REDIS_PORT || '' }; } catch { throw new Error('QA guard refused missing configuration.'); }
-  if (process.env.APP_ENV !== 'qa' || process.env.QA_E2E_ENABLED !== 'true' || api.protocol !== 'http:' || !['127.0.0.1', 'localhost'].includes(api.hostname) || api.port !== '5002' || api.pathname !== '/api' || !['127.0.0.1', 'localhost'].includes(uri.hostname) || uri.port !== '27018' || uri.pathname !== '/atelier_verite_qa' || !['127.0.0.1', 'localhost'].includes(redis.hostname) || redis.port !== '6381' || !process.env.QA_SEED_PASSWORD) throw new Error('QA guard refused target.');
+  const mongoUri = await verifyQaSuiteTarget();
+  const api = new URL(process.env.QA_API_URL);
   const login = await fetch(`${api.origin}/api/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'qa.superadmin@atelier.local', passWord: process.env.QA_SEED_PASSWORD }) });
   if (!login.ok) throw new Error('QA login failed.');
   const token = (await login.json()).data.accessToken;
-  const response = await fetch(`${api.origin}/api/admin/ai/qa-context`, { headers: { Authorization: `Bearer ${token}` } });
-  const context = (await response.json()).data;
-  if (!response.ok || context?.environment !== 'qa' || context.database !== 'atelier_verite_qa' || context.databasePort !== 27018 || !context.redisQa) throw new Error('QA runtime verification failed.');
   const [{ Order, OrderItem }, { default: User }, { Product }, { getRevenueSummary, getCustomerStatistics, getTopSellingProducts, getSlowMovingProducts, parsePeriodDates }] = await Promise.all([import('../../orders/order.model.js'), import('../../users/user.model.js'), import('../../products/product.model.js'), import('../services/adminAiTools.service.js')]);
   const { getKPIs } = await import('../../orders/queries/order.query.js');
   const [{ default: Campaign }, { default: campaignService }] = await Promise.all([import('../../campaigns/campaign.model.js'), import('../../campaigns/campaign.service.js')]);
-  await mongoose.connect(uri.toString());
+  await mongoose.connect(mongoUri);
   const ids = [];
   const intervalIds = [];
   let customerFixture; let restrictedManager; let slowProduct; let campaignFixture;
   try {
-    if (mongoose.connection.name !== 'atelier_verite_qa' || mongoose.connection.port !== 27018) throw new Error('QA database verification failed.');
+    assertConnectedQaDatabase(mongoose);
     customerFixture = await User.create({ fullName: 'QA analytics customer', email: `qa-analytics-${Date.now()}@atelier.invalid`, passWord: 'unused-qa-fixture', role: 'customer' });
     const expectedCustomers = await User.countDocuments({ role: { $in: ['user', 'customer'] } });
     assert.equal((await getCustomerStatistics()).totalRegisteredUsers, expectedCustomers);

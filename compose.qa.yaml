@@ -4,13 +4,14 @@ services:
   mongo:
     image: mongo:7.0
     container_name: atelier_qa_mongo
+    command: ["mongod", "--port", "${MONGO_INTERNAL_PORT:?MONGO_INTERNAL_PORT is required}", "--bind_ip_all"]
     ports:
-      - "127.0.0.1:27018:27017"
+      - "${MONGO_HOST:?MONGO_HOST is required}:${MONGO_PORT:?MONGO_PORT is required}:${MONGO_INTERNAL_PORT:?MONGO_INTERNAL_PORT is required}"
     volumes:
       - atelier_qa_mongo_data:/data/db
     networks: [atelier-qa-network]
     healthcheck:
-      test: ["CMD-SHELL", "mongosh --quiet --eval 'db.adminCommand(\"ping\")' >/dev/null"]
+      test: ["CMD", "mongosh", "--port", "${MONGO_INTERNAL_PORT:?MONGO_INTERNAL_PORT is required}", "--quiet", "--eval", "db.adminCommand('ping').ok"]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -18,13 +19,14 @@ services:
   redis:
     image: redis:7-alpine
     container_name: atelier_qa_redis
+    command: ["redis-server", "--port", "${REDIS_INTERNAL_PORT:?REDIS_INTERNAL_PORT is required}"]
     ports:
-      - "127.0.0.1:6381:6379"
+      - "${REDIS_HOST:?REDIS_HOST is required}:${REDIS_PORT:?REDIS_PORT is required}:${REDIS_INTERNAL_PORT:?REDIS_INTERNAL_PORT is required}"
     volumes:
       - atelier_qa_redis_data:/data
     networks: [atelier-qa-network]
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-p", "${REDIS_INTERNAL_PORT:?REDIS_INTERNAL_PORT is required}", "ping"]
       interval: 5s
       timeout: 5s
       retries: 20

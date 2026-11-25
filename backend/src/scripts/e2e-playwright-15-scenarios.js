@@ -16,12 +16,13 @@ import User from "../modules/users/user.model.js";
 import Order from "../modules/orders/order.model.js";
 import { getRedisConnection } from "../configs/redis.js";
 import trackingService from "../modules/tracking/tracking.service.js";
+import { getBackendListenConfig, getFrontendConfig } from "../configs/network.config.js";
 
 await verifyQaSuiteTarget({ liveProviders: true });
 
 const SCREENSHOTS_DIR = "C:\\Users\\apple fix nts\\.gemini\\antigravity\\brain\\5569998e-4f92-4c47-afdd-c80b7192a933\\screenshots";
-const FRONTEND_URL = "http://localhost:5173";
-const BACKEND_URL = "http://localhost:5000";
+const FRONTEND_URL = getFrontendConfig(process.env, { required: true }).url;
+const BACKEND_URL = getBackendListenConfig(process.env).publicUrl;
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -136,7 +137,7 @@ async function run15Scenarios() {
       scenario: 1,
       name: "Anonymous Visit",
       pass: sc1Pass,
-      action: "Navigate to http://localhost:5173",
+      action: `Navigate to ${FRONTEND_URL}`,
       request: `POST /api/events (event_type: page_view, anonymous_id: ${capturedAnonId})`,
       mongoRecordId: pageViewEvent?._id?.toString() || "NONE",
     });

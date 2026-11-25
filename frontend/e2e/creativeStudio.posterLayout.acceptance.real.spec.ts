@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
+import { getQaApiUrl } from './support/qaEnv';
 
 type Fixture = { id: string; name: string; title: string };
 const backend = path.resolve(process.cwd(), '../backend');
@@ -19,7 +20,7 @@ test('opens, edits, saves and exports the provider-unavailable layout', async ({
   test.setTimeout(120000);
   const fixture = fixtureCommand('create');
   try {
-    const login = await request.post('http://127.0.0.1:5002/api/auth/login', { data: { email: 'qa.superadmin@atelier.local', passWord: process.env.QA_SEED_PASSWORD } });
+    const login = await request.post(`${getQaApiUrl()}/auth/login`, { data: { email: 'qa.superadmin@atelier.local', passWord: process.env.QA_SEED_PASSWORD } });
     expect(login.ok()).toBeTruthy();
     const session = (await login.json()).data;
     await page.goto('/');

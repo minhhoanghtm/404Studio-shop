@@ -18,8 +18,11 @@ WORKDIR /app
 # Install dumb-init for proper PID 1 signal propagation and zombie reaping
 RUN apk add --no-cache dumb-init curl
 
+ARG BACKEND_INTERNAL_PORT
 ENV NODE_ENV=production
-ENV PORT=5000
+ENV BACKEND_INTERNAL_PORT=${BACKEND_INTERNAL_PORT}
+ENV BACKEND_PORT=${BACKEND_INTERNAL_PORT}
+ENV PORT=${BACKEND_INTERNAL_PORT}
 
 # Copy node_modules from deps stage
 COPY --from=deps /app/node_modules ./node_modules
@@ -34,11 +37,9 @@ RUN mkdir -p /app/uploads && chown -R node:node /app
 # Use non-root node user provided by alpine node image
 USER node
 
-EXPOSE 5000
-
-# Built-in healthcheck probe using native fetch
+# Built-in healthcheck probe reading port strictly from runtime ENV
 HEALTHCHECK --interval=15s --timeout=5s --start-period=15s --retries=3 \
-  CMD node -e "fetch('http://127.0.0.1:5000/api/health/liveness').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+  CMD node -e "const p=process.env.BACKEND_PORT||process.env.PORT||process.env.BACKEND_INTERNAL_PORT; if(!p) process.exit(1); fetch('http://127.0.0.1:'+p+'/api/health/liveness').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
 
 # dumb-init forwards SIGTERM/SIGINT directly to node process for graceful shutdown
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]

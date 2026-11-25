@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import { parseHttpUrl } from "../../../configs/network.config.js";
 
 const enabled = () =>
   process.env.AI_ORCHESTRATOR === "spring" ||
@@ -6,10 +7,17 @@ const enabled = () =>
 
 /** Calls the private TypeScript AI Service endpoint only after this Node process verified the browser JWT. */
 export async function sendToSpringAi(payload, { userId, role }) {
-  const baseUrl = String(process.env.SPRING_AI_SERVICE_URL || "http://localhost:8081").replace(/\/$/, "");
-  const secret = process.env.AI_SERVICE_SHARED_SECRET || "dev_shared_secret_key_minimum_32_characters_123456";
   if (!enabled()) {
     const error = new Error("AI service orchestration is not enabled");
+    error.code = "SPRING_AI_NOT_CONFIGURED";
+    throw error;
+  }
+  const baseUrl = parseHttpUrl(process.env.SPRING_AI_SERVICE_URL, "SPRING_AI_SERVICE_URL", {
+    required: true,
+  });
+  const secret = process.env.AI_SERVICE_SHARED_SECRET;
+  if (!secret) {
+    const error = new Error("AI_SERVICE_SHARED_SECRET is required when AI service orchestration is enabled");
     error.code = "SPRING_AI_NOT_CONFIGURED";
     throw error;
   }

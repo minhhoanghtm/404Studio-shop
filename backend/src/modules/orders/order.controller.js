@@ -7,6 +7,7 @@ import WebsiteSettings from "../websiteSettings/websiteSettings.model.js";
 import crypto from "crypto";
 import { getEffectivePermissions } from "../../middlewares/rbac.middleware.js";
 import { quoteCheckout } from "./checkoutQuote.service.js";
+import { getFrontendConfig } from "../../configs/network.config.js";
 
 const getGuestAccessToken = (req) =>
   req.get("x-guest-order-token") || req.body?.guest_access_token || null;
@@ -187,7 +188,8 @@ export const paymentCallback = async (req, res, next) => {
     // BẢO MẬT: Chặn bypass trạng thái thanh toán từ query parameters không xác thực
     const order = orderId ? await orderFacade.getOrderDetail(orderId).catch(() => null) : null;
     const paymentStatus = order?.payment_status || "pending";
-    return res.redirect(`${process.env.CLIENT_URL || "http://localhost:5173"}/payment/${orderId || ""}`);
+    const frontendUrl = getFrontendConfig(process.env, { required: true }).url;
+    return res.redirect(`${frontendUrl}/payment/${orderId || ""}`);
   } catch (error) {
     next(error);
   }

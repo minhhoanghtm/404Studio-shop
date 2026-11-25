@@ -2,6 +2,7 @@ import "dotenv/config";
 import app from "./app.js";
 import { connectDB } from "./configs/db.js";
 import { validateEnvironment } from "./configs/validateEnv.js";
+import { getBackendListenConfig } from "./configs/network.config.js";
 import { closeRedisConnection } from "./configs/redis.js";
 import inventoryReservationService from "./modules/inventory/inventoryReservation.service.js";
 import { initSocketServer } from "./sockets/index.js";
@@ -13,8 +14,6 @@ import { initOrderCron } from "./cron/order.cron.js";
 import { initCampaignCron } from "./cron/campaign.cron.js";
 import { createServer } from "http";
 import mongoose from "mongoose";
-
-const PORT = process.env.PORT || 5000;
 
 
 // Catch unhandled errors gracefully to ensure backend stability
@@ -88,10 +87,16 @@ const startServer = async () => {
     initOrderCron();
     initCampaignCron();
 
-    // 6. Lắng nghe cổng kết nối
-    server.listen(PORT, () => {
-      console.log(`🚀 Server is running on port ${PORT}: http://localhost:${PORT}`);
-    });
+    // 6. Lắng nghe cổng kết nối từ ENV
+    const { port, bindHost, publicUrl } = getBackendListenConfig(process.env);
+    const onListen = () => {
+      console.log(`🚀 Server is running on port ${port}: ${publicUrl}`);
+    };
+    if (bindHost) {
+      server.listen(port, bindHost, onListen);
+    } else {
+      server.listen(port, onListen);
+    }
   } catch (error) {
     console.error("❌ Failed to start server:", error);
     process.exit(1);

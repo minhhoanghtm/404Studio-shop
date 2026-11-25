@@ -5,6 +5,7 @@ import fs from "fs";
 import crypto from "crypto";
 import mongoose from "mongoose";
 import { getRedisConnection } from "../../configs/redis.js";
+import { getRedisConnectionConfig, isLoopbackHost } from "../../configs/network.config.js";
 import { protectedRoute, adminOnly, staffOrAdmin } from "../../middlewares/auth.middleware.js";
 import { authenticate, authorize } from "../../middlewares/rbac.middleware.js";
 import { createAiChatLimiter } from "../../middlewares/rateLimiter.middleware.js";
@@ -70,7 +71,26 @@ adminAiRouter.use(staffOrAdmin);
 // Only available in the isolated QA environment; allows test suites to verify
 // the running backend's actual database before creating mutable fixtures.
 if (process.env.APP_ENV === "qa") {
-  adminAiRouter.get("/qa-context", (req, res) => { const redis = getRedisConnection(); res.json({ success: true, data: { environment: process.env.APP_ENV, database: mongoose.connection.name, databaseHost: mongoose.connection.host, databasePort: mongoose.connection.port, connected: mongoose.connection.readyState === 1, redisQa: redis.status === 'ready' && ['127.0.0.1', 'localhost'].includes(redis.options.host) && redis.options.port === 6381 } }); });
+  adminAiRouter.get("/qa-context", (req, res) => {
+    const redis = getRedisConnection();
+    const expectedRedis = getRedisConnectionConfig(process.env);
+    res.json({
+      success: true,
+      data: {
+        environment: process.env.APP_ENV,
+        database: mongoose.connection.name,
+        databaseHost: mongoose.connection.host,
+        databasePort: mongoose.connection.port,
+        redisHost: redis.options.host,
+        redisPort: redis.options.port,
+        connected: mongoose.connection.readyState === 1,
+        redisQa:
+          redis.status === "ready" &&
+          isLoopbackHost(redis.options.host) &&
+          Number(redis.options.port) === Number(expectedRedis.port),
+      },
+    });
+  });
 }
 
 // 1. AI Copilot Chat & Multi-Tool Execution

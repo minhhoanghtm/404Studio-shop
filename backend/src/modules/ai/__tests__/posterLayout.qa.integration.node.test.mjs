@@ -1,7 +1,7 @@
 import { test, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import mongoose from 'mongoose';
-import { verifyQaSuiteTarget } from './qaSuiteGuard.mjs';
+import { verifyQaSuiteTarget, assertConnectedQaDatabase } from './qaSuiteGuard.mjs';
 
 test('QA fallback poster is an editable layout and never invents a product', async () => {
   const uri = await verifyQaSuiteTarget();
@@ -9,7 +9,7 @@ test('QA fallback poster is an editable layout and never invents a product', asy
     import('../services/adminImageGeneration.service.js'), import('../services/aiRouter.service.js'), import('../models/adminDesignProject.model.js'), import('../../products/product.model.js'), import('../../users/user.model.js'), import('../designPayload.validator.js'), import('../../../configs/redis.js'),
   ]);
   await mongoose.connect(uri);
-  if (mongoose.connection.name !== 'atelier_verite_qa' || mongoose.connection.port !== 27018) throw new Error('QA database verification failed.');
+  assertConnectedQaDatabase(mongoose);
   const ids = [];
   let emptyProviderResponse = false;
   const provider = mock.method(router, 'executeImageGenerationWithFallback', async () => { if (emptyProviderResponse) return { images: [] }; throw new Error('QA provider unavailable'); });

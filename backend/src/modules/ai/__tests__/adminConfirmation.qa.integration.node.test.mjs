@@ -4,19 +4,16 @@ import mongoose from 'mongoose';
 import supertest from 'supertest';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
+import { verifyQaSuiteTarget, assertConnectedQaDatabase } from './qaSuiteGuard.mjs';
 
 test('QA admin confirmation binds owner and payload and can be claimed once', async () => {
-  let api; let uri; let redis;
-  try { api = new URL(process.env.QA_API_URL || ''); uri = new URL(process.env.LOCAL_DEV_MONGO_URI || process.env.MONGO_CONNECTIONSTRING || ''); redis = process.env.REDIS_URL ? new URL(process.env.REDIS_URL) : { hostname: process.env.REDIS_HOST || '', port: process.env.REDIS_PORT || '' }; } catch { throw new Error('QA guard refused missing configuration.'); }
-  if (process.env.APP_ENV !== 'qa' || process.env.QA_E2E_ENABLED !== 'true' || api.protocol !== 'http:' || !['127.0.0.1', 'localhost'].includes(api.hostname) || api.port !== '5002' || api.pathname !== '/api' || !['127.0.0.1', 'localhost'].includes(uri.hostname) || uri.port !== '27018' || uri.pathname !== '/atelier_verite_qa' || !['127.0.0.1', 'localhost'].includes(redis.hostname) || redis.port !== '6381' || !process.env.QA_SEED_PASSWORD) throw new Error('QA guard refused target.');
+  const mongoUri = await verifyQaSuiteTarget();
+  const api = new URL(process.env.QA_API_URL);
   const login = await fetch(`${api.origin}/api/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'qa.superadmin@atelier.local', passWord: process.env.QA_SEED_PASSWORD }) });
   if (!login.ok) throw new Error('QA login failed.');
   const token = (await login.json()).data.accessToken;
-  const response = await fetch(`${api.origin}/api/admin/ai/qa-context`, { headers: { Authorization: `Bearer ${token}` } });
-  const context = (await response.json()).data;
-  if (!response.ok || context?.environment !== 'qa' || context.database !== 'atelier_verite_qa' || context.databasePort !== 27018 || !context.redisQa) throw new Error('QA runtime verification failed.');
   const [{ default: agent }, { default: Audit }, { default: voucherService }, { default: voucherModel }, { default: VoucherHistory }, { default: bannerService }, { default: Banner }, { default: Conversation }, { default: aiRouter }, { closeRedisConnection }, { default: app }] = await Promise.all([import('../services/adminAiAgent.service.js'), import('../models/adminAiAuditLog.model.js'), import('../../vouchers/voucher.service.js'), import('../../vouchers/voucher.model.js'), import('../../vouchers/voucherHistory.model.js'), import('../../banners/banner.service.js'), import('../../banners/banner.model.js'), import('../models/adminAiConversation.model.js'), import('../services/aiRouter.service.js'), import('../../../configs/redis.js'), import('../../../app.js')]);
-  await mongoose.connect(uri.toString());
+  await mongoose.connect(mongoUri);
   const userId = new mongoose.Types.ObjectId();
   const apiActionIds = [];
   const conversationIds = [];
@@ -32,7 +29,7 @@ test('QA admin confirmation binds owner and payload and can be claimed once', as
   const save = mock.method(voucherService, 'createVoucher', async (_userId, data) => { assert.equal(data.status, 'INACTIVE'); writes += 1; return { ...data, _id: new mongoose.Types.ObjectId() }; });
   const bannerSave = mock.method(bannerService, 'createBanner', async (_userId, data) => { assert.equal(data.isActive, false); return { ...data, _id: new mongoose.Types.ObjectId() }; });
   try {
-    if (mongoose.connection.name !== 'atelier_verite_qa' || mongoose.connection.port !== 27018) throw new Error('QA database verification failed.');
+    assertConnectedQaDatabase(mongoose);
     const pending = await agent.executeTool('prepare_voucher', { code: 'QAONLY', discountValue: 10 }, auth);
     const request = { actionId: pending.actionId, actionType: pending.actionType, confirmationToken: pending.confirmationToken, payload: pending.payload };
     await assert.rejects(agent.executeConfirmedAction({ ...request, confirmationToken: 'invalid' }, auth));

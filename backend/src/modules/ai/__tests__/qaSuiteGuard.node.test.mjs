@@ -26,7 +26,14 @@ function withEnv(overrides, fn) {
 }
 
 test('QA suite guard rejects wrong API, MongoDB, Redis, env, and unapproved live providers without leaking secrets', async () => {
-  await withEnv({ QA_API_URL: 'http://127.0.0.1:5000/api' }, async () => {
+  const configuredBackendPort = Number(process.env.BACKEND_PORT || process.env.PORT);
+  const wrongBackendPort = configuredBackendPort + 1;
+  const configuredMongoPort = Number(process.env.MONGO_PORT);
+  const wrongMongoPort = configuredMongoPort + 1;
+  const configuredRedisPort = Number(process.env.REDIS_PORT);
+  const wrongRedisPort = configuredRedisPort + 1;
+
+  await withEnv({ QA_API_URL: `http://127.0.0.1:${wrongBackendPort}/api` }, async () => {
     await assert.rejects(verifyQaSuiteTarget(), /refused target/);
   });
 
@@ -44,9 +51,18 @@ test('QA suite guard rejects wrong API, MongoDB, Redis, env, and unapproved live
 
   await withEnv(
     {
-      LOCAL_DEV_MONGO_URI: 'mongodb://127.0.0.1:27017/atelier_verite_test',
-      MONGO_CONNECTIONSTRING: 'mongodb://127.0.0.1:27017/atelier_verite_test',
+      LOCAL_DEV_MONGO_URI: `mongodb://127.0.0.1:${wrongMongoPort}/atelier_verite_test`,
+      MONGO_CONNECTIONSTRING: `mongodb://127.0.0.1:${wrongMongoPort}/atelier_verite_test`,
       MONGO_URI: undefined,
+    },
+    async () => {
+      await assert.rejects(verifyQaSuiteTarget(), /refused target/);
+    }
+  );
+
+  await withEnv(
+    {
+      MONGO_DATABASE: 'webfashion_prod',
     },
     async () => {
       await assert.rejects(verifyQaSuiteTarget(), /refused target/);
@@ -66,9 +82,8 @@ test('QA suite guard rejects wrong API, MongoDB, Redis, env, and unapproved live
 
   await withEnv(
     {
-      REDIS_URL: 'redis://127.0.0.1:6379',
+      REDIS_URL: `redis://127.0.0.1:${wrongRedisPort}`,
       REDIS_HOST: '127.0.0.1',
-      REDIS_PORT: '6379',
     },
     async () => {
       await assert.rejects(verifyQaSuiteTarget(), /refused target/);
@@ -106,12 +121,12 @@ test('QA suite guard rejects wrong API, MongoDB, Redis, env, and unapproved live
   );
 
   const cfg = validateQaTargetConfig();
-  assert.equal(cfg.mongoUri.pathname, '/atelier_verite_qa');
-  assert.equal(cfg.redis.port, '6381');
-  assert.equal(cfg.api.port, '5002');
+  assert.equal(cfg.mongoUri.pathname, `/${process.env.MONGO_DATABASE}`);
+  assert.equal(cfg.redis.port, String(configuredRedisPort));
+  assert.equal(cfg.api.port, String(configuredBackendPort));
 
   const uri = await verifyQaSuiteTarget();
-  assert.equal(new URL(uri).pathname, '/atelier_verite_qa');
+  assert.equal(new URL(uri).pathname, `/${process.env.MONGO_DATABASE}`);
 });
 
 test('guarded seed, mutation, AI provider scripts, and runner fail closed when target is non-QA or unconfigured', () => {
@@ -119,11 +134,11 @@ test('guarded seed, mutation, AI provider scripts, and runner fail closed when t
     ...process.env,
     APP_ENV: 'development',
     QA_E2E_ENABLED: 'false',
-    LOCAL_DEV_MONGO_URI: 'mongodb://127.0.0.1:27017/webfashion_dev',
-    MONGO_CONNECTIONSTRING: 'mongodb://127.0.0.1:27017/webfashion_dev',
-    MONGO_URI: 'mongodb://127.0.0.1:27017/webfashion_dev',
-    QA_API_URL: 'http://127.0.0.1:5000/api',
-    REDIS_URL: 'redis://127.0.0.1:6379',
+    LOCAL_DEV_MONGO_URI: 'mongodb://127.0.0.1/webfashion_dev',
+    MONGO_CONNECTIONSTRING: 'mongodb://127.0.0.1/webfashion_dev',
+    MONGO_URI: 'mongodb://127.0.0.1/webfashion_dev',
+    QA_API_URL: 'http://127.0.0.1/api',
+    REDIS_URL: 'redis://127.0.0.1',
   };
   delete nonQaEnv.QA_ALLOW_LIVE_PROVIDER_TESTS;
 

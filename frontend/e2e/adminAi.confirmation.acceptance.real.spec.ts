@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
+import { getQaApiUrl } from './support/qaEnv';
 
 type Fixture = { code: string; title: string; actionId: string; conversationId: string };
 const backend = path.resolve(process.cwd(), '../backend');
@@ -19,7 +20,7 @@ test('confirms or cancels an isolated draft and preserves its state on reload', 
   const fixtures: Fixture[] = [];
   try {
     fixtures.push(fixtureCommand('create'), fixtureCommand('create'));
-    const login = await request.post('http://127.0.0.1:5002/api/auth/login', { data: { email: 'qa.superadmin@atelier.local', passWord: process.env.QA_SEED_PASSWORD } });
+    const login = await request.post(`${getQaApiUrl()}/auth/login`, { data: { email: 'qa.superadmin@atelier.local', passWord: process.env.QA_SEED_PASSWORD } });
     expect(login.ok()).toBeTruthy();
     const session = (await login.json()).data;
     await page.goto('/');
@@ -60,7 +61,7 @@ test('confirms an isolated campaign draft and preserves its confirmation on relo
   test.setTimeout(120000);
   const fixture: Fixture = fixtureCommand('create-campaign');
   try {
-    const login = await request.post('http://127.0.0.1:5002/api/auth/login', { data: { email: 'qa.superadmin@atelier.local', passWord: process.env.QA_SEED_PASSWORD } });
+    const login = await request.post(`${getQaApiUrl()}/auth/login`, { data: { email: 'qa.superadmin@atelier.local', passWord: process.env.QA_SEED_PASSWORD } });
     expect(login.ok()).toBeTruthy();
     const session = (await login.json()).data;
     await page.goto('/');
@@ -89,7 +90,7 @@ test('confirms an isolated promotion draft and preserves its confirmation on rel
   test.setTimeout(120000);
   const fixture: Fixture = fixtureCommand('create-promotion');
   try {
-    const login = await request.post('http://127.0.0.1:5002/api/auth/login', { data: { email: 'qa.superadmin@atelier.local', passWord: process.env.QA_SEED_PASSWORD } });
+    const login = await request.post(`${getQaApiUrl()}/auth/login`, { data: { email: 'qa.superadmin@atelier.local', passWord: process.env.QA_SEED_PASSWORD } });
     expect(login.ok()).toBeTruthy();
     const session = (await login.json()).data;
     await page.goto('/');
@@ -119,7 +120,7 @@ test('confirms an isolated product description update and banner draft and prese
   const descFixture: Fixture = fixtureCommand('create-description');
   const bannerFixture: Fixture = fixtureCommand('create-banner');
   try {
-    const login = await request.post('http://127.0.0.1:5002/api/auth/login', { data: { email: 'qa.superadmin@atelier.local', passWord: process.env.QA_SEED_PASSWORD } });
+    const login = await request.post(`${getQaApiUrl()}/auth/login`, { data: { email: 'qa.superadmin@atelier.local', passWord: process.env.QA_SEED_PASSWORD } });
     expect(login.ok()).toBeTruthy();
     const session = (await login.json()).data;
     await page.goto('/');

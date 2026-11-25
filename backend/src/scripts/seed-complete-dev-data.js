@@ -33,7 +33,9 @@ function verifySafeTarget(uri) {
     throw new Error("ABORT: Seed script cannot run when NODE_ENV is production!");
   }
   const isCloudOrProd = /mongodb\.net|cluster|prod|live/i.test(uri);
-  const isLocal = /localhost|127\.0\.0\.1|27017|27018/i.test(uri);
+  let hostname = "";
+  try { hostname = new URL(uri).hostname; } catch {}
+  const isLocal = /localhost|127\.0\.0\.1/i.test(hostname) || /localhost|127\.0\.0\.1/i.test(uri);
   if (isCloudOrProd && !isLocal) {
     throw new Error("ABORT: Connection string looks like a shared cloud or production database! Seed aborted.");
   }

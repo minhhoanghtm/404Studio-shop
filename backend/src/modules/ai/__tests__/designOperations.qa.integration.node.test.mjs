@@ -3,22 +3,19 @@ import assert from 'node:assert/strict';
 import mongoose from 'mongoose';
 import request from 'supertest';
 import sharp from 'sharp';
+import { verifyQaSuiteTarget, assertConnectedQaDatabase } from './qaSuiteGuard.mjs';
 
 test('authenticated QA operations are atomic and enforce asset policy without a live provider', async () => {
-  let api; let uri; let redis;
-  try { api = new URL(process.env.QA_API_URL || ''); uri = new URL(process.env.LOCAL_DEV_MONGO_URI || process.env.MONGO_CONNECTIONSTRING || ''); redis = process.env.REDIS_URL ? new URL(process.env.REDIS_URL) : { hostname: process.env.REDIS_HOST || '', port: process.env.REDIS_PORT || '' }; } catch { throw new Error('QA integration guard refused missing or invalid configuration.'); }
-  if (process.env.APP_ENV !== 'qa' || process.env.QA_E2E_ENABLED !== 'true' || api.protocol !== 'http:' || !['127.0.0.1', 'localhost'].includes(api.hostname) || api.port !== '5002' || api.pathname !== '/api' || !['127.0.0.1', 'localhost'].includes(uri.hostname) || uri.port !== '27018' || uri.pathname !== '/atelier_verite_qa' || !['127.0.0.1', 'localhost'].includes(redis.hostname) || redis.port !== '6381' || !process.env.QA_SEED_PASSWORD) throw new Error('QA integration guard refused target.');
+  const mongoUri = await verifyQaSuiteTarget();
+  const api = new URL(process.env.QA_API_URL);
   const login = await fetch(`${api.origin}/api/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'qa.superadmin@atelier.local', passWord: process.env.QA_SEED_PASSWORD }) });
   if (!login.ok) throw new Error('QA authentication failed.');
   const token = (await login.json()).data.accessToken;
-  const context = await fetch(`${api.origin}/api/admin/ai/qa-context`, { headers: { Authorization: `Bearer ${token}` } });
-  const qa = (await context.json()).data;
-  if (!context.ok || qa?.environment !== 'qa' || qa.database !== 'atelier_verite_qa' || qa.databasePort !== 27018 || !qa.redisQa) throw new Error('QA runtime verification failed.');
   const [{ default: app }, { default: aiRouter }, { default: AdminDesignProject }, { ProductVariant }, { default: Banner }, { closeRedisConnection }] = await Promise.all([
     import('../../../app.js'), import('../services/aiRouter.service.js'), import('../models/adminDesignProject.model.js'), import('../../products/product.model.js'), import('../../banners/banner.model.js'), import('../../../configs/redis.js'),
   ]);
-  await mongoose.connect(uri.toString());
-  if (mongoose.connection.name !== 'atelier_verite_qa' || mongoose.connection.port !== 27018) throw new Error('QA database verification failed.');
+  await mongoose.connect(mongoUri);
+  assertConnectedQaDatabase(mongoose);
   const layer = (id, locked = false) => ({ id, type: 'text', name: id, x: 20, y: 20, width: 200, height: 80, rotation: 0, opacity: 1, zIndex: 1, visible: true, locked, content: 'Original', styles: {} });
   const created = await fetch(`${api.origin}/api/admin/ai/designs`, { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ name: `QA Deterministic Operations ${Date.now()}`, preset: 'instagram_portrait', width: 1080, height: 1350, background: { type: 'color', value: '#ffffff' }, layers: [layer('open'), layer('locked', true)] }) });
   if (!created.ok) throw new Error(`QA design creation failed (${created.status}).`);

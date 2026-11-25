@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from "@jest/globals";
 import mongoose from "mongoose";
-import { verifyQaSuiteTarget } from "./qaSuiteGuard.mjs";
+import { verifyQaSuiteTarget, assertConnectedQaDatabase } from "./qaSuiteGuard.mjs";
 let providerRegistry; let aiRouter; let usageCostTracker; let adminImageGenerationService; let adminAiAgentService; let tools;
 
 describe("Multi-Provider AI & Image Generation Test Suite", () => {
@@ -15,7 +15,7 @@ describe("Multi-Provider AI & Image Generation Test Suite", () => {
     if (mongoose.connection.readyState === 0) {
       await mongoose.connect(uri);
     }
-    if (mongoose.connection.name !== "atelier_verite_qa" || mongoose.connection.port !== 27018) throw new Error("QA database verification failed.");
+    assertConnectedQaDatabase(mongoose);
   });
 
   afterAll(async () => {

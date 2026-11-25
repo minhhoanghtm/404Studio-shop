@@ -1,19 +1,21 @@
 import { expect, test } from '@playwright/test';
 import { customerCartFixture, type CustomerCartFixture } from './support/customerCartFixture';
+import { getQaApiUrl } from './support/qaEnv';
 
 test('checkout quotes and orders the reserved variant while preserving another cart variant', async ({ page, request }) => {
   test.skip(process.env.QA_E2E_ENABLED !== 'true', 'Requires isolated QA.');
   test.setTimeout(90000); page.setDefaultTimeout(15000);
   let fixture: CustomerCartFixture | undefined;
   try {
+    const apiUrl = getQaApiUrl();
     fixture = customerCartFixture('create');
-    const login = await request.post('http://127.0.0.1:5002/api/auth/login', { data: { email: 'qa.customer.b@atelier.local', passWord: process.env.QA_SEED_PASSWORD } });
+    const login = await request.post(`${apiUrl}/auth/login`, { data: { email: 'qa.customer.b@atelier.local', passWord: process.env.QA_SEED_PASSWORD } });
     expect(login.ok()).toBeTruthy(); const session = (await login.json()).data; const headers = { Authorization: `Bearer ${session.accessToken}` };
     for (const [variantId, quantity] of [[fixture.variantId, 2], [fixture.variant2Id, 1]] as const) {
-      const added = await request.post('http://127.0.0.1:5002/api/cart_items', { headers, data: { product_id: fixture.productId, variant_id: variantId, quantity } });
+      const added = await request.post(`${apiUrl}/cart_items`, { headers, data: { product_id: fixture.productId, variant_id: variantId, quantity } });
       expect(added.status()).toBe(200);
     }
-    const reserved = await request.post('http://127.0.0.1:5002/api/checkout/reservations', { headers, data: { items: [{ productId: fixture.productId, variantId: fixture.variantId, quantity: 2 }] } });
+    const reserved = await request.post(`${apiUrl}/checkout/reservations`, { headers, data: { items: [{ productId: fixture.productId, variantId: fixture.variantId, quantity: 2 }] } });
     expect(reserved.status()).toBe(201); fixture.reservationId = (await reserved.json()).data.reservationId;
     await page.goto('/');
     const cookies = page.getByRole('button', { name: 'Chấp nhận tất cả' });
@@ -38,10 +40,10 @@ test('checkout quotes and orders the reserved variant while preserving another c
     await page.getByRole('button', { name: 'Xác nhận & Hoàn tất đơn hàng' }).click();
     const placed = await orderResponse; expect(placed.status()).toBe(200); const order = (await placed.json()).order;
     expect(order.reservation_id).toBe(fixture.reservationId); expect(order.shipping_fee).toBe(30000); expect(order.total_price).toBe(230000);
-    const orderItems = await request.get(`http://127.0.0.1:5002/api/order_items/${order._id}`, { headers }); expect(orderItems.status()).toBe(200);
+    const orderItems = await request.get(`${apiUrl}/order_items/${order._id}`, { headers }); expect(orderItems.status()).toBe(200);
     const purchased = (await orderItems.json()).data; expect(purchased).toHaveLength(1); expect(String(purchased[0].variant_id?._id || purchased[0].variant_id)).toBe(fixture.variantId); expect(purchased[0].quantity).toBe(2);
-    const cart = (await (await request.get('http://127.0.0.1:5002/api/cart', { headers })).json()).data;
-    const remaining = (await (await request.get(`http://127.0.0.1:5002/api/cart_items/${cart._id}`, { headers })).json()).data;
+    const cart = (await (await request.get(`${apiUrl}/cart`, { headers })).json()).data;
+    const remaining = (await (await request.get(`${apiUrl}/cart_items/${cart._id}`, { headers })).json()).data;
     expect(remaining.some((item: any) => String(item.variant_id?._id || item.variant_id) === fixture!.variantId)).toBeFalsy();
     expect(remaining.some((item: any) => String(item.variant_id?._id || item.variant_id) === fixture!.variant2Id)).toBeTruthy();
   } finally { if (fixture) customerCartFixture('cleanup', fixture); }
@@ -52,14 +54,15 @@ test('multi-variant reservation checkout creates one order with all reserved var
   test.setTimeout(90000); page.setDefaultTimeout(15000);
   let fixture: CustomerCartFixture | undefined;
   try {
+    const apiUrl = getQaApiUrl();
     fixture = customerCartFixture('create');
-    const login = await request.post('http://127.0.0.1:5002/api/auth/login', { data: { email: 'qa.customer.b@atelier.local', passWord: process.env.QA_SEED_PASSWORD } });
+    const login = await request.post(`${apiUrl}/auth/login`, { data: { email: 'qa.customer.b@atelier.local', passWord: process.env.QA_SEED_PASSWORD } });
     expect(login.ok()).toBeTruthy(); const session = (await login.json()).data; const headers = { Authorization: `Bearer ${session.accessToken}` };
     for (const [variantId, quantity] of [[fixture.variantId, 1], [fixture.variant2Id, 2]] as const) {
-      const added = await request.post('http://127.0.0.1:5002/api/cart_items', { headers, data: { product_id: fixture.productId, variant_id: variantId, quantity } });
+      const added = await request.post(`${apiUrl}/cart_items`, { headers, data: { product_id: fixture.productId, variant_id: variantId, quantity } });
       expect(added.status()).toBe(200);
     }
-    const reserved = await request.post('http://127.0.0.1:5002/api/checkout/reservations', {
+    const reserved = await request.post(`${apiUrl}/checkout/reservations`, {
       headers,
       data: { items: [{ productId: fixture.productId, variantId: fixture.variantId, quantity: 1 }, { productId: fixture.productId, variantId: fixture.variant2Id, quantity: 2 }] },
     });
@@ -82,7 +85,7 @@ test('multi-variant reservation checkout creates one order with all reserved var
     await page.getByRole('button', { name: 'Xác nhận & Hoàn tất đơn hàng' }).click();
     const placed = await orderResponse; expect(placed.status()).toBe(200);
     const order = (await placed.json()).order;
-    const orderItems = await request.get(`http://127.0.0.1:5002/api/order_items/${order._id}`, { headers });
+    const orderItems = await request.get(`${apiUrl}/order_items/${order._id}`, { headers });
     expect(orderItems.status()).toBe(200);
     const purchased = (await orderItems.json()).data;
     expect(purchased).toHaveLength(2);

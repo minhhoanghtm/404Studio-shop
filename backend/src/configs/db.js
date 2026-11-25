@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
 import { validateQaTargetConfig } from "../common/qa/qaIsolationGuard.js";
+import { getMongoConnectionConfig } from "./network.config.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
@@ -15,12 +16,7 @@ export const connectDB = async () => {
     if (process.env.APP_ENV === "qa") {
       validateQaTargetConfig({ verifyRuntime: false });
     }
-    const connectionString =
-      process.env.LOCAL_DEV_MONGO_URI ||
-      process.env.MONGO_CONNECTIONSTRING;
-    if (!connectionString) {
-      throw new Error("Missing MongoDB connection string (LOCAL_DEV_MONGO_URI or MONGO_CONNECTIONSTRING). Refusing default fallback.");
-    }
+    const { uri: connectionString } = getMongoConnectionConfig(process.env, { required: true });
     const conn = await mongoose.connect(connectionString, {
       serverSelectionTimeoutMS: 5000,
       connectTimeoutMS: 10000,

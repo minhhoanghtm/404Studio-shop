@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { customerCartFixture, type CustomerCartFixture } from './support/customerCartFixture';
+import { getQaApiUrl } from './support/qaEnv';
 
 test('authenticated product selection persists cart quantity and removal', async ({ page, request }) => {
   test.skip(process.env.QA_E2E_ENABLED !== 'true', 'Requires isolated QA.');
@@ -7,18 +8,19 @@ test('authenticated product selection persists cart quantity and removal', async
   page.setDefaultTimeout(12000);
   let fixture: CustomerCartFixture | undefined;
   try {
+    const apiUrl = getQaApiUrl();
     fixture = customerCartFixture('create');
-    const login = await request.post('http://127.0.0.1:5002/api/auth/login', { data: { email: 'qa.customer.b@atelier.local', passWord: process.env.QA_SEED_PASSWORD } });
+    const login = await request.post(`${apiUrl}/auth/login`, { data: { email: 'qa.customer.b@atelier.local', passWord: process.env.QA_SEED_PASSWORD } });
     expect(login.ok()).toBeTruthy();
     const session = (await login.json()).data; const headers = { Authorization: `Bearer ${session.accessToken}` };
-    const otherLogin = await request.post('http://127.0.0.1:5002/api/auth/login', { data: { email: 'qa.customer.a@atelier.local', passWord: process.env.QA_SEED_PASSWORD } });
+    const otherLogin = await request.post(`${apiUrl}/auth/login`, { data: { email: 'qa.customer.a@atelier.local', passWord: process.env.QA_SEED_PASSWORD } });
     expect(otherLogin.ok()).toBeTruthy(); const otherSession = (await otherLogin.json()).data;
     const getItems = async () => {
-      const cart = await request.get('http://127.0.0.1:5002/api/cart', { headers });
+      const cart = await request.get(`${apiUrl}/cart`, { headers });
       if (!cart.ok()) return [];
       const data = (await cart.json()).data;
       if (!data?._id) return [];
-      const items = await request.get(`http://127.0.0.1:5002/api/cart_items/${data._id}`, { headers });
+      const items = await request.get(`${apiUrl}/cart_items/${data._id}`, { headers });
       return items.ok() ? (await items.json()).data : [];
     };
     await page.goto('/');

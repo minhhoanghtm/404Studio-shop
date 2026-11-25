@@ -11,8 +11,9 @@ import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
  * 5. Complete Event Reconciliation (Sent vs Ingested vs Persisted vs Suppressed vs Errors)
  */
 
-const STAGING_URL = "http://localhost:8081";
-const STAGING_API_URL = "http://localhost:8081/api";
+import { getBackendListenConfig } from "../configs/network.config.js";
+const STAGING_URL = (process.env.STAGING_URL || getBackendListenConfig(process.env).publicUrl).replace(/\/$/, "");
+const STAGING_API_URL = `${STAGING_URL}/api`;
 import { requireEnv } from "./require-env.js";
 
 const STAGING_MONGO_URI = requireEnv("MONGO_CONNECTIONSTRING");

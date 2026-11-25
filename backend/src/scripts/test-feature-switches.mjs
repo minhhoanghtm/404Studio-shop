@@ -1,10 +1,11 @@
 import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
 import { connectDB } from "../configs/db.js";
 import Product from "../modules/products/product.model.js";
+import { getBackendListenConfig } from "../configs/network.config.js";
 
 await verifyQaSuiteTarget();
 
-const BACKEND_URL = "http://localhost:5000";
+const BACKEND_URL = getBackendListenConfig(process.env).publicUrl;
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 

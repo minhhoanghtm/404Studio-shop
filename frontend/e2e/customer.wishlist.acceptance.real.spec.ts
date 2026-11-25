@@ -1,20 +1,22 @@
 import { expect, test } from '@playwright/test';
 import { customerCartFixture, type CustomerCartFixture } from './support/customerCartFixture';
+import { getQaApiUrl } from './support/qaEnv';
 
 test('authenticated wishlist persists and stays isolated between customers and guest', async ({ page, request }) => {
   test.skip(process.env.QA_E2E_ENABLED !== 'true', 'Requires isolated QA.');
   test.setTimeout(120000);
   let fixture: CustomerCartFixture | undefined;
   try {
+    const apiUrl = getQaApiUrl();
     fixture = customerCartFixture('create');
     const login = async (email: string) => {
-      const response = await request.post('http://127.0.0.1:5002/api/auth/login', { data: { email, passWord: process.env.QA_SEED_PASSWORD } });
+      const response = await request.post(`${apiUrl}/auth/login`, { data: { email, passWord: process.env.QA_SEED_PASSWORD } });
       expect(response.ok()).toBeTruthy(); return (await response.json()).data;
     };
     const userB = await login('qa.customer.b@atelier.local');
     const userA = await login('qa.customer.a@atelier.local');
     const fetchFavorites = async (token: string) => {
-      const response = await request.get('http://127.0.0.1:5002/api/favorites', { headers: { Authorization: `Bearer ${token}` } });
+      const response = await request.get(`${apiUrl}/favorites`, { headers: { Authorization: `Bearer ${token}` } });
       expect(response.status()).toBe(200); return (await response.json()).data;
     };
     await page.goto('/');

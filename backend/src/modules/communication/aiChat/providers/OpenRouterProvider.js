@@ -1,4 +1,5 @@
 import { AIProvider } from "./AIProvider.js";
+import { getFrontendConfig } from "../../../../configs/network.config.js";
 
 export class OpenRouterProvider extends AIProvider {
   constructor({
@@ -42,7 +43,9 @@ export class OpenRouterProvider extends AIProvider {
         headers: {
           Authorization: `Bearer ${this.apiKey}`,
           "Content-Type": "application/json",
-          "HTTP-Referer": process.env.CLIENT_URL || "http://localhost:5173",
+          ...(getFrontendConfig(process.env, { required: false }).url
+            ? { "HTTP-Referer": getFrontendConfig(process.env, { required: false }).url }
+            : {}),
           "X-Title": "WebFashion",
         },
         body: JSON.stringify(body),

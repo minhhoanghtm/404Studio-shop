@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import { createIsolatedDesign, loginQaAdmin, loginQaUser, openDesignInStudio, readDesign, saveDesign } from './support/creativeStudioQa';
+import { getQaApiUrl, getQaFrontendUrl } from './support/qaEnv';
 
 test('enforces design ownership and customer denial while uploaded image URLs are shared', async ({ page, browser }, testInfo) => {
   test.skip(process.env.QA_E2E_ENABLED !== 'true', 'Requires isolated QA.');
@@ -19,14 +20,16 @@ test('enforces design ownership and customer denial while uploaded image URLs ar
   await page.getByRole('button', { name: 'JSON', exact: true }).click();
   const exported = JSON.parse(await readFile((await (await downloading).path())!, 'utf8'));
 
-  const otherContext = await browser.newContext({ baseURL: 'http://127.0.0.1:5174' });
+  const qaApiUrl = getQaApiUrl();
+  const qaFrontendUrl = getQaFrontendUrl();
+  const otherContext = await browser.newContext({ baseURL: qaFrontendUrl });
   try {
     const other = await otherContext.newPage();
     await loginQaUser(other, 'qa.admin@atelier.local');
-    const crossOwnerOperation = await other.evaluate(async (designId) => {
+    const crossOwnerOperation = await other.evaluate(async ({ designId, qaApiUrl }) => {
       const raw = localStorage.getItem('atelier_patron_auth'); const token = raw ? (JSON.parse(raw)?.state?.token || JSON.parse(raw)?.state?.accessToken) : null;
-      return (await fetch('http://127.0.0.1:5002/api/admin/ai/designs/operations', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ designId, request: 'QA edit' }) })).status;
-    }, source._id);
+      return (await fetch(`${qaApiUrl}/admin/ai/designs/operations`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ designId, request: 'QA edit' }) })).status;
+    }, { designId: source._id, qaApiUrl });
     expect(crossOwnerOperation).toBe(404);
     const publicAsset = await other.request.get(upload.content);
     expect(publicAsset.status()).toBe(200);
@@ -40,20 +43,20 @@ test('enforces design ownership and customer denial while uploaded image URLs ar
     expect(imported._id).not.toBe(source._id);
   } finally { await otherContext.close(); }
 
-  const customerContext = await browser.newContext({ baseURL: 'http://127.0.0.1:5174' });
+  const customerContext = await browser.newContext({ baseURL: qaFrontendUrl });
   try {
     const customer = await customerContext.newPage();
     await loginQaUser(customer, 'qa.customer.a@atelier.local');
-    const denied = await customer.evaluate(async (body) => {
+    const denied = await customer.evaluate(async ({ body, qaApiUrl }) => {
       const raw = localStorage.getItem('atelier_patron_auth'); const token = raw ? (JSON.parse(raw)?.state?.token || JSON.parse(raw)?.state?.accessToken) : null;
-      const response = await fetch('http://127.0.0.1:5002/api/admin/ai/designs', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
+      const response = await fetch(`${qaApiUrl}/admin/ai/designs`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
       return response.status;
-    }, exported.project);
+    }, { body: exported.project, qaApiUrl });
     expect(denied).toBe(403);
-    const operationDenied = await customer.evaluate(async (designId) => {
+    const operationDenied = await customer.evaluate(async ({ designId, qaApiUrl }) => {
       const raw = localStorage.getItem('atelier_patron_auth'); const token = raw ? (JSON.parse(raw)?.state?.token || JSON.parse(raw)?.state?.accessToken) : null;
-      return (await fetch('http://127.0.0.1:5002/api/admin/ai/designs/operations', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ designId, request: 'QA edit' }) })).status;
-    }, source._id);
+      return (await fetch(`${qaApiUrl}/admin/ai/designs/operations`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ designId, request: 'QA edit' }) })).status;
+    }, { designId: source._id, qaApiUrl });
     expect(operationDenied).toBe(403);
   } finally { await customerContext.close(); }
   expect((await readDesign(page, source._id)).layers.some((layer) => layer.content === upload.content)).toBeTruthy();

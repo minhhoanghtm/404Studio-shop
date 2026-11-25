@@ -24,14 +24,15 @@ services:
       NODE_ENV: production
       APP_ENV: production
       REQUIRE_MONGO_TRANSACTIONS: "true"
-      MONGO_CONNECTIONSTRING: ${MONGO_CONNECTIONSTRING:-mongodb://mongo:27017/webfashion_prod?replicaSet=rs0}
-      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
-      CLIENT_URL: ${CLIENT_URL:-https://atelier-verite.local}
-      FRONTEND_URL: ${FRONTEND_URL:-https://atelier-verite.local}
-      ACCESS_TOKEN_SECRET: ${ACCESS_TOKEN_SECRET:-}
-      REFRESH_TOKEN_SECRET: ${REFRESH_TOKEN_SECRET:-}
-      ACTION_SECRET: ${ACTION_SECRET:-}
-      OTP_SECRET: ${OTP_SECRET:-}
+      MONGO_CONNECTIONSTRING: ${MONGO_RS_CONNECTIONSTRING:-mongodb://${COMPOSE_MONGO_HOST:-mongo}:${MONGO_INTERNAL_PORT:?MONGO_INTERNAL_PORT is required}/${MONGO_DATABASE:?MONGO_DATABASE is required}?replicaSet=${MONGO_RS_NAME:-rs0}}
+      REDIS_URL: ${COMPOSE_REDIS_URL:-redis://${COMPOSE_REDIS_HOST:-redis}:${REDIS_INTERNAL_PORT:?REDIS_INTERNAL_PORT is required}}
+      CLIENT_URL: ${CLIENT_URL:?CLIENT_URL is required}
+      FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required}
+      CORS_ORIGINS: ${CORS_ORIGINS:?CORS_ORIGINS is required}
+      ACCESS_TOKEN_SECRET: ${ACCESS_TOKEN_SECRET:?ACCESS_TOKEN_SECRET is required}
+      REFRESH_TOKEN_SECRET: ${REFRESH_TOKEN_SECRET:?REFRESH_TOKEN_SECRET is required}
+      ACTION_SECRET: ${ACTION_SECRET:?ACTION_SECRET is required}
+      OTP_SECRET: ${OTP_SECRET:?OTP_SECRET is required}
     deploy:
       resources:
         limits:
@@ -53,8 +54,8 @@ services:
     environment:
       NODE_ENV: production
       APP_ENV: production
-      MONGO_CONNECTIONSTRING: ${MONGO_CONNECTIONSTRING:-mongodb://mongo:27017/webfashion_prod?replicaSet=rs0}
-      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      MONGO_CONNECTIONSTRING: ${MONGO_RS_CONNECTIONSTRING:-mongodb://${COMPOSE_MONGO_HOST:-mongo}:${MONGO_INTERNAL_PORT:?MONGO_INTERNAL_PORT is required}/${MONGO_DATABASE:?MONGO_DATABASE is required}?replicaSet=${MONGO_RS_NAME:-rs0}}
+      REDIS_URL: ${COMPOSE_REDIS_URL:-redis://${COMPOSE_REDIS_HOST:-redis}:${REDIS_INTERNAL_PORT:?REDIS_INTERNAL_PORT is required}}
     deploy:
       resources:
         limits:
@@ -70,9 +71,9 @@ services:
         max-file: "3"
 
   mongo:
-    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+    command: ["mongod", "--replSet", "${MONGO_RS_NAME:-rs0}", "--port", "${MONGO_INTERNAL_PORT:?MONGO_INTERNAL_PORT is required}", "--bind_ip_all"]
     healthcheck:
-      test: ["CMD-SHELL", "mongosh --quiet --eval \"try { rs.status().ok || rs.initiate({_id:'rs0',members:[{_id:0,host:'mongo:27017'}]}).ok } catch (e) { rs.initiate({_id:'rs0',members:[{_id:0,host:'mongo:27017'}]}).ok }\" | grep -q 1"]
+      test: ["CMD-SHELL", "mongosh --port $${MONGO_INTERNAL_PORT} --quiet --eval \"try { rs.status().ok || rs.initiate({_id:'$${MONGO_RS_NAME:-rs0}',members:[{_id:0,host:'$${COMPOSE_MONGO_HOST:-mongo}:$${MONGO_INTERNAL_PORT}'}]}).ok } catch (e) { rs.initiate({_id:'$${MONGO_RS_NAME:-rs0}',members:[{_id:0,host:'$${COMPOSE_MONGO_HOST:-mongo}:$${MONGO_INTERNAL_PORT}'}]}).ok }\" | grep -q 1"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -84,6 +85,7 @@ services:
         max-file: "3"
 
   redis:
+    command: ["redis-server", "--port", "${REDIS_INTERNAL_PORT:?REDIS_INTERNAL_PORT is required}", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "noeviction"]
     logging:
       driver: "json-file"
       options:

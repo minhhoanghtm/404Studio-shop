@@ -1,5 +1,6 @@
 import { io, Socket } from 'socket.io-client';
 import { getAccessToken } from '../api/client';
+import { getSocketServerUrl } from '../config/env';
 
 export interface StaffStatusPayload {
   isStaffOnline: boolean;
@@ -42,8 +43,7 @@ class SocketService {
   private currentConversationId: string | null = null;
 
   private getSocketUrl(): string | undefined {
-    if (import.meta.env.DEV) return undefined;
-    return import.meta.env.VITE_BACKEND_URL || undefined;
+    return getSocketServerUrl();
   }
 
   public connect(): Socket {

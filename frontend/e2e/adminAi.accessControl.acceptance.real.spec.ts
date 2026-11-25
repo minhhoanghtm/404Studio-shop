@@ -1,8 +1,9 @@
 import { expect, test } from '@playwright/test';
+import { getQaApiUrl } from './support/qaEnv';
 
 test('admin AI endpoints deny anonymous, malformed and customer sessions', async ({ request }) => {
   test.skip(process.env.QA_E2E_ENABLED !== 'true', 'Requires isolated QA.');
-  const root = 'http://127.0.0.1:5002/api';
+  const root = getQaApiUrl();
   const login = async (email: string) => {
     const response = await request.post(`${root}/auth/login`, { data: { email, passWord: process.env.QA_SEED_PASSWORD } });
     expect(response.ok()).toBeTruthy();
@@ -25,7 +26,7 @@ test('admin AI endpoints deny anonymous, malformed and customer sessions', async
 
 test('logout revokes its own admin session and refresh token', async ({ request }) => {
   test.skip(process.env.QA_E2E_ENABLED !== 'true', 'Requires isolated QA.');
-  const root = 'http://127.0.0.1:5002/api';
+  const root = getQaApiUrl();
   const login = await request.post(`${root}/auth/login`, { data: { email: 'qa.superadmin@atelier.local', passWord: process.env.QA_SEED_PASSWORD } });
   expect(login.status()).toBe(200);
   const session = (await login.json()).data;

@@ -16,7 +16,8 @@
     "test:backend": "npm --prefix backend run test",
     "test:ai": "npm --prefix ai-service run test",
     "test:e2e": "npm --prefix frontend run test:e2e",
-    "lint": "npm run lint:frontend && npm run lint:backend",
+    "lint": "npm run check:ports && npm run lint:frontend && npm run lint:backend",
+    "check:ports": "node scripts/check-hardcoded-ports.mjs",
     "lint:frontend": "npm --prefix frontend run lint",
     "lint:backend": "npm --prefix backend run lint"
   },

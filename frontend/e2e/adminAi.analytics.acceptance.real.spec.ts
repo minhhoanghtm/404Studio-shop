@@ -1,8 +1,10 @@
 import { expect, test } from '@playwright/test';
+import { getQaApiUrl } from './support/qaEnv';
 
 test('business analytics renders real API totals without invoking AI chat', async ({ page, request }) => {
   test.skip(process.env.QA_E2E_ENABLED !== 'true', 'Requires isolated QA.');
-  const login = await request.post('http://127.0.0.1:5002/api/auth/login', { data: { email: 'qa.superadmin@atelier.local', passWord: process.env.QA_SEED_PASSWORD } });
+  const apiUrl = getQaApiUrl();
+  const login = await request.post(`${apiUrl}/auth/login`, { data: { email: 'qa.superadmin@atelier.local', passWord: process.env.QA_SEED_PASSWORD } });
   expect(login.ok()).toBeTruthy();
   const session = (await login.json()).data;
   await page.goto('/');

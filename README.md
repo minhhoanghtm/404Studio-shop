@@ -172,6 +172,31 @@ Open [http://localhost:5173](http://localhost:5173) in your browser. All `/api` 
 
 ---
 
+## ✦ Centralized Environment & Network Configuration
+
+All runtime ports, hosts, service URLs, CORS origins, database URIs, and proxy upstreams use `.env` files as the single source of truth (fail-fast validation in `backend/src/configs/network.config.js`, `frontend/vite.config.ts`, `ai-service/src/index.ts`, and `scripts/check-hardcoded-ports.mjs`):
+
+- **Environment files & precedence**:
+  - **Development**: Root `.env` + `backend/.env` + `frontend/.env` + `ai-service/.env` (copy from `.env.example`, `backend/.env.example`, `frontend/.env.example`, `ai-service/.env.example`).
+  - **QA**: `.env.qa` + `backend/.env.qa` + `frontend/.env.qa` (copy from `.env.qa.example` / `backend/.env.qa.example`; strictly isolated loopback endpoints and `*_qa` databases).
+  - **CI**: `.env.ci` (non-secret network/infrastructure defaults loaded into GitHub Actions).
+  - **Staging / Production**: `backend/.env.staging.example` / platform secret stores (`compose.yaml -f compose.prod.yaml`).
+  - Shell `process.env` overrides always take precedence over file values.
+- **Changing ports cleanly**:
+  - Update the corresponding port/URL variables in your `.env*` file only (`BACKEND_PORT`/`PORT`, `BACKEND_URL`, `FRONTEND_PORT`, `VITE_PORT`, `VITE_PREVIEW_PORT`, `VITE_BACKEND_URL`, `VITE_WS_URL`, `CORS_ORIGINS`, `NGINX_HTTP_PORT`, `FRONTEND_INTERNAL_PORT`, `BACKEND_INTERNAL_PORT`, `MONGO_PORT`, `REDIS_PORT`, `QA_API_URL`, `QA_FRONTEND_URL`, `PLAYWRIGHT_BASE_URL`, `AI_SERVICE_PORT`) without modifying application code, Dockerfiles, Compose files, or `frontend/nginx.conf.template`.
+- **Docker Compose & Nginx template**:
+  - Run Compose with explicit env file validation:
+    - Dev: `docker compose --env-file .env -f compose.yaml -f compose.dev.yaml up -d`
+    - QA infrastructure: `docker compose --env-file backend/.env.qa -f compose.qa.yaml -f compose.qa-rs.yaml up -d`
+    - Production: `docker compose --env-file .env.production -f compose.yaml -f compose.prod.yaml up -d`
+  - `frontend/nginx.conf.template` is rendered on container boot via `envsubst` using `FRONTEND_INTERNAL_PORT`, `BACKEND_HOST`, and `BACKEND_INTERNAL_PORT`, followed by `nginx -t`.
+- **Port-conflict & missing-ENV fail-fast handling**:
+  - Startup aborts immediately if required ports/hosts are missing, out of range (`1..65535`), conflicting (`BACKEND_PORT !== PORT`), or if two loopback services share the same port.
+  - Production startup (`NODE_ENV=production`) rejects `APP_ENV=qa` and any `*_qa` database targets.
+  - Run `npm run check:ports` to scan source code, tests, Dockerfiles, Compose, Nginx templates, and CI workflows for hardcoded port regressions.
+
+---
+
 ## ✦ Testing & Verification
 
 ### Fullstack Unit & Integration Tests:

@@ -2,23 +2,20 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import mongoose from 'mongoose';
 import jwt from 'jsonwebtoken';
+import { verifyQaSuiteTarget, assertConnectedQaDatabase } from '../../common/qa/qaIsolationGuard.js';
 
 test('order item API prevents anonymous writes and cross-customer reads', async () => {
-  let api; let uri; let redis;
-  try { api = new URL(process.env.QA_API_URL || ''); uri = new URL(process.env.LOCAL_DEV_MONGO_URI || process.env.MONGO_CONNECTIONSTRING || ''); redis = process.env.REDIS_URL ? new URL(process.env.REDIS_URL) : { hostname: process.env.REDIS_HOST || '', port: process.env.REDIS_PORT || '' }; } catch { throw new Error('QA guard refused configuration.'); }
-  if (process.env.APP_ENV !== 'qa' || process.env.QA_E2E_ENABLED !== 'true' || api.protocol !== 'http:' || !['127.0.0.1', 'localhost'].includes(api.hostname) || api.port !== '5002' || api.pathname !== '/api' || !['127.0.0.1', 'localhost'].includes(uri.hostname) || uri.port !== '27018' || uri.pathname !== '/atelier_verite_qa' || !['127.0.0.1', 'localhost'].includes(redis.hostname) || redis.port !== '6381' || !process.env.QA_SEED_PASSWORD) throw new Error('QA guard refused target.');
+  const mongoUri = await verifyQaSuiteTarget();
+  const api = new URL(process.env.QA_API_URL);
   const login = async (email) => { const res = await fetch(`${api.origin}/api/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, passWord: process.env.QA_SEED_PASSWORD }) }); if (!res.ok) throw new Error('QA login failed.'); return (await res.json()).data.accessToken; };
   const admin = await login('qa.superadmin@atelier.local');
-  const contextResponse = await fetch(`${api.origin}/api/admin/ai/qa-context`, { headers: { Authorization: `Bearer ${admin}` } });
-  const context = (await contextResponse.json()).data;
-  if (!contextResponse.ok || context?.environment !== 'qa' || context.database !== 'atelier_verite_qa' || context.databasePort !== 27018 || !context.redisQa) throw new Error('QA runtime verification failed.');
   const customerA = await login('qa.customer.a@atelier.local'); const customerB = await login('qa.customer.b@atelier.local');
   const userB = jwt.verify(customerB, process.env.ACCESS_TOKEN_SECRET).userId;
   const [{ Order, OrderItem }, { Product }] = await Promise.all([import('./order.model.js'), import('../products/product.model.js')]);
-  await mongoose.connect(uri.toString());
+  await mongoose.connect(mongoUri);
   let order; let item;
   try {
-    if (mongoose.connection.name !== 'atelier_verite_qa' || mongoose.connection.port !== 27018) throw new Error('QA database verification failed.');
+    assertConnectedQaDatabase(mongoose);
     const product = await Product.findOne({ slug: /^qa-product-image-/ }).lean();
     if (!product) throw new Error('QA catalog fixture is required.');
     order = await Order.create({ user_id: userB, total_price: 100000, status: 'pending', payment_status: 'pending', shipping_address: { full_name: 'QA fixture', phone: '0900000000', city: 'QA', district: 'QA', ward: 'QA', address_detail: 'QA' } });

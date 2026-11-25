@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import BaseAIProvider, { AI_CAPABILITIES, PROVIDER_STATUS } from "./BaseAIProvider.js";
+import { getBackendListenConfig } from "../../../configs/network.config.js";
 
 const DESIGNS_DIR = path.resolve(process.cwd(), "uploads", "designs");
 if (!fs.existsSync(DESIGNS_DIR)) {
@@ -212,7 +213,7 @@ export class OpenAIProvider extends BaseAIProvider {
         const filename = `gen_${Date.now()}_${idx}.png`;
         const filepath = path.join(DESIGNS_DIR, filename);
         fs.writeFileSync(filepath, Buffer.from(item.b64_json, "base64"));
-        imgUrl = `http://localhost:5000/uploads/designs/${filename}`;
+        imgUrl = `${getBackendListenConfig(process.env).publicUrl}/uploads/designs/${filename}`;
       }
       return {
         url: imgUrl,

@@ -2,6 +2,7 @@ import Order from "../orders/order.model.js";
 import paymentService from "./payment.service.js";
 import orderFacade from "../orders/order.facade.js";
 import PaymentTransaction from "./paymentTransaction.model.js";
+import { getFrontendConfig } from "../../configs/network.config.js";
 
 class PaymentController {
   async createVNPayPayment(req, res, next) {
@@ -30,7 +31,8 @@ class PaymentController {
       // The browser return is not an authoritative payment notification.  It
       // only returns the customer to the order's read-only payment view; the
       // independently signed IPN below is the only provider path that mutates.
-      return res.redirect(`${process.env.FRONTEND_URL || process.env.CLIENT_URL || "http://localhost:5173"}/payment/${encodeURIComponent(orderId || "")}`);
+      const frontendUrl = getFrontendConfig(process.env, { required: true }).url;
+      return res.redirect(`${frontendUrl}/payment/${encodeURIComponent(orderId || "")}`);
 
       if (isValid && orderId) {
         const order = await Order.findById(orderId);
@@ -249,7 +251,8 @@ class PaymentController {
 
       // The browser redirect is non-authoritative. momoIpn() independently
       // validates the signature and is the only route that may settle an order.
-      return res.redirect(`${process.env.FRONTEND_URL || process.env.CLIENT_URL || "http://localhost:5173"}/payment/${encodeURIComponent(orderId || "")}`);
+      const frontendUrl = getFrontendConfig(process.env, { required: true }).url;
+      return res.redirect(`${frontendUrl}/payment/${encodeURIComponent(orderId || "")}`);
     } catch (error) {
       next(error);
     }

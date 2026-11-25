@@ -23,8 +23,11 @@ export class NodeVectorStore implements VectorStore {
     localOnly?: boolean;
   } = {}) {
     this.embeddingModel = options.embeddingModel || new OpenAiEmbeddingModel();
-    this.nodeBackendUrl = String(options.nodeBackendUrl || process.env.NODE_BACKEND_BASE_URL || 'http://localhost:5000').replace(/\/$/, '');
+    this.nodeBackendUrl = String(options.nodeBackendUrl || process.env.NODE_BACKEND_BASE_URL || '').trim().replace(/\/$/, '');
     this.localOnly = options.localOnly ?? false;
+    if (!this.localOnly && !this.nodeBackendUrl) {
+      throw new Error('Missing NODE_BACKEND_BASE_URL for remote NodeVectorStore.');
+    }
   }
 
   public async add(documents: Document[]): Promise<void> {

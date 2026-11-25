@@ -10,40 +10,18 @@ import errorHandler from "./middlewares/error.middleware.js";
 import logger from "./common/logger.js";
 import dotenv from "dotenv";
 dotenv.config();
+import { getCorsConfig } from "./configs/network.config.js";
 
 const app = express();
 
 // Trust reverse proxy (Nginx) for accurate client IP detection & rate limiting
 app.set("trust proxy", 1);
 
-// CORS Configuration
-const isNonProdOrQa = process.env.NODE_ENV !== "production" || process.env.APP_ENV === "qa";
-const allowedOrigins = [
-  process.env.CLIENT_URL,
-  process.env.FRONTEND_URL,
-  ...(isNonProdOrQa
-    ? [
-        "http://localhost:5173",
-        "http://localhost:5174",
-        "http://localhost:5175",
-        "http://localhost:5176",
-        "http://localhost:3000",
-        "http://localhost:3001",
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:5174",
-        "http://127.0.0.1:5175",
-        "http://127.0.0.1:5176",
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:3001",
-      ]
-    : []),
-].filter(Boolean);
-
+// CORS Configuration strictly from ENV
 export const isOriginAllowed = (origin) => {
   if (!origin) return true;
+  const allowedOrigins = getCorsConfig(process.env);
   if (allowedOrigins.includes(origin)) return true;
-  // Match any localhost or 127.0.0.1 port in non-production environments only
-  if (isNonProdOrQa && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) return true;
   return false;
 };
 

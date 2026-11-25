@@ -24,7 +24,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # ── JOB 1: SECURITY SCANNING & DEPENDENCY AUDIT ──────────────────────────────
+  # ── JOB 1: SECURITY SCANNING, HARDCODED-PORT GUARD & DEPENDENCY AUDIT ─────────
   security:
     name: Security & Secret Scan
     runs-on: ubuntu-latest
@@ -46,6 +46,9 @@ jobs:
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
+      - name: Guard Against Hardcoded Ports
+        run: node scripts/check-hardcoded-ports.mjs
+
       - name: Frontend Dependency Vulnerability Audit
         working-directory: ./frontend
         run: npm audit --audit-level=high
@@ -60,6 +63,10 @@ jobs:
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@v4
+
+      - name: Load CI ENV Configuration
+        working-directory: .
+        run: grep -E '^[A-Z0-9_]+=' .env.ci >> "$GITHUB_ENV"
 
       - name: Setup Node.js 22
         uses: actions/setup-node@v4
@@ -94,26 +101,29 @@ jobs:
   backend:
     name: Backend Quality Gates
     runs-on: ubuntu-latest
-    services:
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 127.0.0.1:6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 5s
-          --health-timeout 3s
-          --health-retries 10
     defaults:
       run:
         working-directory: ./backend
-    env:
-      REDIS_URL: redis://127.0.0.1:6379
-      REDIS_HOST: 127.0.0.1
-      REDIS_PORT: "6379"
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@v4
+
+      - name: Load CI ENV Configuration
+        working-directory: .
+        run: grep -E '^[A-Z0-9_]+=' .env.ci >> "$GITHUB_ENV"
+
+      - name: Start Isolated CI Redis
+        working-directory: .
+        run: |
+          docker run -d --name ci_backend_redis \
+            -p "${REDIS_HOST}:${REDIS_PORT}:${REDIS_INTERNAL_PORT}" \
+            redis:7-alpine redis-server --port "${REDIS_INTERNAL_PORT}"
+          for i in $(seq 1 20); do
+            if docker exec ci_backend_redis redis-cli -p "${REDIS_INTERNAL_PORT}" ping >/dev/null 2>&1; then
+              break
+            fi
+            sleep 1
+          done
 
       - name: Setup Node.js 22
         uses: actions/setup-node@v4
@@ -146,7 +156,12 @@ jobs:
             src/modules/ai/__tests__/designOperations.controller.node.test.mjs \
             src/modules/ai/__tests__/designOperations.security.node.test.mjs \
             src/modules/ai/__tests__/designPayload.validator.node.test.mjs \
-            src/modules/ai/__tests__/revenueSummary.node.test.mjs
+            src/modules/ai/__tests__/revenueSummary.node.test.mjs \
+            src/configs/__tests__/network.config.node.test.mjs
+
+      - name: Cleanup Isolated CI Redis
+        if: always()
+        run: docker rm -f ci_backend_redis || true
 
   # ── JOB 4: CHECKOUT ATOMICITY (ISOLATED MONGO REPLICA SET + REDIS) ───────────
   backend-atomicity:
@@ -157,6 +172,16 @@ jobs:
       - name: Checkout Source Code
         uses: actions/checkout@v4
 
+      - name: Load CI ENV Configuration
+        run: |
+          grep -E '^[A-Z0-9_]+=' .env.ci >> "$GITHUB_ENV"
+          set -a && source .env.ci && set +a
+          {
+            echo "REDIS_HOST=${QA_REDIS_HOST}"
+            echo "REDIS_PORT=${QA_REDIS_PORT}"
+            echo "REDIS_URL=${QA_REDIS_URL}"
+          } >> "$GITHUB_ENV"
+
       - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
@@ -166,18 +191,24 @@ jobs:
 
       - name: Start Isolated CI MongoDB Standalone, Replica Set & Redis
         run: |
-          docker run -d --name ci_redis -p 127.0.0.1:6381:6379 redis:7-alpine
-          docker run -d --name ci_mongo_standalone -p 127.0.0.1:27018:27017 mongo:7.0
-          docker run -d --name ci_mongo_rs -p 127.0.0.1:27019:27019 mongo:7.0 mongod --replSet rs0 --port 27019 --bind_ip_all
+          docker run -d --name ci_redis \
+            -p "${REDIS_HOST}:${REDIS_PORT}:${REDIS_INTERNAL_PORT}" \
+            redis:7-alpine redis-server --port "${REDIS_INTERNAL_PORT}"
+          docker run -d --name ci_mongo_standalone \
+            -p "${MONGO_HOST}:${MONGO_PORT}:${MONGO_INTERNAL_PORT}" \
+            mongo:7.0 mongod --port "${MONGO_INTERNAL_PORT}" --bind_ip_all
+          docker run -d --name ci_mongo_rs \
+            -p "${MONGO_RS_HOST}:${MONGO_RS_PORT}:${MONGO_RS_INTERNAL_PORT}" \
+            mongo:7.0 mongod --replSet "${MONGO_RS_NAME}" --port "${MONGO_RS_INTERNAL_PORT}" --bind_ip_all
           for i in $(seq 1 30); do
-            if docker exec ci_mongo_rs mongosh --port 27019 --quiet --eval "db.adminCommand('ping')" >/dev/null 2>&1; then
+            if docker exec ci_mongo_rs mongosh --port "${MONGO_RS_INTERNAL_PORT}" --quiet --eval "db.adminCommand('ping')" >/dev/null 2>&1; then
               break
             fi
             sleep 1
           done
-          docker exec ci_mongo_rs mongosh --port 27019 --quiet --eval "rs.initiate({_id:'rs0',members:[{_id:0,host:'127.0.0.1:27019'}]})"
+          docker exec ci_mongo_rs mongosh --port "${MONGO_RS_INTERNAL_PORT}" --quiet --eval "rs.initiate({_id:'${MONGO_RS_NAME}',members:[{_id:0,host:'${MONGO_RS_HOST}:${MONGO_RS_PORT}'}]})"
           for i in $(seq 1 30); do
-            if docker exec ci_mongo_rs mongosh --port 27019 --quiet --eval "quit(rs.status().myState === 1 ? 0 : 1)" >/dev/null 2>&1; then
+            if docker exec ci_mongo_rs mongosh --port "${MONGO_RS_INTERNAL_PORT}" --quiet --eval "quit(rs.status().myState === 1 ? 0 : 1)" >/dev/null 2>&1; then
               break
             fi
             sleep 1
@@ -203,13 +234,7 @@ jobs:
           NODE_ENV: test
           APP_ENV: qa
           QA_E2E_ENABLED: "true"
-          QA_API_URL: http://127.0.0.1:5002/api
-          MONGO_CONNECTIONSTRING: mongodb://127.0.0.1:27018/atelier_verite_qa
-          LOCAL_DEV_MONGO_URI: mongodb://127.0.0.1:27018/atelier_verite_qa
-          QA_RS_MONGO_URI: mongodb://127.0.0.1:27019/atelier_verite_qa_rs?replicaSet=rs0
-          REDIS_URL: redis://127.0.0.1:6381
-          REDIS_HOST: 127.0.0.1
-          REDIS_PORT: "6381"
+          LOCAL_DEV_MONGO_URI: ${{ env.MONGO_CONNECTIONSTRING }}
         run: node --test --test-force-exit src/modules/orders/checkoutAtomicity.qa.integration.node.test.mjs
 
       - name: Cleanup Isolated CI Containers
@@ -225,16 +250,23 @@ jobs:
       - name: Checkout Source Code
         uses: actions/checkout@v4
 
+      - name: Load CI ENV Configuration
+        run: grep -E '^[A-Z0-9_]+=' .env.ci >> "$GITHUB_ENV"
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Validate Docker Compose Configuration
         run: |
-          docker compose -f compose.yaml config --quiet
-          docker compose -f compose.yaml -f compose.dev.yaml config --quiet
-          docker compose -f compose.yaml -f compose.prod.yaml config --quiet
-          docker compose -f compose.qa.yaml config --quiet
-          docker compose -f compose.qa-rs.yaml config --quiet
+          export ACCESS_TOKEN_SECRET="$(openssl rand -hex 32)"
+          export REFRESH_TOKEN_SECRET="$(openssl rand -hex 32)"
+          export ACTION_SECRET="$(openssl rand -hex 32)"
+          export OTP_SECRET="$(openssl rand -hex 32)"
+          docker compose --env-file .env.ci -f compose.yaml config --quiet
+          docker compose --env-file .env.ci -f compose.yaml -f compose.dev.yaml config --quiet
+          docker compose --env-file .env.ci -f compose.yaml -f compose.prod.yaml config --quiet
+          docker compose --env-file .env.ci -f compose.qa.yaml config --quiet
+          docker compose --env-file .env.ci -f compose.qa-rs.yaml config --quiet
 
       - name: Build Frontend Docker Image (Dry-Run Cache Test)
         uses: docker/build-push-action@v6
@@ -243,6 +275,13 @@ jobs:
           file: ./frontend/Dockerfile
           push: false
           tags: atelier-verite/frontend:ci-test
+          build-args: |
+            VITE_API_BASE_URL=${{ env.VITE_API_BASE_URL }}
+            VITE_API_URL=${{ env.VITE_API_BASE_URL }}
+            VITE_APP_ENV=${{ env.APP_ENV }}
+            FRONTEND_INTERNAL_PORT=${{ env.FRONTEND_INTERNAL_PORT }}
+            BACKEND_HOST=backend
+            BACKEND_INTERNAL_PORT=${{ env.BACKEND_INTERNAL_PORT }}
 
       - name: Build Backend Docker Image (Dry-Run Cache Test)
         uses: docker/build-push-action@v6
@@ -251,6 +290,8 @@ jobs:
           file: ./backend/Dockerfile
           push: false
           tags: atelier-verite/backend:ci-test
+          build-args: |
+            BACKEND_INTERNAL_PORT=${{ env.BACKEND_INTERNAL_PORT }}
 
       - name: Build Worker Docker Image (Dry-Run Cache Test)
         uses: docker/build-push-action@v6
@@ -260,7 +301,48 @@ jobs:
           push: false
           tags: atelier-verite/worker:ci-test
 
-  # ── JOB 6: PLAYWRIGHT E2E & CONSENT NETWORK AUDIT ────────────────────────────
+      - name: Build AI Service Docker Image (Dry-Run Cache Test)
+        uses: docker/build-push-action@v6
+        with:
+          context: ./ai-service
+          file: ./ai-service/Dockerfile
+          push: false
+          tags: atelier-verite/ai-service:ci-test
+          build-args: |
+            AI_SERVICE_INTERNAL_PORT=${{ env.AI_SERVICE_INTERNAL_PORT }}
+
+  # ── JOB 6: AI SERVICE BUILD & UNIT TESTS ─────────────────────────────────────
+  ai-service:
+    name: AI Service Quality Gates
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./ai-service
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Load CI ENV Configuration
+        working-directory: .
+        run: grep -E '^[A-Z0-9_]+=' .env.ci >> "$GITHUB_ENV"
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: ai-service/package-lock.json
+
+      - name: Install AI Service Dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Build TypeScript AI Service
+        run: npm run build
+
+      - name: Run AI Service Vitest Suite
+        run: npm run test
+
+  # ── JOB 7: PLAYWRIGHT E2E & CONSENT NETWORK AUDIT ────────────────────────────
   e2e:
     name: Playwright E2E & Legal Privacy Suite
     runs-on: ubuntu-latest
@@ -271,6 +353,10 @@ jobs:
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@v4
+
+      - name: Load CI ENV Configuration
+        working-directory: .
+        run: grep -E '^[A-Z0-9_]+=' .env.ci >> "$GITHUB_ENV"
 
       - name: Setup Node.js 22
         uses: actions/setup-node@v4

@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { customerCartFixture, type CustomerCartFixture } from './support/customerCartFixture';
+import { getQaApiUrl } from './support/qaEnv';
 
 test('AI cart previews and completed results do not create duplicate cart writes', async ({ page, request }) => {
   test.skip(process.env.QA_E2E_ENABLED !== 'true', 'Requires isolated QA.');
@@ -7,7 +8,7 @@ test('AI cart previews and completed results do not create duplicate cart writes
   let fixture: CustomerCartFixture | undefined;
   try {
     fixture = customerCartFixture('create');
-    const login = await request.post('http://127.0.0.1:5002/api/auth/login', { data: { email: 'qa.customer.b@atelier.local', passWord: process.env.QA_SEED_PASSWORD } });
+    const login = await request.post(`${getQaApiUrl()}/auth/login`, { data: { email: 'qa.customer.b@atelier.local', passWord: process.env.QA_SEED_PASSWORD } });
     expect(login.ok()).toBeTruthy(); const session = (await login.json()).data;
     await page.goto('/');
     const cookies = page.getByRole('button', { name: 'Chấp nhận tất cả' });

@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { createIsolatedDesign, loginQaAdmin, loginQaUser, openDesignInStudio, readDesign, seededLayer } from './support/creativeStudioQa';
+import { getQaApiUrl, getQaFrontendUrl } from './support/qaEnv';
 
 const enabled = process.env.QA_E2E_ENABLED === 'true';
-const qaApiBase = (process.env.QA_API_URL || 'http://127.0.0.1:5002/api').replace(/\/$/, '');
 
 test.describe('Creative Studio — save queue and ownership acceptance', () => {
   test.skip(!enabled, 'Set QA_E2E_ENABLED=true only after isolated QA services and fixtures are ready.');
@@ -52,7 +52,8 @@ test.describe('Creative Studio — save queue and ownership acceptance', () => {
     await page.getByRole('button', { name: 'Lưu', exact: true }).click();
     await expect.poll(async () => (await readDesign(page, design._id)).name, { timeout: 12_000 }).toBe(recoveredName);
 
-    const otherContext = await browser.newContext({ baseURL: 'http://127.0.0.1:5174' });
+    const qaApiBase = getQaApiUrl();
+    const otherContext = await browser.newContext({ baseURL: getQaFrontendUrl() });
     try {
       const other = await otherContext.newPage();
       await loginQaUser(other, 'qa.admin@atelier.local');

@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import { createIsolatedDesign, openDesignInStudio, seededLayer } from './support/creativeStudioQa';
+import { getQaBackendOrigin } from './support/qaEnv';
 
 const enabled = process.env.QA_E2E_ENABLED === 'true';
 const password = process.env.QA_SEED_PASSWORD;
@@ -51,7 +52,7 @@ test.describe('Admin AI + Creative Studio — authenticated QA', () => {
     await page.getByLabel('Chọn ảnh để tải lên').setInputFiles({
       name: 'qa-upload.png',
       mimeType: 'image/png',
-      buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL6LwAAAABJRU5ErkJggg==', 'base64'),
+      buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAEklEQVR4nGO4q8SAFWEXHbQSACB/P8HVXv3XAAAAAElFTkSuQmCC', 'base64'),
     });
     await expect(page.getByRole('button', { name: 'qa-upload.png' }).first()).toBeVisible();
     await page.getByLabel('Phóng to crop').fill('1.5');
@@ -107,7 +108,8 @@ test.describe('Admin AI + Creative Studio — authenticated QA', () => {
     expect(jsonContents.project.layers.some((layer: { content: string }) => layer.content === persistedText)).toBeTruthy();
     expect(jsonContents.project.layers.some((layer: { content: string }) => layer.content.includes('photo-1483985988355-763728e1935b'))).toBeTruthy();
     const uploadedLayer = jsonContents.project.layers.filter((layer: { name: string }) => layer.name === 'qa-upload.png').at(-1);
-    expect(uploadedLayer.content).toContain('127.0.0.1:5002/uploads/ai_references/');
+    const backendHostPort = new URL(getQaBackendOrigin()).host;
+    expect(uploadedLayer.content).toContain(`${backendHostPort}/uploads/ai_references/`);
     expect(uploadedLayer.styles.cropZoom).toBe(1.5);
     expect(uploadedLayer.styles.cropX).toBe(25);
     expect(uploadedLayer.styles.cropY).toBe(75);

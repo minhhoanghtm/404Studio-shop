@@ -11,14 +11,15 @@ import experimentAnalyticsService from "../modules/recommendations/experiments/e
 import UserEvent from "../modules/tracking/userEvent.model.js";
 import Product from "../modules/products/product.model.js";
 import User from "../modules/users/user.model.js";
+import { getBackendListenConfig, getFrontendConfig } from "../configs/network.config.js";
 
 await verifyQaSuiteTarget({ liveProviders: true });
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SCREENSHOTS_DIR = "C:\\Users\\apple fix nts\\.gemini\\antigravity\\brain\\5569998e-4f92-4c47-afdd-c80b7192a933\\screenshots";
 const STAGING_EXP_ID = "AA_Recommendation_Validation";
-const FRONTEND_URL = "http://localhost:5173";
-const BACKEND_URL = "http://localhost:5000";
+const FRONTEND_URL = getFrontendConfig(process.env, { required: true }).url;
+const BACKEND_URL = getBackendListenConfig(process.env).publicUrl;
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 

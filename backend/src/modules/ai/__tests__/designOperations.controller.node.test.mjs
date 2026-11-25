@@ -12,7 +12,7 @@ test('controller applies safe operations and rejects mixed locked batches withou
   const model = { ...structuredClone(stored), versionHistory: [], promptHistory: [], toObject() { return structuredClone(stored); }, async save() { saveCount++; } };
   const find = mock.method(AdminDesignProject, 'findOne', async () => model);
   const execute = mock.method(aiRouter, 'executeChatWithFallback', async () => ({ message: JSON.stringify({ operations: plan }) }));
-  const invoke = async () => { const response = { code: 200, status(code) { this.code = code; return this; }, json(body) { this.body = body; return this; } }; let error; await applyAdminDesignOperationsController({ body: { designId: stored._id, request: 'QA edit' }, user: { userId: 'qa' }, socket: { localAddress: '127.0.0.1', localPort: 5002 } }, response, (err) => { error = err; }); if (error) throw error; return response; };
+  const invoke = async () => { const response = { code: 200, status(code) { this.code = code; return this; }, json(body) { this.body = body; return this; } }; let error; await applyAdminDesignOperationsController({ body: { designId: stored._id, request: 'QA edit' }, user: { userId: 'qa' }, socket: { localAddress: '127.0.0.1', localPort: Number(process.env.BACKEND_PORT || process.env.PORT || 0) } }, response, (err) => { error = err; }); if (error) throw error; return response; };
   try {
     plan = [{ operation: 'UPDATE_LAYER', layerId: 'open', changes: { content: 'changed' } }, { operation: 'REORDER_LAYER', layerId: 'locked', toIndex: 1 }];
     const denied = await invoke(); assert.equal(denied.code, 422); assert.equal(saveCount, 0); assert.equal(model.layers[1].content, 'original');

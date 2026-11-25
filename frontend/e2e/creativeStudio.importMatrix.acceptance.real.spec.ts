@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { createIsolatedDesign, loginQaAdmin, readDesign, seededLayer } from './support/creativeStudioQa';
+import { getQaApiUrl } from './support/qaEnv';
 
 test('rejects malformed design updates without modifying the isolated project', async ({ page }, info) => {
   test.skip(process.env.QA_E2E_ENABLED !== 'true', 'Requires isolated QA.');
@@ -7,7 +8,8 @@ test('rejects malformed design updates without modifying the isolated project', 
   await loginQaAdmin(page);
   const layer = seededLayer({ id: 'safe', type: 'text', name: 'Safe', content: 'original' });
   const design = await createIsolatedDesign(page, name, [layer]);
-  const results = await page.evaluate(async ({ designId, name, layer }) => {
+  const qaApiUrl = getQaApiUrl();
+  const results = await page.evaluate(async ({ designId, name, layer, qaApiUrl }) => {
     const raw = localStorage.getItem('atelier_patron_auth'); const token = raw ? (JSON.parse(raw)?.state?.token || JSON.parse(raw)?.state?.accessToken) : null;
     const base = { _id: designId, name, preset: 'instagram_portrait', width: 1080, height: 1350, background: { type: 'color', value: '#fff' }, layers: [layer] };
     const group = { ...layer, id: 'group', type: 'group', content: '["safe","missing"]' };
@@ -42,12 +44,12 @@ test('rejects malformed design updates without modifying the isolated project', 
     ];
     const statuses = [];
     for (const body of cases) {
-      const response = await fetch('http://127.0.0.1:5002/api/admin/ai/designs', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
+      const response = await fetch(`${qaApiUrl}/admin/ai/designs`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
       statuses.push(response.status);
     }
-    const oversized = await fetch('http://127.0.0.1:5002/api/admin/ai/designs', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ ...base, padding: 'x'.repeat(1024 * 1024) }) });
+    const oversized = await fetch(`${qaApiUrl}/admin/ai/designs`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ ...base, padding: 'x'.repeat(1024 * 1024) }) });
     return { statuses, oversized: oversized.status };
-  }, { designId: design._id, name, layer });
+  }, { designId: design._id, name, layer, qaApiUrl });
   expect(results.statuses).toHaveLength(33);
   expect(results.statuses).toEqual(Array(33).fill(400));
   expect(results.oversized).toBe(413);

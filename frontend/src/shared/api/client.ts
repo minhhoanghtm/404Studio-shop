@@ -6,12 +6,10 @@
 
 import { broadcastAuthLogout, isJwtExpired } from '../utils/authSync';
 import { useToastStore } from '../stores/useToastStore';
+import { getApiBaseUrl, getRequestTimeoutMs } from '../config/env';
 
-const configuredBaseUrl = (import.meta.env.VITE_API_URL || '/api').trim().replace(/\/$/, '');
-const API_BASE_URL = configuredBaseUrl.endsWith('/api')
-  ? configuredBaseUrl
-  : (configuredBaseUrl === '' ? '/api' : `${configuredBaseUrl}/api`);
-const REQUEST_TIMEOUT_MS = Number(import.meta.env.VITE_API_TIMEOUT_MS || 15_000);
+const API_BASE_URL = getApiBaseUrl();
+const REQUEST_TIMEOUT_MS = getRequestTimeoutMs();
 
 export interface ApiResponse<T = any> {
   success?: boolean;

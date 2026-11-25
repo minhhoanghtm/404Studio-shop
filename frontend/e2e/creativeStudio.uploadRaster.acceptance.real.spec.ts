@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import { createIsolatedDesign, loginQaAdmin, openDesignInStudio } from './support/creativeStudioQa';
+import { getQaBackendOrigin } from './support/qaEnv';
 
 test('raster exports contain the actual uploaded image', async ({ page }, testInfo) => {
   test.skip(process.env.QA_E2E_ENABLED !== 'true', 'Requires isolated QA.');
@@ -36,7 +37,8 @@ test('raster exports contain the actual uploaded image', async ({ page }, testIn
   await expect(page.getByText('Không thể xuất vì một ảnh không khả dụng hoặc không cho phép CORS. Hãy kiểm tra asset và thử lại.')).toBeVisible();
   await page.unroute('**/uploads/ai_references/**');
   let redirectRequested = false;
-  await page.route('**/uploads/ai_references/**', (route) => { redirectRequested = true; return route.fulfill({ status: 302, headers: { 'Access-Control-Allow-Origin': '*', Location: 'http://127.0.0.1:5002/redirect-target-must-not-load' } }); });
+  const backendOrigin = getQaBackendOrigin();
+  await page.route('**/uploads/ai_references/**', (route) => { redirectRequested = true; return route.fulfill({ status: 302, headers: { 'Access-Control-Allow-Origin': '*', Location: `${backendOrigin}/redirect-target-must-not-load` } }); });
   let followed = false;
   await page.route('**/redirect-target-must-not-load', (route) => { followed = true; return route.abort(); });
   await page.getByRole('button', { name: 'PNG', exact: true }).click();

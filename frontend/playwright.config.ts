@@ -1,6 +1,16 @@
 import { defineConfig } from '@playwright/test';
+import fs from 'node:fs';
+import path from 'node:path';
+import { getQaFrontendUrl } from './e2e/support/qaEnv';
 
-const baseURL = process.env.QA_FRONTEND_URL || 'http://127.0.0.1:5174';
+if (!process.env.QA_FRONTEND_URL && !process.env.PLAYWRIGHT_BASE_URL) {
+  const defaultQaEnv = path.resolve(process.cwd(), '../backend/.env.qa');
+  if (fs.existsSync(defaultQaEnv)) {
+    process.loadEnvFile(defaultQaEnv);
+  }
+}
+
+const baseURL = getQaFrontendUrl();
 
 export default defineConfig({
   testDir: './e2e',

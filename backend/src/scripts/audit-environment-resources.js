@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
 import { requireEnv } from "./require-env.js";
+import { getRedisConnectionConfig } from "../configs/network.config.js";
 
 await verifyQaSuiteTarget();
 
@@ -13,43 +14,47 @@ dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 
 async function audit() {
   console.log("=== RESOURCE OWNERSHIP & ISOLATION AUDIT ===\n");
+  const redisCfg = getRedisConnectionConfig(process.env);
+  const targetPort = redisCfg.port;
+  const targetHost = redisCfg.host;
 
-  // 1. Redis 6379 (Host default / redis_local)
-  console.log("1. Inspecting Redis 6379 (redis_local container):");
+  // 1. Primary Redis inspection
+  console.log(`1. Inspecting primary Redis (${targetHost}:${targetPort}):`);
   try {
-    const r6379 = new Redis({ host: "127.0.0.1", port: 6379, connectTimeout: 3000 });
-    const keys6379 = await r6379.keys("*");
-    console.log(`   Total keys on Redis 6379: ${keys6379.length}`);
-    const keyPrefixes6379 = {};
-    for (const k of keys6379) {
+    const rPrimary = new Redis({ host: targetHost, port: targetPort, connectTimeout: 3000 });
+    const keysPrimary = await rPrimary.keys("*");
+    console.log(`   Total keys on primary Redis: ${keysPrimary.length}`);
+    const keyPrefixes = {};
+    for (const k of keysPrimary) {
       const p = k.split(":")[0];
-      keyPrefixes6379[p] = (keyPrefixes6379[p] || 0) + 1;
+      keyPrefixes[p] = (keyPrefixes[p] || 0) + 1;
     }
-    console.log("   Key prefixes on Redis 6379:", keyPrefixes6379);
-    console.log("   Sample keys on Redis 6379:", keys6379.slice(0, 10));
-    await r6379.quit();
+    console.log("   Key prefixes on primary Redis:", keyPrefixes);
+    console.log("   Sample keys on primary Redis:", keysPrimary.slice(0, 10));
+    await rPrimary.quit();
   } catch (err) {
-    console.log(`   Redis 6379 error: ${err.message}`);
+    console.log(`   Primary Redis error: ${err.message}`);
   }
 
-  // 2. Redis 6381 (webfashion-redis-staging container)
-  console.log("\n2. Inspecting Redis 6381 (webfashion-redis-staging container):");
+  // 2. QA Redis inspection
+  const qaRedisPort = Number(process.env.QA_REDIS_PORT || targetPort);
+  console.log(`\n2. Inspecting QA Redis (${targetHost}:${qaRedisPort}):`);
   try {
-    const r6381 = new Redis({ host: "127.0.0.1", port: 6381, connectTimeout: 3000 });
-    const ping = await r6381.ping();
-    const keys6381 = await r6381.keys("*");
-    console.log(`   Redis 6381 ping: ${ping}`);
-    console.log(`   Total keys on Redis 6381: ${keys6381.length}`);
+    const rQa = new Redis({ host: targetHost, port: qaRedisPort, connectTimeout: 3000 });
+    const ping = await rQa.ping();
+    const keysQa = await rQa.keys("*");
+    console.log(`   QA Redis ping: ${ping}`);
+    console.log(`   Total keys on QA Redis: ${keysQa.length}`);
     const keyPrefixes6381 = {};
-    for (const k of keys6381) {
+    for (const k of keysQa) {
       const p = k.split(":")[0];
       keyPrefixes6381[p] = (keyPrefixes6381[p] || 0) + 1;
     }
-    console.log("   Key prefixes on Redis 6381:", keyPrefixes6381);
-    console.log("   Sample keys on Redis 6381:", keys6381.slice(0, 10));
-    await r6381.quit();
+    console.log("   Key prefixes on QA Redis:", keyPrefixes6381);
+    console.log("   Sample keys on QA Redis:", keysQa.slice(0, 10));
+    await rQa.quit();
   } catch (err) {
-    console.log(`   Redis 6381 error: ${err.message}`);
+    console.log(`   QA Redis error: ${err.message}`);
   }
 
   // 3. Local Dedicated Staging MongoDB 27018 (webfashion-mongo-staging)

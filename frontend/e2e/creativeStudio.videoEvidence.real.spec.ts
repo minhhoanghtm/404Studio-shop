@@ -1,9 +1,10 @@
 import { expect, test } from '@playwright/test';
 import { createIsolatedDesign, openDesignInStudio, seededLayer } from './support/creativeStudioQa';
+import { getQaApiUrl } from './support/qaEnv';
 
 test('records an authenticated export and reload flow without showing credentials', async ({ page, request }, info) => {
   test.skip(process.env.QA_E2E_ENABLED !== 'true', 'Requires isolated QA.');
-  const login = await request.post('http://127.0.0.1:5002/api/auth/login', { data: { email: 'qa.superadmin@atelier.local', passWord: process.env.QA_SEED_PASSWORD } });
+  const login = await request.post(`${getQaApiUrl()}/auth/login`, { data: { email: 'qa.superadmin@atelier.local', passWord: process.env.QA_SEED_PASSWORD } });
   expect(login.ok()).toBeTruthy();
   const session = (await login.json()).data;
   await page.goto('/');

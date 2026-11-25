@@ -353,7 +353,7 @@ export const AdminTrackingUsersPage: React.FC = () => {
             <h4 className="font-display text-base text-emerald-400 font-bold mt-2 flex items-center gap-1.5">
               <CheckCircle2 className="w-4 h-4" /> Đang Hoạt Động
             </h4>
-            <div className="text-[10px] text-platinum-dark mt-1">redis_local:6379</div>
+            <div className="text-[10px] text-platinum-dark mt-1">Redis Active Store</div>
           </div>
         </div>
 

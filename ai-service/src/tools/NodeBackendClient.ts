@@ -11,8 +11,8 @@ export class NodeBackendClient {
   private readonly secret: string;
 
   constructor(options: { baseUrl?: string; secret?: string } = {}) {
-    this.baseUrl = String(options.baseUrl || process.env.NODE_BACKEND_BASE_URL || 'http://localhost:5000').replace(/\/$/, '');
-    this.secret = options.secret || process.env.AI_SERVICE_SHARED_SECRET || 'dev_shared_secret_key_minimum_32_characters_123456';
+    this.baseUrl = String(options.baseUrl || process.env.NODE_BACKEND_BASE_URL || '').trim().replace(/\/$/, '');
+    this.secret = options.secret || process.env.AI_SERVICE_SHARED_SECRET || '';
   }
 
   /**
@@ -23,6 +23,12 @@ export class NodeBackendClient {
     args: Record<string, unknown> = {},
     authContext: BackendAuthContext = {}
   ): Promise<ToolExecutionResult> {
+    if (!this.baseUrl) {
+      throw new Error('Missing NODE_BACKEND_BASE_URL for NodeBackendClient.');
+    }
+    if (!this.secret) {
+      throw new Error('Missing AI_SERVICE_SHARED_SECRET for NodeBackendClient.');
+    }
     const timestamp = String(Math.floor(Date.now() / 1000));
     const path = `/api/internal/ai/tools/${toolName}`;
     const payload = { arguments: args };

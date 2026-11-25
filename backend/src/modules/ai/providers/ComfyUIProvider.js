@@ -1,7 +1,8 @@
 import fs from "fs/promises";
 import BaseAIProvider, { AI_CAPABILITIES, PROVIDER_STATUS, classifyProviderFailure } from "./BaseAIProvider.js";
+import { parseHttpUrl } from "../../../configs/network.config.js";
 
-const normalizeBaseUrl = (value) => String(value || "http://127.0.0.1:8188").replace(/\/$/, "");
+const normalizeBaseUrl = (value) => parseHttpUrl(value, "COMFYUI_BASE_URL", { required: false });
 
 /** Local-only ComfyUI adapter. It requires an admin-provided workflow and never downloads a model. */
 export class ComfyUIProvider extends BaseAIProvider {
@@ -21,7 +22,7 @@ export class ComfyUIProvider extends BaseAIProvider {
   getImageCostProfile() { return { kind: "ZERO_COST_LOCAL", estimatedCostUsd: 0 }; }
 
   async getStatus() {
-    if (!this.enabled || !this.workflowPath) return PROVIDER_STATUS.LOCAL_PROVIDER_UNAVAILABLE;
+    if (!this.enabled || !this.workflowPath || !this.baseUrl) return PROVIDER_STATUS.LOCAL_PROVIDER_UNAVAILABLE;
     try {
       await fs.access(this.workflowPath);
       return PROVIDER_STATUS.CONFIGURED_UNVERIFIED;

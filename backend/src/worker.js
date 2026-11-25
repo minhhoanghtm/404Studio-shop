@@ -1,12 +1,14 @@
 import "dotenv/config";
 import { connectDB } from "./configs/db.js";
+import { validateEnvironment } from "./configs/validateEnv.js";
 import { initEmailWorker } from "./queues/workers/email.worker.js";
 import { initTrackingWorker } from "./queues/workers/tracking.worker.js";
 import { initVectorSyncWorker } from "./modules/ai/queues/vectorSync.queue.js";
 
 const startWorker = async () => {
   try {
-    console.log("👷 Bootstrapping Staging Background Workers...");
+    console.log("👷 Bootstrapping Background Workers...");
+    validateEnvironment();
     await connectDB();
     console.log("✅ MongoDB connected for Worker process.");
 
