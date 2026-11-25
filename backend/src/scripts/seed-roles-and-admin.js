@@ -1,3 +1,4 @@
+import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
 import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 import dotenv from "dotenv";
@@ -9,7 +10,8 @@ import {
   ALL_PERMISSIONS,
 } from "../modules/roles/role.constant.js";
 
-dotenv.config();
+await verifyQaSuiteTarget();
+
 
 const MONGO_URI =
   process.env.LOCAL_DEV_MONGO_URI ||

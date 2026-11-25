@@ -1,3 +1,4 @@
+import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
 import { chromium } from "playwright";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -5,6 +6,8 @@ import fs from "fs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { requireEnv } from "./require-env.js";
+
+await verifyQaSuiteTarget();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

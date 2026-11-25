@@ -1,13 +1,15 @@
+import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
 /**
  * Real staging AI audit. Never embeds credentials, URLs, product IDs or prices.
  * Required: AI_AUDIT_API_URL, AI_AUDIT_ACCESS_TOKEN, AI_AUDIT_MONGO_URI.
  * Example: node src/scripts/audit-ai-real-staging.mjs
  */
-import "dotenv/config";
 import fs from "node:fs/promises";
 import path from "node:path";
 import mongoose from "mongoose";
 import Product from "../modules/products/product.model.js";
+
+await verifyQaSuiteTarget({ liveProviders: true });
 
 const requireEnv = (name) => {
   const value = process.env[name];

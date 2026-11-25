@@ -12,10 +12,145 @@ import pricingService from "../../campaigns/pricing.service.js";
 import CampaignProduct from "../../campaigns/campaignProduct.model.js";
 import CampaignPurchase from "../../campaigns/campaignPurchase.model.js";
 import inventoryReservationService from "../../inventory/inventoryReservation.service.js";
+import InventoryReservation from "../../inventory/inventoryReservation.model.js";
 import crypto from "crypto";
+import { checkoutShippingFee, quoteCheckout, validateCheckoutReservation } from "../checkoutQuote.service.js";
+import { Order } from "../order.model.js";
 dotenv.config();
 
+const isNonTransactionalFallbackAllowed = () =>
+  process.env.NODE_ENV !== "production" &&
+  process.env.REQUIRE_MONGO_TRANSACTIONS !== "true";
+
+const computeCheckoutRequestHash = (userId, orderData) => {
+  const items = Array.isArray(orderData.items)
+    ? orderData.items.map((item) => ({
+        product_id: String(item.product_id || ""),
+        variant_id: item.variant_id || item.product_variant_id ? String(item.variant_id || item.product_variant_id) : null,
+        quantity: Number(item.quantity || 0),
+      }))
+    : [];
+  const rawAddr = orderData.shipping_address || orderData.shippingAddress || {};
+  const canonical = {
+    userId: userId ? String(userId) : null,
+    items,
+    payment_method: String(orderData.payment_method || orderData.paymentMethod || "cod").toLowerCase(),
+    voucher_code: String(orderData.voucher_code || orderData.voucherCode || "").trim().toUpperCase(),
+    reservation_id: orderData.reservation_id || orderData.reservationId || null,
+    shipping_address: typeof rawAddr === "object" && rawAddr !== null ? {
+      full_name: rawAddr.full_name || "",
+      phone: rawAddr.phone || "",
+      city: rawAddr.city || "",
+      district: rawAddr.district || "",
+      ward: rawAddr.ward || "",
+      address_detail: rawAddr.address_detail || "",
+    } : String(rawAddr),
+  };
+  return crypto.createHash("sha256").update(JSON.stringify(canonical)).digest("hex");
+};
+
+// Validate fields that the Order model requires before stock, campaigns or
+// vouchers can be changed on standalone MongoDB without transactions.
+const validateOrderInput = (orderData) => {
+  const raw = orderData.shipping_address || orderData.shippingAddress;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    throw new AppError("Vui lòng cung cấp đầy đủ thông tin giao hàng", 400);
+  }
+  const shippingAddress = raw;
+  const payment = orderData.payment_method || orderData.paymentMethod || "cod";
+  if (typeof payment !== "string") throw new AppError("Phương thức thanh toán không hợp lệ", 400);
+  const validation = new Order({ total_price: 0, shipping_address: shippingAddress, payment_method: payment.toLowerCase() }).validateSync();
+  if (validation) throw new AppError("Thông tin giao hàng hoặc phương thức thanh toán không hợp lệ", 400);
+};
+
 export const createOrder = async (userId, orderData) => {
+  const reservationId = orderData.reservation_id || orderData.reservationId || null;
+  const rawIdempotencyKey = orderData.idempotency_key ?? orderData.idempotencyKey ?? null;
+  const idempotencyKey = typeof rawIdempotencyKey === "string" && rawIdempotencyKey.trim()
+    ? rawIdempotencyKey.trim()
+    : null;
+  if (rawIdempotencyKey !== null && rawIdempotencyKey !== undefined && (!idempotencyKey || idempotencyKey.length > 200)) {
+    throw new AppError("Khóa idempotency không hợp lệ", 400);
+  }
+  if (reservationId !== null && (typeof reservationId !== "string" || reservationId.length > 200)) {
+    throw new AppError("Phiên giữ hàng không hợp lệ", 400);
+  }
+
+  const items = Array.isArray(orderData.items)
+    ? orderData.items.map((item) => ({ ...item, variant_id: item.variant_id || item.product_variant_id || undefined }))
+    : orderData.items;
+  if (reservationId) {
+    await validateCheckoutReservation(userId, reservationId, items);
+  }
+
+  const requestHash = idempotencyKey ? computeCheckoutRequestHash(userId, orderData) : null;
+  if (!reservationId && !idempotencyKey) {
+    return createOrderUnlocked(userId, orderData, { requestHash, idempotencyKey });
+  }
+
+  const redis = inventoryReservationService.getRedis();
+  const acquiredLocks = [];
+  const acquireLock = async (lockKey, conflictMessage) => {
+    const lockToken = crypto.randomBytes(24).toString("hex");
+    let acquired;
+    try {
+      acquired = await redis.set(lockKey, lockToken, "EX", 300, "NX");
+    } catch {
+      throw new AppError("Không thể kiểm tra khóa xử lý đơn hàng, vui lòng thử lại", 503);
+    }
+    if (acquired !== "OK") {
+      throw new AppError(conflictMessage, 409);
+    }
+    acquiredLocks.push({ lockKey, lockToken });
+  };
+
+  try {
+    if (reservationId) {
+      await acquireLock(`webfashion:checkout:order-lock:${reservationId}`, "Phiên giữ hàng đang được xử lý");
+    }
+    if (idempotencyKey) {
+      await acquireLock(`webfashion:checkout:idemp-lock:${userId || "guest"}:${idempotencyKey}`, "Đơn hàng đang được xử lý, vui lòng không gửi trùng lặp");
+    }
+
+    if (idempotencyKey) {
+      const existingByKey = await Order.findOne({
+        user_id: userId || null,
+        idempotency_key: idempotencyKey,
+      }).select("+idempotency_request_hash");
+      if (existingByKey) {
+        if (existingByKey.idempotency_request_hash && existingByKey.idempotency_request_hash !== requestHash) {
+          throw Object.assign(new AppError("Khóa idempotency đã được sử dụng cho yêu cầu khác", 409), { code: "IDEMPOTENCY_CONFLICT" });
+        }
+        return existingByKey;
+      }
+    }
+
+    if (reservationId) {
+      // A previous order may already exist even if Redis finalization failed.
+      if (await Order.exists({ reservation_id: reservationId })) {
+        throw new AppError("Phiên giữ hàng đã được sử dụng", 409);
+      }
+    }
+
+    // The inner checkout revalidates the reservation and executes atomically.
+    return await createOrderUnlocked(userId, orderData, { requestHash, idempotencyKey });
+  } finally {
+    for (const { lockKey, lockToken } of acquiredLocks.reverse()) {
+      try {
+        await redis.eval(
+          'if redis.call("GET", KEYS[1]) == ARGV[1] then return redis.call("DEL", KEYS[1]) else return 0 end',
+          1,
+          lockKey,
+          lockToken
+        );
+      } catch (error) {
+        console.error("Checkout lock release failed:", error.message);
+      }
+    }
+  }
+};
+
+const createOrderUnlocked = async (userId, orderData, idempotencyMeta = {}) => {
   // Guest orders have no account identity. Generate a high-entropy credential
   // once and persist only its SHA-256 hash.
   const guestAccessToken = userId ? null : crypto.randomBytes(32).toString("base64url");
@@ -23,21 +158,9 @@ export const createOrder = async (userId, orderData) => {
     ? crypto.createHash("sha256").update(guestAccessToken).digest("hex")
     : null;
   const reservationId = orderData.reservation_id || orderData.reservationId || null;
-  if (reservationId) {
-    const reservation = await inventoryReservationService.getReservation(reservationId);
-    if (!reservation) {
-      throw new AppError("Không tìm thấy thông tin giữ hàng tồn kho", 400);
-    }
-    if (reservation.status === "EXPIRED" || reservation.remainingSeconds <= 0) {
-      throw new AppError("Thời gian giữ hàng (5 phút) đã hết hạn. Vui lòng đặt lại sản phẩm.", 400);
-    }
-    if (reservation.status !== "ACTIVE") {
-      throw new AppError(`Phiên giữ hàng không còn hiệu lực (${reservation.status})`, 400);
-    }
-    if (userId && reservation.userId && String(reservation.userId) !== String(userId)) {
-      throw new AppError("Phiên giữ hàng không thuộc về tài khoản này", 403);
-    }
-  }
+  const quotedItems = Array.isArray(orderData.items) ? orderData.items.map((item) => ({ ...item, variant_id: item.variant_id || item.product_variant_id || undefined })) : orderData.items;
+  await quoteCheckout(userId, { items: quotedItems, voucher_code: orderData.voucher_code || orderData.voucherCode, reservation_id: reservationId });
+  validateOrderInput(orderData);
 
   if (!userId) {
     const guestAllowed = await isFeatureEnabled("allowGuestCheckout");
@@ -47,6 +170,7 @@ export const createOrder = async (userId, orderData) => {
   }
 
   const session = await mongoose.startSession();
+  let transactionCompleted = false;
   try {
     let createdOrder;
     let orderItems = [];
@@ -64,24 +188,7 @@ export const createOrder = async (userId, orderData) => {
         }
       }
 
-      let dbShippingAddress = {};
-      if (typeof rawShippingAddress === "string") {
-        dbShippingAddress = {
-          full_name: orderData.fullName || "Khách hàng",
-          phone: orderData.phone || "0900000000",
-          city: "Chưa xác định",
-          district: "Chưa xác định",
-          ward: "Chưa xác định",
-          address_detail: rawShippingAddress,
-        };
-      } else if (
-        rawShippingAddress &&
-        typeof rawShippingAddress === "object"
-      ) {
-        dbShippingAddress = rawShippingAddress;
-      } else {
-        throw new AppError("Địa chỉ giao hàng là bắt buộc", 400);
-      }
+      const dbShippingAddress = rawShippingAddress;
 
       let subtotal = 0;
       orderItems = [];
@@ -100,7 +207,7 @@ export const createOrder = async (userId, orderData) => {
 
           const product = await productRepository.findOne({
             _id: productObjectId,
-          });
+          }, { session });
           if (!product) {
             throw new AppError(
               `Sản phẩm với id ${item.product_id} không tồn tại`,
@@ -209,9 +316,7 @@ export const createOrder = async (userId, orderData) => {
         subtotal = Number(orderData.total_price || orderData.totalPrice || 0);
       }
 
-      const shippingFee = (subtotal >= 1000000 || subtotal === 0)
-        ? 0
-        : (orderData.shippingFee !== undefined ? Number(orderData.shippingFee) : 30000);
+      const shippingFee = checkoutShippingFee(subtotal);
       let discountAmount = 0;
       const voucherIds = [];
       const voucherCodes = voucherCode ? voucherCode.split(",").map((c) => c.trim()) : [];
@@ -224,17 +329,19 @@ export const createOrder = async (userId, orderData) => {
             subtotal,
             orderItems,
             shippingFee,
+            { session },
           );
           discountAmount += validation.discountAmount;
+          const placeholderOrderId = new mongoose.Types.ObjectId();
           if (validation.voucherId) {
-            voucherIds.push(validation.voucherId);
+            voucherIds.push({ id: validation.voucherId, placeholderOrderId });
           }
 
           await voucherService.applyVoucherWithPlaceholder(
             userId,
             code,
             validation.discountAmount,
-            { session },
+            { session, placeholderOrderId },
           );
         }
       }
@@ -255,6 +362,10 @@ export const createOrder = async (userId, orderData) => {
             total_price: finalTotalPrice,
             original_price: subtotal,
             discount_amount: discountAmount,
+            shipping_fee: shippingFee,
+            reservation_id: reservationId,
+            idempotency_key: idempotencyMeta.idempotencyKey || null,
+            idempotency_request_hash: idempotencyMeta.requestHash || null,
             voucher_code: voucherCode ? voucherCode.toUpperCase() : null,
             status: "pending",
             payment_method: paymentMethod.toLowerCase(),
@@ -266,7 +377,19 @@ export const createOrder = async (userId, orderData) => {
       );
 
       createdOrder = orderArray[0];
-      if (reservationId) { await inventoryReservationService.commitReservation(reservationId, createdOrder._id); }
+
+      if (reservationId) {
+        const resFilter = { reservationId, status: "ACTIVE" };
+        if (userId) resFilter.userId = String(userId);
+        const consumedReservation = await InventoryReservation.findOneAndUpdate(
+          resFilter,
+          { $set: { status: "COMPLETED", orderId: createdOrder._id, completedAt: new Date() } },
+          { session, new: true },
+        );
+        if (!consumedReservation) {
+          throw new AppError("Phiên giữ hàng đã được sử dụng hoặc không còn hiệu lực", 409);
+        }
+      }
 
       // Ghi nhận lượt mua chiến dịch để kiểm soát per_user_limit
       for (const orderItem of orderItems) {
@@ -286,12 +409,12 @@ export const createOrder = async (userId, orderData) => {
         }
       }
 
-      for (const vId of voucherIds) {
+      for (const vRef of voucherIds) {
         await voucherService.linkVoucherUsageToOrder(
           userId,
-          vId,
+          vRef.id,
           createdOrder._id,
-          { session },
+          { session, placeholderOrderId: vRef.placeholderOrderId },
         );
       }
 
@@ -310,10 +433,9 @@ export const createOrder = async (userId, orderData) => {
             session,
           );
           if (userCart) {
-          const productIds = orderItems.map((item) => item.product_id);
           await CartItem.deleteMany({
             cart_id: userCart._id,
-            product_id: { $in: productIds },
+            $or: orderItems.map((item) => ({ product_id: item.product_id, variant_id: item.variant_id || null })),
           }).session(session);
 
           const remainingItems = await CartItem.find({
@@ -339,6 +461,11 @@ export const createOrder = async (userId, orderData) => {
         }
       }
     });
+
+    transactionCompleted = true;
+    if (reservationId && createdOrder) {
+      await inventoryReservationService.finalizeCommittedReservationRedis(reservationId, createdOrder._id);
+    }
 
     if (createdOrder) {
       import("../../../sockets/events.js")
@@ -398,15 +525,36 @@ export const createOrder = async (userId, orderData) => {
     return createdOrder;
   } catch (error) {
     if (
-      error.message &&
-      (error.message.includes("does not support document-level writes") ||
-        error.message.includes("replica set") ||
-        error.message.includes("transaction"))
+      !transactionCompleted && error.code === 20 &&
+      /transaction numbers are only allowed on a replica set member or mongos/i.test(error.message || "")
     ) {
+      if (!isNonTransactionalFallbackAllowed()) {
+        throw Object.assign(
+          new AppError("Hệ thống thanh toán yêu cầu MongoDB Replica Set hỗ trợ giao dịch nguyên tử.", 503),
+          { code: "TRANSACTION_REQUIRED" },
+        );
+      }
       console.warn(
         "⚠️ MongoDB local does not support Transactions. Falling back to non-transactional execution.",
       );
-      return await createOrderWithoutTransaction(userId, orderData);
+      return await createOrderWithoutTransaction(userId, orderData, { guestAccessToken, guestAccessTokenHash, ...idempotencyMeta });
+    }
+    if (!transactionCompleted && error.code === 11000) {
+      if (error.keyPattern?.reservation_id) {
+        throw new AppError("Phiên giữ hàng đã được sử dụng", 409);
+      }
+      if (error.keyPattern?.idempotency_key && idempotencyMeta.idempotencyKey) {
+        const existingByKey = await Order.findOne({
+          user_id: userId || null,
+          idempotency_key: idempotencyMeta.idempotencyKey,
+        }).select("+idempotency_request_hash");
+        if (existingByKey) {
+          if (existingByKey.idempotency_request_hash && existingByKey.idempotency_request_hash !== idempotencyMeta.requestHash) {
+            throw Object.assign(new AppError("Khóa idempotency đã được sử dụng cho yêu cầu khác", 409), { code: "IDEMPOTENCY_CONFLICT" });
+          }
+          return existingByKey;
+        }
+      }
     }
     throw error;
   } finally {
@@ -414,7 +562,19 @@ export const createOrder = async (userId, orderData) => {
   }
 };
 
-export const createOrderWithoutTransaction = async (userId, orderData) => {
+export const createOrderWithoutTransaction = async (userId, orderData, guest = {}) => {
+  if (!isNonTransactionalFallbackAllowed()) {
+    throw Object.assign(
+      new AppError("Hệ thống thanh toán yêu cầu MongoDB Replica Set hỗ trợ giao dịch nguyên tử.", 503),
+      { code: "TRANSACTION_REQUIRED" },
+    );
+  }
+  const reservationId = orderData.reservation_id || orderData.reservationId || null;
+  const guestAccessToken = userId ? null : (guest.guestAccessToken || crypto.randomBytes(32).toString("base64url"));
+  const guestAccessTokenHash = userId ? null : (guest.guestAccessTokenHash || crypto.createHash("sha256").update(guestAccessToken).digest("hex"));
+  const quotedItems = Array.isArray(orderData.items) ? orderData.items.map((item) => ({ ...item, variant_id: item.variant_id || item.product_variant_id || undefined })) : orderData.items;
+  await quoteCheckout(userId, { items: quotedItems, voucher_code: orderData.voucher_code || orderData.voucherCode, reservation_id: reservationId });
+  validateOrderInput(orderData);
   if (!userId) {
     const guestAllowed = await isFeatureEnabled("allowGuestCheckout");
     if (!guestAllowed) {
@@ -422,7 +582,6 @@ export const createOrderWithoutTransaction = async (userId, orderData) => {
     }
   }
 
-  console.log("Inside createOrderWithoutTransaction: userId =", userId, "type =", typeof userId);
   const items = orderData.items || [];
   const paymentMethod =
     orderData.payment_method || orderData.paymentMethod || "cod";
@@ -436,248 +595,282 @@ export const createOrderWithoutTransaction = async (userId, orderData) => {
     }
   }
 
-  let dbShippingAddress = {};
-  if (typeof rawShippingAddress === "string") {
-    dbShippingAddress = {
-      full_name: orderData.fullName || "Khách hàng",
-      phone: orderData.phone || "0900000000",
-      city: "Chưa xác định",
-      district: "Chưa xác định",
-      ward: "Chưa xác định",
-      address_detail: rawShippingAddress,
-    };
-  } else if (rawShippingAddress && typeof rawShippingAddress === "object") {
-    dbShippingAddress = rawShippingAddress;
-  } else {
-    throw new AppError("Địa chỉ giao hàng là bắt buộc", 400);
-  }
+  const dbShippingAddress = rawShippingAddress;
 
   let subtotal = 0;
   const orderItems = [];
+  const appliedCampaigns = [];
+  const appliedVouchers = [];
+  let stockDeducted = false;
+  let order = null;
 
-  const activeCampaignsBundle = await pricingService.getActiveCampaignsBundle(new Date());
+  try {
+    const activeCampaignsBundle = await pricingService.getActiveCampaignsBundle(new Date());
 
-  if (Array.isArray(items) && items.length > 0) {
-    for (const item of items) {
-      if (!item.product_id || !mongoose.Types.ObjectId.isValid(item.product_id)) {
-        throw new AppError(`product_id không hợp lệ: ${item.product_id}`, 400);
-      }
-      const productObjectId = new mongoose.Types.ObjectId(item.product_id);
+    if (Array.isArray(items) && items.length > 0) {
+      for (const item of items) {
+        if (!item.product_id || !mongoose.Types.ObjectId.isValid(item.product_id)) {
+          throw new AppError(`product_id không hợp lệ: ${item.product_id}`, 400);
+        }
+        const productObjectId = new mongoose.Types.ObjectId(item.product_id);
 
-      const product = await productRepository.findOne({
-        _id: productObjectId,
-      });
-      if (!product) {
-        throw new AppError(
-          `Sản phẩm với id ${item.product_id} không tồn tại`,
-          404,
-        );
-      }
-
-      const variantId = item.variant_id || item.product_variant_id || null;
-      const priceInfo = await pricingService.resolvePrice(
-        product,
-        variantId,
-        new Date(),
-        userId,
-        activeCampaignsBundle
-      );
-
-      if (item.price !== undefined && item.price !== null && Math.abs(Number(item.price) - priceInfo.finalPrice) > 0.01) {
-        throw new AppError(
-          `Giá sản phẩm "${product.name}" đã thay đổi từ ${Number(item.price).toLocaleString("vi-VN")}đ thành ${priceInfo.finalPrice.toLocaleString("vi-VN")}đ do chương trình khuyến mãi thay đổi. Vui lòng cập nhật giỏ hàng.`,
-          409
-        );
-      }
-
-      if (priceInfo.isQuotaExhausted) {
-        throw new AppError(
-          `Sản phẩm "${product.name}" trong Flash Sale đã hết suất ưu đãi. Vui lòng cập nhật lại giỏ hàng.`,
-          409
-        );
-      }
-
-      if (priceInfo.type === "flash_sale" && priceInfo.cpConfig) {
-        const qty = Number(item.quantity);
-        if (priceInfo.cpConfig.per_user_limit && userId) {
-          const userPurchases = await CampaignPurchase.aggregate([
-            {
-              $match: {
-                campaign_id: priceInfo.campaignId,
-                product_id: productObjectId,
-                user_id: new mongoose.Types.ObjectId(userId),
-              },
-            },
-            {
-              $group: {
-                _id: null,
-                totalBought: { $sum: "$quantity" },
-              },
-            },
-          ]);
-
-          const alreadyBought = userPurchases[0]?.totalBought || 0;
-          if (alreadyBought + qty > priceInfo.cpConfig.per_user_limit) {
-            throw new AppError(
-              `Bạn chỉ được mua tối đa ${priceInfo.cpConfig.per_user_limit} sản phẩm "${product.name}" với giá ưu đãi trong đợt khuyến mãi này.`,
-              400
-            );
-          }
+        const product = await productRepository.findOne({
+          _id: productObjectId,
+        });
+        if (!product) {
+          throw new AppError(
+            `Sản phẩm với id ${item.product_id} không tồn tại`,
+            404,
+          );
         }
 
-        const cpDeducted = await CampaignProduct.findOneAndUpdate(
-          {
-            _id: priceInfo.cpConfig._id,
-            $expr: {
-              $lte: [{ $add: ["$sold", qty] }, "$quota"],
-            },
-          },
-          {
-            $inc: { sold: qty },
-          },
-          { new: true }
+        const variantId = item.variant_id || item.product_variant_id || null;
+        const priceInfo = await pricingService.resolvePrice(
+          product,
+          variantId,
+          new Date(),
+          userId,
+          activeCampaignsBundle
         );
 
-        if (!cpDeducted) {
+        if (item.price !== undefined && item.price !== null && Math.abs(Number(item.price) - priceInfo.finalPrice) > 0.01) {
           throw new AppError(
-            `Sản phẩm "${product.name}" trong Flash Sale vừa hết suất khuyến mãi`,
+            `Giá sản phẩm "${product.name}" đã thay đổi từ ${Number(item.price).toLocaleString("vi-VN")}đ thành ${priceInfo.finalPrice.toLocaleString("vi-VN")}đ do chương trình khuyến mãi thay đổi. Vui lòng cập nhật giỏ hàng.`,
             409
           );
         }
-      }
 
-      const priceToUse = priceInfo.finalPrice;
-      if (priceToUse <= 0) {
-        throw new AppError(
-          `Sản phẩm "${product.name}" chưa xác định được giá hợp lệ từ hệ thống hoặc có giá 0đ`,
-          400
-        );
-      }
-      const totalCalculated = priceToUse * item.quantity;
-      subtotal += totalCalculated;
+        if (priceInfo.isQuotaExhausted) {
+          throw new AppError(
+            `Sản phẩm "${product.name}" trong Flash Sale đã hết suất ưu đãi. Vui lòng cập nhật lại giỏ hàng.`,
+            409
+          );
+        }
 
-      orderItems.push({
-        product_id: productObjectId,
-        product_name: product.name,
-        product_slug: product.slug,
-        product_image:
-          product.image ||
-          (product.displayProduct && product.displayProduct[0]),
-        quantity: item.quantity,
-        price: priceToUse,
-        variant_id: variantId,
-        campaign_id: priceInfo.campaignId || null,
-        campaign_name: priceInfo.campaignName || null,
-        original_price: priceInfo.originalPrice,
-      });
-    }
-  } else {
-    subtotal = Number(orderData.total_price || orderData.totalPrice || 0);
-  }
+        if (priceInfo.type === "flash_sale" && priceInfo.cpConfig) {
+          const qty = Number(item.quantity);
+          if (priceInfo.cpConfig.per_user_limit && userId) {
+            const userPurchases = await CampaignPurchase.aggregate([
+              {
+                $match: {
+                  campaign_id: priceInfo.campaignId,
+                  product_id: productObjectId,
+                  user_id: new mongoose.Types.ObjectId(userId),
+                },
+              },
+              {
+                $group: {
+                  _id: null,
+                  totalBought: { $sum: "$quantity" },
+                },
+              },
+            ]);
 
-  const shippingFee = (subtotal >= 1000000 || subtotal === 0)
-    ? 0
-    : (orderData.shippingFee !== undefined ? Number(orderData.shippingFee) : 30000);
-  let discountAmount = 0;
-  const voucherIds = [];
-  const voucherCodes = voucherCode ? voucherCode.split(",").map((c) => c.trim()) : [];
+            const alreadyBought = userPurchases[0]?.totalBought || 0;
+            if (alreadyBought + qty > priceInfo.cpConfig.per_user_limit) {
+              throw new AppError(
+                `Bạn chỉ được mua tối đa ${priceInfo.cpConfig.per_user_limit} sản phẩm "${product.name}" với giá ưu đãi trong đợt khuyến mãi này.`,
+                400
+              );
+            }
+          }
 
-  for (const code of voucherCodes) {
-    if (code) {
-      const validation = await voucherService.validateVoucher(
-        userId,
-        code,
-        subtotal,
-        orderItems,
-        shippingFee,
-      );
-      discountAmount += validation.discountAmount;
-      if (validation.voucherId) {
-        voucherIds.push({
-          id: validation.voucherId,
-          disc: validation.discountAmount,
+          const cpDeducted = await CampaignProduct.findOneAndUpdate(
+            {
+              _id: priceInfo.cpConfig._id,
+              $expr: {
+                $lte: [{ $add: ["$sold", qty] }, "$quota"],
+              },
+            },
+            {
+              $inc: { sold: qty },
+            },
+            { new: true }
+          );
+
+          if (!cpDeducted) {
+            throw new AppError(
+              `Sản phẩm "${product.name}" trong Flash Sale vừa hết suất khuyến mãi`,
+              409
+            );
+          }
+          appliedCampaigns.push({ cpId: priceInfo.cpConfig._id, qty });
+        }
+
+        const priceToUse = priceInfo.finalPrice;
+        if (priceToUse <= 0) {
+          throw new AppError(
+            `Sản phẩm "${product.name}" chưa xác định được giá hợp lệ từ hệ thống hoặc có giá 0đ`,
+            400
+          );
+        }
+        const totalCalculated = priceToUse * item.quantity;
+        subtotal += totalCalculated;
+
+        orderItems.push({
+          product_id: productObjectId,
+          product_name: product.name,
+          product_slug: product.slug,
+          product_image:
+            product.image ||
+            (product.displayProduct && product.displayProduct[0]),
+          quantity: item.quantity,
+          price: priceToUse,
+          variant_id: variantId,
+          campaign_id: priceInfo.campaignId || null,
+          campaign_name: priceInfo.campaignName || null,
+          original_price: priceInfo.originalPrice,
         });
       }
-
-      await voucherService.applyVoucherNoUsage(userId, code);
+    } else {
+      subtotal = Number(orderData.total_price || orderData.totalPrice || 0);
     }
-  }
 
-  const finalTotalPrice = Math.max(0, subtotal + shippingFee - discountAmount);
+    const shippingFee = checkoutShippingFee(subtotal);
+    let discountAmount = 0;
+    const voucherIds = [];
+    const voucherCodes = voucherCode ? voucherCode.split(",").map((c) => c.trim()) : [];
 
-  if (orderItems.length > 0) {
-    await productFacade.deductStock(orderItems);
-  }
+    for (const code of voucherCodes) {
+      if (code) {
+        const validation = await voucherService.validateVoucher(
+          userId,
+          code,
+          subtotal,
+          orderItems,
+          shippingFee,
+        );
+        discountAmount += validation.discountAmount;
+        if (validation.voucherId) {
+          voucherIds.push({
+            id: validation.voucherId,
+            code,
+            disc: validation.discountAmount,
+          });
+        }
 
-  if (reservationId) { await inventoryReservationService.commitReservation(reservationId); }
-  const order = await orderRepository.create({
-    user_id: userId || null,
-    is_guest: !userId,
-    guest_email: orderData.email || orderData.guest_email || null,
-    guest_access_token_hash: guestAccessTokenHash,
-    total_price: finalTotalPrice,
-    original_price: subtotal,
-    discount_amount: discountAmount,
-    voucher_code: voucherCode ? voucherCode.toUpperCase() : null,
-    status: "pending",
-    payment_method: paymentMethod.toLowerCase(),
-    shipping_address: dbShippingAddress,
-    stock_deducted: true,
-  });
-
-  // Ghi nhận lượt mua chiến dịch để kiểm soát per_user_limit
-  for (const orderItem of orderItems) {
-    if (orderItem.campaign_id && userId) {
-      await CampaignPurchase.create({
-        campaign_id: orderItem.campaign_id,
-        product_id: orderItem.product_id,
-        user_id: userId,
-        order_id: order._id,
-        quantity: orderItem.quantity,
-      });
-    }
-  }
-
-  for (const vUsage of voucherIds) {
-    await voucherService.createVoucherUsage(
-      userId,
-      vUsage.id,
-      order._id,
-      vUsage.disc,
-    );
-  }
-
-  if (orderItems.length > 0) {
-    const orderItemsToInsert = orderItems.map((item) => ({
-      ...item,
-      order_id: order._id,
-    }));
-    await orderRepository.insertManyItems(orderItemsToInsert);
-
-    if (userId) {
-      const userCart = await Cart.findOne({ user_id: userId });
-      if (userCart) {
-      const productIds = orderItems.map((item) => item.product_id);
-      await CartItem.deleteMany({
-        cart_id: userCart._id,
-        product_id: { $in: productIds },
-      });
-
-      const remainingItems = await CartItem.find({ cart_id: userCart._id });
-      const totalItemsCount = remainingItems.reduce(
-        (sum, item) => sum + (item.quantity || 0),
-        0,
-      );
-      const totalPrice = remainingItems.reduce(
-        (sum, item) => sum + (item.price || 0) * (item.quantity || 0),
-        0,
-      );
-      await Cart.findByIdAndUpdate(userCart._id, {
-        total_items: totalItemsCount,
-        total_price: totalPrice,
-      });
+        await voucherService.applyVoucherNoUsage(userId, code);
+        appliedVouchers.push({ code, voucherId: validation.voucherId });
       }
     }
+
+    const finalTotalPrice = Math.max(0, subtotal + shippingFee - discountAmount);
+
+    if (orderItems.length > 0) {
+      await productFacade.deductStock(orderItems);
+      stockDeducted = true;
+    }
+
+    order = await orderRepository.create({
+      user_id: userId || null,
+      is_guest: !userId,
+      guest_email: orderData.email || orderData.guest_email || null,
+      guest_access_token_hash: guestAccessTokenHash,
+      total_price: finalTotalPrice,
+      original_price: subtotal,
+      discount_amount: discountAmount,
+      shipping_fee: shippingFee,
+      reservation_id: reservationId,
+      idempotency_key: guest.idempotencyKey || null,
+      idempotency_request_hash: guest.requestHash || null,
+      voucher_code: voucherCode ? voucherCode.toUpperCase() : null,
+      status: "pending",
+      payment_method: paymentMethod.toLowerCase(),
+      shipping_address: dbShippingAddress,
+      stock_deducted: true,
+    });
+
+    // Ghi nhận lượt mua chiến dịch để kiểm soát per_user_limit
+    for (const orderItem of orderItems) {
+      if (orderItem.campaign_id && userId) {
+        await CampaignPurchase.create({
+          campaign_id: orderItem.campaign_id,
+          product_id: orderItem.product_id,
+          user_id: userId,
+          order_id: order._id,
+          quantity: orderItem.quantity,
+        });
+      }
+    }
+
+    for (const vUsage of voucherIds) {
+      await voucherService.createVoucherUsage(
+        userId,
+        vUsage.id,
+        order._id,
+        vUsage.disc,
+      );
+    }
+
+    if (orderItems.length > 0) {
+      const orderItemsToInsert = orderItems.map((item) => ({
+        ...item,
+        order_id: order._id,
+      }));
+      await orderRepository.insertManyItems(orderItemsToInsert);
+
+      if (userId) {
+        const userCart = await Cart.findOne({ user_id: userId });
+        if (userCart) {
+          await CartItem.deleteMany({
+            cart_id: userCart._id,
+            $or: orderItems.map((item) => ({ product_id: item.product_id, variant_id: item.variant_id || null })),
+          });
+
+          const remainingItems = await CartItem.find({ cart_id: userCart._id });
+          const totalItemsCount = remainingItems.reduce(
+            (sum, item) => sum + (item.quantity || 0),
+            0,
+          );
+          const totalPrice = remainingItems.reduce(
+            (sum, item) => sum + (item.price || 0) * (item.quantity || 0),
+            0,
+          );
+          await Cart.findByIdAndUpdate(userCart._id, {
+            total_items: totalItemsCount,
+            total_price: totalPrice,
+          });
+        }
+      }
+    }
+
+    if (reservationId) await inventoryReservationService.commitReservation(reservationId, order._id);
+  } catch (error) {
+    if (order?._id) {
+      await CampaignPurchase.deleteMany({ order_id: order._id }).catch(() => {});
+      await orderRepository.findByIdAndDelete(order._id).catch(() => {});
+    }
+    if (stockDeducted && orderItems.length > 0) {
+      await productFacade.restoreStock(orderItems).catch((err) => {
+        console.error("Fallback stock compensation failed:", err.message);
+      });
+    }
+    for (const v of appliedVouchers.reverse()) {
+      await voucherService.rollbackVoucherUsage(userId, v.code, order?._id || null).catch((err) => {
+        console.error("Fallback voucher compensation failed:", err.message);
+      });
+    }
+    for (const cp of appliedCampaigns.reverse()) {
+      await CampaignProduct.updateOne({ _id: cp.cpId }, { $inc: { sold: -cp.qty } }).catch(() => {});
+    }
+    if (error.code === 11000) {
+      if (error.keyPattern?.reservation_id) {
+        throw new AppError("Phiên giữ hàng đã được sử dụng", 409);
+      }
+      if (error.keyPattern?.idempotency_key && guest.idempotencyKey) {
+        const existingByKey = await Order.findOne({
+          user_id: userId || null,
+          idempotency_key: guest.idempotencyKey,
+        }).select("+idempotency_request_hash");
+        if (existingByKey) {
+          if (existingByKey.idempotency_request_hash && existingByKey.idempotency_request_hash !== guest.requestHash) {
+            throw Object.assign(new AppError("Khóa idempotency đã được sử dụng cho yêu cầu khác", 409), { code: "IDEMPOTENCY_CONFLICT" });
+          }
+          return existingByKey;
+        }
+      }
+    }
+    throw error;
   }
 
   import("../../../sockets/events.js")

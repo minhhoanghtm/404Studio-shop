@@ -2,34 +2,36 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useWishlistStore } from '@/shared/stores/useWishlistStore';
 import { useCartStore } from '@/shared/stores/useCartStore';
+import { useToastStore } from '@/shared/stores/useToastStore';
 import { ProductCard } from '@/shared/components/ProductCard';
 import { Heart, ShoppingBag, ArrowRight } from 'lucide-react';
 import { vi } from '@/shared/locales/vi/common';
 import { Product } from '@/shared/types';
 
 export const WishlistPage: React.FC = () => {
-  const { items, clearWishlist } = useWishlistStore();
+  const { items, clearWishlist, isSyncing } = useWishlistStore();
   const { addItem } = useCartStore();
 
-  const handleMoveAllToBag = () => {
-    items.forEach((p: Product) => {
-      const primaryVar = p.variants[0];
-      const availableSize =
-        primaryVar.sizes.find((s) => s.inStock)?.size ||
-        primaryVar.sizes[0]?.size ||
-        'One Size';
-      addItem({
+  const handleMoveAllToBag = async () => {
+    let skipped = 0;
+    for (const p of items) {
+      const primaryVar = p.variants.find((variant) => variant.sizes.some((size) => size.inStock));
+      const availableSize = primaryVar?.sizes.find((size) => size.inStock);
+      if (!primaryVar || !availableSize) { skipped++; continue; }
+      await addItem({
         productId: p.id,
+        variantId: availableSize.variantId || primaryVar.id,
         productSlug: p.slug,
         name: p.price ? p.name : p.name,
         price: p.price,
         quantity: 1,
         selectedColor: primaryVar.colorName,
         selectedColorHex: primaryVar.colorHex,
-        selectedSize: availableSize,
+        selectedSize: availableSize.size,
         image: p.featuredImage,
       });
-    });
+    }
+    if (skipped) useToastStore.getState().addToast('Một số sản phẩm cần chọn biến thể trên trang chi tiết.', 'info');
   };
 
   if (items.length === 0) {
@@ -82,7 +84,8 @@ export const WishlistPage: React.FC = () => {
             </button>
             <button
               onClick={clearWishlist}
-              className="text-[var(--text-muted)] hover:text-red-500 underline transition-colors"
+              disabled={isSyncing}
+              className="text-[var(--text-muted)] hover:text-red-500 underline transition-colors disabled:opacity-50 disabled:cursor-wait"
             >
               {vi.wishlist.clearAll}
             </button>
@@ -92,7 +95,7 @@ export const WishlistPage: React.FC = () => {
         {/* Wishlist Grid */}
         <div className="product-card-grid grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
           {items.map((product: Product) => (
-            <ProductCard key={product.id} product={product} />
+            <ProductCard key={product.id} product={product} enableQuickAdd={product.variants.length > 0} />
           ))}
         </div>
       </div>

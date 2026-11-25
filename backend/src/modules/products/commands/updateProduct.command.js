@@ -5,18 +5,15 @@ import { toNoAccent } from "../../../common/utils/removeAccents.js";
 import mongoose from "mongoose";
 import { triggerProductVectorSync } from "../../ai/queues/vectorSync.queue.js";
 
-export const updateProduct = async (id, productData) => {
+export const updateProduct = async (id, productData, options = {}) => {
   const { variants, ...productBody } = productData;
 
-  let finalStock = Number(productBody.stock || 0);
+  const updateFields = { ...productBody };
   if (Array.isArray(variants) && variants.length > 0) {
-    finalStock = variants.reduce((sum, v) => sum + Number(v.stock || 0), 0);
+    updateFields.stock = variants.reduce((sum, v) => sum + Number(v.stock || 0), 0);
+  } else if (productBody.stock !== undefined) {
+    updateFields.stock = Number(productBody.stock);
   }
-
-  const updateFields = {
-    ...productBody,
-    stock: finalStock,
-  };
 
   if (productBody.name) {
     updateFields.name_no_accents = toNoAccent(productBody.name);
@@ -25,8 +22,11 @@ export const updateProduct = async (id, productData) => {
     }
   }
 
-  const updatedProduct = await productRepository.findByIdAndUpdate(id, updateFields);
+  const updatedProduct = options.expectedDescription !== undefined
+    ? await productRepository.updateIfDescriptionMatches(id, options.expectedDescription, updateFields)
+    : await productRepository.findByIdAndUpdate(id, updateFields);
   if (!updatedProduct) {
+    if (options.expectedDescription !== undefined) throw new AppError("Mô tả sản phẩm đã thay đổi, vui lòng tạo đề xuất mới", 409);
     throw new AppError("Sản phẩm không tồn tại", 404);
   }
 

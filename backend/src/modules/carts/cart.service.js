@@ -4,26 +4,28 @@ import { AppError } from "../../common/exceptions/AppError.js";
 import productRepository from "../products/product.repository.js";
 import pricingService from "../campaigns/pricing.service.js";
 import inventoryReservationService from "../inventory/inventoryReservation.service.js";
+import mongoose from "mongoose";
+import { ProductVariant } from "../products/product.model.js";
 
 class CartService {
-  async addCart(cartData) {
-    return await cartRepository.create(cartData);
+  async addCart(userId) {
+    if (!userId) throw new AppError("Không tìm thấy thông tin người dùng", 401);
+    return await Cart.findOneAndUpdate({ user_id: userId }, { $setOnInsert: { total_items: 0, total_price: 0 } }, { upsert: true, returnDocument: "after" });
   }
 
   async getCart(userId) {
     return await cartRepository.findByUserId(userId);
   }
 
-  async updateCart(id, updateData) {
-    const updated = await cartRepository.updateCart(id, updateData);
-    if (!updated) {
-      throw new AppError("Giỏ hàng không tồn tại", 404);
-    }
-    return updated;
+  async updateCart(id, _updateData, userId) {
+    await this._requireOwnedCart(id, userId);
+    const { cart } = await this._recalculateCart(id);
+    return cart;
   }
 
-  async deleteCart(id) {
-    const deleted = await cartRepository.deleteCart(id);
+  async deleteCart(id, userId) {
+    if (!userId || !mongoose.isValidObjectId(id)) throw new AppError("Giỏ hàng không tồn tại", 404);
+    const deleted = await Cart.findOneAndDelete({ _id: id, user_id: userId });
     if (!deleted) {
       throw new AppError("Giỏ hàng không tồn tại", 404);
     }
@@ -35,14 +37,26 @@ class CartService {
       throw new AppError("Không tìm thấy thông tin người dùng", 401);
     }
 
-    const { product_id, variant_id, quantity = 1 } = itemData;
+    const { product_id, quantity = 1, color, size } = itemData;
+    let { variant_id } = itemData;
     if (!product_id) {
       throw new AppError("Thiếu dữ liệu sản phẩm để thêm vào giỏ hàng", 400);
     }
+    if (!Number.isInteger(Number(quantity)) || Number(quantity) < 1 || Number(quantity) > 1000) throw new AppError("Số lượng không hợp lệ", 400);
 
     const product = await productRepository.findById(product_id);
     if (!product) {
       throw new AppError("Sản phẩm không tồn tại", 404);
+    }
+    const variants = await ProductVariant.find({ product_id, is_active: { $ne: false } }).select('_id color size').lean();
+    const equal = (left, right) => String(left || '').trim().toLocaleLowerCase('vi-VN') === String(right || '').trim().toLocaleLowerCase('vi-VN');
+    if (variant_id) {
+      const selected = variants.find((entry) => String(entry._id) === String(variant_id));
+      if (!selected || (color && !equal(selected.color, color)) || (size && !equal(selected.size, size))) throw new AppError("Phiên bản sản phẩm không hợp lệ", 400);
+    } else if (variants.length) {
+      const matches = variants.filter((entry) => color && size && equal(entry.color, color) && equal(entry.size, size));
+      if (matches.length !== 1) throw new AppError("Vui lòng chọn màu và kích cỡ hợp lệ", 400);
+      variant_id = matches[0]._id;
     }
 
     // Check real-time stock taking into account active Redis reservations
@@ -69,45 +83,54 @@ class CartService {
     const cartId = cart._id;
     const normalizedVariantId = variant_id || null;
 
-    // 2. Upsert cart item in 1 query
-    await CartItem.findOneAndUpdate(
-      {
-        cart_id: cartId,
-        product_id,
-        variant_id: normalizedVariantId,
-      },
-      {
-        $inc: { quantity: Number(quantity) },
-        $set: { price: verifiedPrice },
-      },
-      { upsert: true }
-    );
+    // Limit the accumulated quantity atomically, including concurrent additions.
+    const key = { cart_id: cartId, product_id, variant_id: normalizedVariantId };
+    const increment = () => CartItem.findOneAndUpdate({ ...key, quantity: { $lte: Math.min(availableStock, 1000) - Number(quantity) } }, { $inc: { quantity: Number(quantity) }, $set: { price: verifiedPrice } }, { returnDocument: "after", runValidators: true });
+    let updated = await increment();
+    if (!updated) {
+      if (await CartItem.exists(key)) throw new AppError("Số lượng vượt quá tồn kho khả dụng", 400);
+      try { updated = await CartItem.create({ ...key, quantity: Number(quantity), price: verifiedPrice }); }
+      catch (error) { if (error.code !== 11000) throw error; updated = await increment(); }
+      if (!updated) throw new AppError("Số lượng vượt quá tồn kho khả dụng", 400);
+    }
 
     return await this._recalculateCart(cartId, false); // không cần populate khi add
   }
 
-  async getCartItems(cartId) {
+  async _requireOwnedCart(cartId, userId) {
+    if (!userId || !mongoose.isValidObjectId(cartId) || !await Cart.exists({ _id: cartId, user_id: userId })) throw new AppError("Giỏ hàng không tồn tại", 404);
+  }
+
+  async getCartItems(cartId, userId) {
+    await this._requireOwnedCart(cartId, userId);
     const recalculated = await this._recalculateCart(cartId, true);
     return recalculated.items;
   }
 
-  async updateCartItem(itemId, updateData) {
+  async updateCartItem(itemId, updateData, userId) {
+    if (!userId || !mongoose.isValidObjectId(itemId)) throw new AppError("Không tìm thấy sản phẩm trong giỏ hàng", 404);
     const cartItem = await cartRepository.findItemById(itemId);
     if (!cartItem) {
       throw new AppError("Không tìm thấy sản phẩm trong giỏ hàng", 404);
     }
 
-    await cartRepository.updateItem(itemId, updateData);
+    await this._requireOwnedCart(cartItem.cart_id, userId);
+    if (!updateData || Object.keys(updateData).some((key) => key !== "quantity") || !Number.isInteger(Number(updateData.quantity)) || Number(updateData.quantity) < 1 || Number(updateData.quantity) > 1000) throw new AppError("Số lượng không hợp lệ", 400);
+    const availableStock = await inventoryReservationService.getAvailableStock(cartItem.product_id, cartItem.variant_id);
+    if (Number(updateData.quantity) > availableStock) throw new AppError("Số lượng vượt quá tồn kho khả dụng", 400);
+    await CartItem.findOneAndUpdate({ _id: itemId, cart_id: cartItem.cart_id }, { $set: { quantity: Number(updateData.quantity) } }, { runValidators: true });
     return await this._recalculateCart(cartItem.cart_id);
   }
 
-  async deleteCartItem(itemId) {
+  async deleteCartItem(itemId, userId) {
+    if (!userId || !mongoose.isValidObjectId(itemId)) throw new AppError("Không tìm thấy sản phẩm trong giỏ hàng", 404);
     const cartItem = await cartRepository.findItemById(itemId);
     if (!cartItem) {
       throw new AppError("Không tìm thấy sản phẩm trong giỏ hàng", 404);
     }
 
-    await cartRepository.deleteItem(itemId);
+    await this._requireOwnedCart(cartItem.cart_id, userId);
+    await CartItem.findOneAndDelete({ _id: itemId, cart_id: cartItem.cart_id });
     return await this._recalculateCart(cartItem.cart_id);
   }
 

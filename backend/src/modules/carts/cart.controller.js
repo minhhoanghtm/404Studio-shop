@@ -4,7 +4,7 @@ import { successResponse } from "../../common/responses/index.js";
 // Cart management
 export const addCart = async (req, res, next) => {
   try {
-    const cart = await cartService.addCart(req.body);
+    const cart = await cartService.addCart(req.user.userId);
     return successResponse(res, cart, "Thêm vào giỏ hàng thành công");
   } catch (error) {
     next(error);
@@ -17,14 +17,14 @@ export const getCart = async (req, res, next) => {
     const cartItems = await cartService.getCart(userId);
     return successResponse(res, cartItems);
   } catch (error) {
-    next(error);cart.service.js
+    next(error);
   }
 };
 
 export const updateCart = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const cart = await cartService.updateCart(id, req.body);
+    const cart = await cartService.updateCart(id, req.body, req.user.userId);
     return successResponse(res, cart, "Cập nhật giỏ hàng thành công");
   } catch (error) {
     next(error);
@@ -34,7 +34,7 @@ export const updateCart = async (req, res, next) => {
 export const deleteCart = async (req, res, next) => {
   try {
     const { id } = req.params;
-    await cartService.deleteCart(id);
+    await cartService.deleteCart(id, req.user.userId);
     return successResponse(res, null, "Xóa khỏi giỏ hàng thành công");
   } catch (error) {
     next(error);
@@ -60,7 +60,7 @@ export const addCartItem = async (req, res, next) => {
 export const getCartItems = async (req, res, next) => {
   try {
     const { cartId } = req.params;
-    const cartItems = await cartService.getCartItems(cartId);
+    const cartItems = await cartService.getCartItems(cartId, req.user.userId);
     return successResponse(res, cartItems);
   } catch (error) {
     next(error);
@@ -70,7 +70,7 @@ export const getCartItems = async (req, res, next) => {
 export const updateCartItem = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { items, cart, total } = await cartService.updateCartItem(id, req.body);
+    const { items, cart, total } = await cartService.updateCartItem(id, req.body, req.user.userId);
     return res.status(200).json({
       success: true,
       message: "Cập nhật sản phẩm trong giỏ hàng thành công",
@@ -86,7 +86,7 @@ export const updateCartItem = async (req, res, next) => {
 export const deleteCartItem = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { items, cart, total } = await cartService.deleteCartItem(id);
+    const { items, cart, total } = await cartService.deleteCartItem(id, req.user.userId);
     return res.status(200).json({
       success: true,
       message: "Xóa sản phẩm khỏi giỏ hàng thành công",

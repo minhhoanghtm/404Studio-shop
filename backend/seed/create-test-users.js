@@ -1,4 +1,6 @@
-use("webfashion");
+if (typeof db === "undefined" || db.getName() !== "atelier_verite_qa") {
+  throw new Error("QA_SEED_REFUSED: mongosh seed script requires atelier_verite_qa.");
+}
 
 const PASSWORD_HASH =
   "$2b$10$J6dwrrWBA9ni.sIv9JZlM.Ept/C69eWSDj3WQ7GFCwEJVbdujLmIK";

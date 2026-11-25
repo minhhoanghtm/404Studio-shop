@@ -1,9 +1,11 @@
+import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
 import { connectDB } from "../configs/db.js";
 import PaymentTransaction from "../modules/payments/paymentTransaction.model.js";
 
-dotenv.config();
+await verifyQaSuiteTarget();
+
 
 const createUniquePaymentIndex = async () => {
   const isApply = process.argv.includes("--apply");

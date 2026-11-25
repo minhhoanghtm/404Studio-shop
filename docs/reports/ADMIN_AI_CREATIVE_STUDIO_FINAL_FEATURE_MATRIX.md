@@ -2,6 +2,8 @@
 
 Updated: 2026-11-25 (Asia/Bangkok)
 
+Latest continuation (`COMPLETED_WITH_EXTERNAL_BLOCKERS`): P0 Checkout Atomicity, P1 Backend QA Isolation Guard, and Tasks 07–11, 14–16 are now `TESTED_PASS`; Tasks 12–13 remain `BLOCKED_EXTERNAL`. Dedicated `compose.qa-rs.yaml` (`atelier_qa_mongo_rs` on `127.0.0.1:27019`, `rs0`) verifies real multi-document ACID checkout transactions, crash reconciliation, and standalone fail-closed (`503 TRANSACTION_REQUIRED`) while `atelier_qa_mongo` (`27018`) remains untouched. Final gates after last edits: `backend lint` 0 errors, `backend test:unit` 33/33 (256/256), `backend test:qa:jest` DB suites 4/4 (24/24, excluding `multiProviderAi` per Tasks 12–13), `backend test:qa:node` 23/23, `frontend lint` 0 errors (347 warnings), `frontend Vitest` 29/29 (246/246), `frontend build` PASS (5.89s), affected E2E suites + `BF16`/`BF17` H.264 MP4s verified.
+
 | Task | Status before | Status after | Files / evidence | Remaining issue |
 | --- | --- | --- | --- | --- |
 | 01 Product Asset Picker | NOT_STARTED | TESTED_PASS | `CreativeStudioEditor.tsx`, QA catalog/categories APIs, preview, variant/color, category filter, multi-select/batch image-name-price layers, Playwright Desktop/Tablet/Mobile 3/3 (31.8s) | Brand/collection filters are NOT_APPLICABLE: Product schema/API has no corresponding relations. |
@@ -10,18 +12,22 @@ Updated: 2026-11-25 (Asia/Bangkok)
 | 04 Resize & Rotation Handles | NOT_STARTED | TESTED_PASS | `CreativeStudioEditor.tsx`, real-auth Playwright D/T/M, production build | Desktop/Tablet exercised pointer handles. Mobile canvas remains usable at 25% zoom; inspector rotation persistence was used after resize-pointer coverage. |
 | 05 Multi-select / Group / Alignment | NOT_STARTED | TESTED_PASS | `CreativeStudioEditor.tsx`, `creativeStudio.group.acceptance.real.spec.ts`, `creativeStudio.alignmentOrder.acceptance.real.spec.ts`, real-auth D/T/M artifacts, production build | Group graph/transform/persistence/export and the independent rotation-aware alignment/distribution/group-order matrix all passed on isolated projects across D/T/M. |
 | 06 Version History / Restore | NOT_STARTED | TESTED_PASS | `CreativeStudioEditor.tsx`, `adminAi.controller.js`, `creativeStudio.versionHistory.acceptance.real.spec.ts`, `creativeStudio.saveSecurity.acceptance.real.spec.ts`, real-auth artifacts | V1/V2 preview/restore verified D/T/M; delayed-save latest-state queue, failed-save retry preservation, and cross-admin owner isolation are verified with isolated QA projects. |
-| 07 Export / Import | SVG/JSON PASS, raster unverified | IN_PROGRESS | `CreativeStudioEditor.tsx`, `designPayload.validator.js`, focused Desktop real-auth export/import E2E | PNG/JPG/WebP signature, decode, dimensions, nonblank pixels; confirmed JSON round-trip and invalid/tampered rejection are verified Desktop. Tablet/Mobile and asset ownership policy proof remain. |
-| 08 Business Analytics | NOT_STARTED | NOT_RUN | — | Requires deterministic reconciliation suite |
-| 09 Admin Actions | NOT_STARTED | NOT_RUN | — | Requires confirmation-flow integration coverage |
-| 10 Customer Regression | NOT_STARTED | NOT_RUN | — | Requires cart/checkout QA E2E |
-| 11 Security Extended | PARTIAL | PARTIAL | Prior RBAC/invalid-token checks | Revocation/expiry/cross-owner coverage remains |
+| 07 Export / Import | SVG/JSON PASS, raster unverified | TESTED_PASS | `CreativeStudioEditor.tsx`, `designAssetPolicy.js`, `creativeStudio.canvasFidelity` (9/9 D/T/M), `exportImport`, `uploadSecurity`, `designOperations` (`test:qa:node`) | Remote CDN behavior remains out-of-scope for local QA; all local export/import, raster, schema & asset policies verified. |
+| 08 Business Analytics | NOT_STARTED | TESTED_PASS | `revenueSummary.qa.integration`, `adminAi.analytics.acceptance` (23/23 `test:qa:node`), D/T/M E2E, RBAC & XLSX export | Production-scale latency benchmarks out of local QA scope; all metric reconciliations & permissions pass. |
+| 09 Admin Actions | NOT_STARTED | TESTED_PASS | `adminConfirmation.qa.integration`, `qa-admin-action-fixture.mjs`, `vectorSync.queue.js` QA skip, `adminAi.confirmation.acceptance.real.spec.ts` (4/4), `BF17` MP4 | Drafts remain inactive; deterministic proposals only while TASK 13 is `BLOCKED_EXTERNAL`. |
+| 10 Customer Regression | NOT_STARTED | TESTED_PASS | `cartOwnership.qa.integration`, `checkoutAtomicity.qa.integration`, `customer.checkoutReservation.acceptance.real.spec.ts` (2/2), Checkout D/T/M (3/3), `BF16` MP4 | Paid/live gateway execution excluded per constraint; deterministic `/api/ai/search` fallback & RS checkout atomicity verified. |
+| 11 Security Extended | PARTIAL | TESTED_PASS | `securityExtended.qa.integration.node.test.mjs`, `qaSuiteGuard.node.test.mjs`, `orderOwnership.qa.integration.node.test.mjs`, Playwright auth/revocation | Expired JWT, Redis logout revocation, cross-user conversation/cart/order isolation, replay/asset/secret/QA-guard checks pass. |
 | 12 Free Image | BLOCKED_EXTERNAL | BLOCKED_EXTERNAL | Paid fallback is disabled; no free provider credential/local ComfyUI | Provider configuration required |
 | 13 Live LLM | BLOCKED_EXTERNAL | BLOCKED_EXTERNAL | No additional cost-authorized live request | Budget/provider authorization required |
-| 14 UI/UX Review | NOT_STARTED | NOT_RUN | — | Depends on remaining editor panels |
-| 15 Video Evidence | NOT_STARTED | NOT_RUN | — | MP4 evidence not produced |
-| 16 Quality Gates | IN_PROGRESS | PARTIAL | Production build pass; Product Picker E2E 3/3 | Remaining tasks must add their own tests |
+| 14 UI/UX Review | NOT_STARTED | TESTED_PASS | `AdminAiWorkspacePage.tsx` (`SafeMarkdown`), `AdminAiCards.tsx`, `creativeStudioLayout.test.tsx`, `adminAi.tabsResponsive.acceptance.real.spec.ts` (3/3 D/T/M), `UI02` MP4 | CSS/bundle size warnings logged as non-blocking backlog items; all functional/visual checks pass. |
+| 15 Video Evidence | NOT_STARTED | TESTED_PASS | `videos/UI/UI02-25-11-2026/admin-ai-tabs.mp4`, `videos/BusinessFlows/{BF02..BF08,BF10,BF11,BF13,BF15,BF16,BF17}-25-11-2026/` | H.264 MP4 container, duration, `ended: true` playback and sampled frames inspected without credentials. |
+| 16 Quality Gates | IN_PROGRESS | TESTED_PASS | Backend lint/unit (256/256)/QA Jest (24/24)/QA Node (23/23); Frontend lint/Vitest (246/246)/build (5.89s)/E2E PASS | `multiProviderAi.test.js` intentionally skipped (`liveProviders: true`); CSS/bundle warnings recorded in backlog. |
 
 ## TASK 01 evidence
+
+Latest continuation: reservation-aware checkout and authenticated cart persistence passed real QA Desktop/Tablet/Mobile; analytics was reconciled with the dashboard's recognized-revenue rule. Backend lint, frontend build, cart Vitest and order-route Jest passed; frontend lint reports warnings. This is partial evidence only for Tasks 08, 10 and 16. Standalone non-transactional checkout failure atomicity still requires work. Additional H.264 evidence is in `videos/BusinessFlows/BF04-25-11-2026/` and `BF05-25-11-2026/`.
+
+Campaign draft confirmation is implemented via the existing campaign service, with real QA authorization/replay checks and D/T/M browser confirmation/reload (`admin-campaign-draft-20261125/`); live planning and other action types are not established by this test.
 
 The picker queries `/api/products/catalog` through the shared `productsApi`, not a hardcoded product list. The API schema is `{ data: { products } }`; the implementation maps that response explicitly. Selecting the QA Silk Blazer creates separate product-image, name, and price layers. The acceptance suite signs in through the UI, searches the QA product, adds it, saves via the authenticated API, reloads, and asserts the product text remains on the SVG canvas.
 

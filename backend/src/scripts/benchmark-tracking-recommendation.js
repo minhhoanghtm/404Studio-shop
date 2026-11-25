@@ -1,4 +1,4 @@
-import "dotenv/config";
+import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
 import mongoose from "mongoose";
 import { connectDB } from "../configs/db.js";
 import trackingService from "../modules/tracking/tracking.service.js";
@@ -8,6 +8,8 @@ import Product from "../modules/products/product.model.js";
 import User from "../modules/users/user.model.js";
 import { cosineSimilarity } from "../modules/ai/services/semanticSearch.service.js";
 import { getRedisConnection } from "../configs/redis.js";
+
+await verifyQaSuiteTarget();
 
 async function runTrackingBenchmark() {
   console.log("================================================================================");

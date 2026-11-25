@@ -1,9 +1,11 @@
+import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
 import mongoose from 'mongoose';
 import Product from '../models/Product.js';
 import { toNoAccent } from '../utils/removeAccents.js';
 import dotenv from 'dotenv';
 
-dotenv.config();
+await verifyQaSuiteTarget();
+
 
 const testSearch = async () => {
   try {

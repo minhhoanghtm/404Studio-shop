@@ -54,7 +54,7 @@ export const AdminAiKpiCard: React.FC<{ data: any }> = ({ data }) => {
         </div>
 
         <div className="p-3 bg-[var(--surface)] border border-[var(--border)] rounded-lg">
-          <div className="text-[11px] text-[var(--text-muted)]">AOV (Giá trị ĐH TB)</div>
+          <div className="text-[11px] text-[var(--text-muted)]">AOV đơn đã ghi nhận</div>
           <div className="mt-1 text-sm font-semibold font-mono text-[var(--text)] truncate">
             {data.formattedAov || '0 ₫'}
           </div>
@@ -67,6 +67,7 @@ export const AdminAiKpiCard: React.FC<{ data: any }> = ({ data }) => {
           </div>
         </div>
       </div>
+      <p className="text-[10px] text-[var(--text-muted)]">Doanh thu gồm đơn đã giao và đã thanh toán hoặc thanh toán khi nhận hàng, không tính đơn đã hoàn tiền. Theo ngày tạo đơn: đã giao {data.deliveredOrders || 0}; đã hủy {data.cancelledOrders || 0}; trạng thái đã hoàn tiền {data.refundedOrders || 0}.</p>
     </div>
   );
 };
@@ -195,7 +196,15 @@ export const AdminAiPosterCard: React.FC<{ data: any }> = ({ data }) => {
 
   const bgValue = data.background?.value;
   const isRealImage = bgValue && (bgValue.startsWith('http') || bgValue.startsWith('data:'));
-  const imageSrc = isRealImage ? bgValue : data.previewUrl || '/assets/promotions/black-friday-poster.jpg';
+  const imageSrc = isRealImage ? bgValue : data.previewUrl || '';
+  const designId = data._id || data.designId;
+  const studioHref = designId
+    ? `/admin/ai-assistant?tab=creative&designId=${encodeURIComponent(String(designId))}`
+    : '/admin/ai-assistant?tab=creative';
+  const fallbackBgStyle =
+    data.background?.type === 'gradient'
+      ? { background: `linear-gradient(135deg, ${bgValue || '#1a1918'}, ${data.background?.secondaryValue || '#0d0d0c'})` }
+      : { backgroundColor: bgValue && !isRealImage ? bgValue : '#1a1918' };
 
   return (
     <div className="mt-3 p-4 rounded-xl bg-[var(--bg-card)] border border-[var(--border)] shadow-md space-y-3">
@@ -218,15 +227,22 @@ export const AdminAiPosterCard: React.FC<{ data: any }> = ({ data }) => {
 
       {/* Visual Rendered Mockup */}
       <div
-        onClick={() => setIsFullscreen(true)}
-        className="relative w-full max-w-[280px] mx-auto rounded-xl overflow-hidden shadow-2xl border border-white/20 bg-neutral-900 group cursor-pointer"
-        title="Nhấp để xem toàn màn hình"
+        onClick={() => imageSrc && setIsFullscreen(true)}
+        className={`relative w-full max-w-[280px] mx-auto rounded-xl overflow-hidden shadow-2xl border border-white/20 bg-neutral-900 group ${imageSrc ? 'cursor-pointer' : ''}`}
+        title={imageSrc ? 'Nhấp để xem toàn màn hình' : data.name || 'Poster'}
       >
-        <img
-          src={imageSrc}
-          alt={data.name || 'Poster'}
-          className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
-        />
+        {imageSrc ? (
+          <img
+            src={imageSrc}
+            alt={data.name || 'Poster'}
+            className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+        ) : (
+          <div className="w-full aspect-[4/5] flex flex-col items-center justify-center p-4 text-center text-white" style={fallbackBgStyle}>
+            <span className="text-[10px] font-mono uppercase tracking-widest opacity-80">AI Assisted Layout</span>
+            <span className="mt-2 font-display text-sm font-semibold line-clamp-2">{data.name || 'Poster 404Studio'}</span>
+          </div>
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent flex items-end justify-between p-3">
           <div className="text-white text-xs font-bold truncate drop-shadow">{data.name || 'Poster 404Studio'}</div>
           <span className="text-[9px] font-mono bg-black/60 text-white/90 px-1.5 py-0.5 rounded">
@@ -236,27 +252,29 @@ export const AdminAiPosterCard: React.FC<{ data: any }> = ({ data }) => {
       </div>
 
       {/* Action Buttons */}
-      <div className="grid grid-cols-2 gap-2 pt-1">
+      <div className={`grid ${imageSrc ? 'grid-cols-2' : 'grid-cols-1'} gap-2 pt-1`}>
         <a
-          href="/admin/ai-assistant?tab=creative"
+          href={studioHref}
           className="py-2 px-3 rounded-lg bg-[var(--accent)] hover:bg-[#9E7B15] text-[var(--accent-contrast)] text-xs font-semibold text-center flex items-center justify-center gap-1.5 transition-colors shadow-sm"
         >
           <span>Mở Trong Studio</span>
           <ArrowRight className="w-3.5 h-3.5" />
         </a>
 
-        <a
-          href={imageSrc}
-          download={`${data.name || '404Studio_Poster'}.png`}
-          className="py-2 px-3 rounded-lg bg-[var(--surface)] hover:bg-[var(--bg-alt)] border border-[var(--border)] text-[var(--text)] text-xs font-semibold text-center flex items-center justify-center gap-1.5 transition-colors"
-        >
-          <Download className="w-3.5 h-3.5" />
-          <span>Tải Ảnh PNG</span>
-        </a>
+        {imageSrc && (
+          <a
+            href={imageSrc}
+            download={`${data.name || '404Studio_Poster'}.png`}
+            className="py-2 px-3 rounded-lg bg-[var(--surface)] hover:bg-[var(--bg-alt)] border border-[var(--border)] text-[var(--text)] text-xs font-semibold text-center flex items-center justify-center gap-1.5 transition-colors"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>Tải Ảnh PNG</span>
+          </a>
+        )}
       </div>
 
       {/* Fullscreen Lightbox Modal */}
-      {isFullscreen && (
+      {isFullscreen && imageSrc && (
         <div
           onClick={() => setIsFullscreen(false)}
           className="fixed inset-0 z-[200] bg-black/90 flex items-center justify-center p-4 backdrop-blur-sm cursor-zoom-out"
@@ -300,11 +318,11 @@ export const AdminAiConfirmationCard: React.FC<{ data: any }> = ({ data }) => {
     if (success) setIsDone(true);
   };
 
-  const handleCancel = () => {
-    cancelAction(data.actionId);
-  };
+  const handleCancel = () => { void cancelAction(data.actionId); };
 
-  if (isDone) {
+  if (data.status === 'cancelled') return <div className="mt-3 p-4 rounded-xl bg-[var(--surface)] text-xs">Đã hủy thao tác.</div>;
+
+  if (isDone || data.status === 'confirmed') {
     return (
       <div className="mt-3 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/40 text-xs space-y-2">
         <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold">
@@ -333,12 +351,6 @@ export const AdminAiConfirmationCard: React.FC<{ data: any }> = ({ data }) => {
       <div className="space-y-1.5">
         <div className="text-sm font-bold text-[var(--text)]">{data.title}</div>
         <p className="text-xs text-[var(--text-muted)] leading-relaxed">{data.summary}</p>
-      </div>
-
-      {/* Confirmation Token Badge */}
-      <div className="p-2 rounded bg-[var(--surface)] border border-[var(--border)] flex items-center justify-between text-[10px] font-mono text-[var(--text-muted)]">
-        <span>Token: {data.confirmationToken ? `${data.confirmationToken.slice(0, 16)}...` : 'N/A'}</span>
-        <span className="text-emerald-500 font-semibold">HMAC Signed</span>
       </div>
 
       {/* Buttons */}

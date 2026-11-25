@@ -1,3 +1,4 @@
+import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
 /**
  * RIGOROUS INDEPENDENT BULLMQ & TRACKING PIPELINE BENCHMARK
  * Target: Staging Nginx (8081), BullMQ (Redis 6381), MongoDB (27018), Worker Staging
@@ -25,6 +26,8 @@ import mongoose from "mongoose";
 import crypto from "crypto";
 import { Queue } from "bullmq";
 import Redis from "ioredis";
+
+await verifyQaSuiteTarget();
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 

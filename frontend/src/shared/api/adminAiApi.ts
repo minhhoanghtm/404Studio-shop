@@ -149,6 +149,10 @@ export interface AdminAiSettingsData {
 }
 
 export const adminAiApi = {
+  getBusinessAnalytics: (period: string, range?: { startDate: string; endDate: string }) => {
+    const query = new URLSearchParams({ period, ...(range || {}) });
+    return api.get<ApiResponse<{ summary: any; trend: any; inventory: any; lowStock: any; customers: any; topProducts: any; slowProducts: any; campaignPerformance: any }>>(`/admin/ai/analytics?${query}`);
+  },
   chat: (payload: { message: string; conversationId?: string; mode?: string; provider?: string; context?: any; attachments?: string[] }) =>
     api.post<ApiResponse<{
       conversationId: string;
@@ -171,6 +175,8 @@ export const adminAiApi = {
       result: any;
     }>>('/admin/ai/confirm-action', payload),
 
+  cancelAction: (actionId: string) => api.post<ApiResponse<{ status: string }>>('/admin/ai/cancel-action', { actionId }),
+
   getConversations: () =>
     api.get<ApiResponse<Array<{ _id: string; title: string; mode: string; context: any; updatedAt: string }>>>('/admin/ai/conversations'),
 
@@ -188,6 +194,9 @@ export const adminAiApi = {
 
   saveDesign: (project: Partial<AdminDesignProject>) =>
     api.post<ApiResponse<AdminDesignProject>>('/admin/ai/designs', project),
+
+  validateDesign: (project: Partial<AdminDesignProject>) =>
+    api.post<ApiResponse<{ valid: boolean }>>('/admin/ai/designs/validate', project),
 
   applyDesignOperations: (payload: { designId: string; request: string; selectedLayerId?: string; provider?: string }) =>
     api.post<ApiResponse<{ design: AdminDesignProject; operations: any[]; applied: string[] }>>('/admin/ai/designs/operations', payload),

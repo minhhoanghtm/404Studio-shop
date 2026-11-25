@@ -1,7 +1,7 @@
 import crypto from "crypto";
 
 const LAYER_TYPES = new Set(["text", "image", "background", "shape", "icon", "logo", "badge", "button", "group", "product", "gradient"]);
-const STYLE_KEYS = new Set(["fontFamily", "fontSize", "fontWeight", "fontStyle", "color", "backgroundColor", "borderColor", "borderWidth", "borderRadius", "textAlign", "letterSpacing", "lineHeight", "textTransform", "padding", "shadowColor", "shadowBlur", "shadowOffsetX", "shadowOffsetY", "objectFit", "flipX", "flipY", "brightness", "contrast", "saturation"]);
+const STYLE_KEYS = new Set(["fontFamily", "fontSize", "fontWeight", "fontStyle", "color", "backgroundColor", "borderColor", "borderWidth", "borderRadius", "textAlign", "letterSpacing", "lineHeight", "textTransform", "padding", "shadowColor", "shadowBlur", "shadowOffsetX", "shadowOffsetY", "objectFit", "cropX", "cropY", "cropZoom", "flipX", "flipY", "brightness", "contrast", "saturation"]);
 const EDITABLE_KEYS = new Set(["name", "content", "x", "y", "width", "height", "rotation", "opacity", "visible", "locked"]);
 const MAX_LAYERS = 100;
 
@@ -66,7 +66,7 @@ export function applyDesignOperations(design, operations = []) {
       const original = document.layers[layerIndex];
       document.layers.push({ ...structuredClone(original), id: id(), name: `${original.name} (bản sao)`, x: Number(original.x || 0) + 24, y: Number(original.y || 0) + 24, zIndex: document.layers.length + 1 });
       applied.push(type);
-    } else if (type === "REORDER_LAYER" && layerIndex >= 0) {
+    } else if (type === "REORDER_LAYER" && layerIndex >= 0 && !document.layers[layerIndex].locked) {
       const target = number(operation.toIndex, layerIndex, 0, document.layers.length - 1);
       const [layer] = document.layers.splice(layerIndex, 1);
       document.layers.splice(target, 0, layer);
@@ -88,4 +88,22 @@ export function parseOperations(raw) {
   const parsed = JSON.parse(match[0]);
   if (!Array.isArray(parsed.operations)) throw new Error("AI_DESIGN_INVALID_OPERATION");
   return parsed.operations;
+}
+
+export function applyDesignOperationsAtomically(design, operations) {
+  const validPatch = (patch) => {
+    if (!patch || typeof patch !== 'object' || Array.isArray(patch)) return false;
+    for (const [key, min, max] of [['x', -10000, 10000], ['y', -10000, 10000], ['width', 1, 10000], ['height', 1, 10000], ['rotation', -360, 360], ['opacity', 0, 1]]) {
+      if (patch[key] !== undefined && (typeof patch[key] !== 'number' || !Number.isFinite(patch[key]) || patch[key] < min || patch[key] > max)) return false;
+    }
+    if (patch.styles !== undefined) {
+      if (!patch.styles || typeof patch.styles !== 'object' || Array.isArray(patch.styles)) return false;
+      for (const [key, min, max] of [['cropX', 0, 100], ['cropY', 0, 100], ['cropZoom', 1, 3]]) if (patch.styles[key] !== undefined && (typeof patch.styles[key] !== 'number' || !Number.isFinite(patch.styles[key]) || patch.styles[key] < min || patch.styles[key] > max)) return false;
+    }
+    return true;
+  };
+  if (!Array.isArray(operations) || !operations.length || operations.length > 20 || operations.some((op) => !op || typeof op !== 'object' || ((op.operation === 'ADD_LAYER' || op.operation === 'UPDATE_LAYER') && !validPatch(op.operation === 'ADD_LAYER' ? op.layer : op.changes)))) return null;
+  const result = applyDesignOperations(design, operations);
+  if (result.applied.length !== operations.length) return null;
+  return result;
 }

@@ -1,3 +1,4 @@
+import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
 /**
  * SCRIPT: fix-broken-product-images.js
  * Sửa các URL hình ảnh lỗi thời hoặc vi phạm CORS trong MongoDB:
@@ -13,6 +14,8 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+
+await verifyQaSuiteTarget();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

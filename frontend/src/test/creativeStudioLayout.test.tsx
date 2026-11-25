@@ -183,4 +183,32 @@ describe('Admin Layout & Creative Studio 1-Page Fit Suite', () => {
     // Send button should be present
     expect(screen.getByText('Gửi')).toBeDefined();
   });
+
+  it('renders AdminAiPosterCard with direct designId studio link and SafeMarkdown without raw ** tokens', async () => {
+    const { AdminAiPosterCard } = await import('../shared/components/adminAi/cards/AdminAiCards');
+    const { SafeMarkdown } = await import('../shared/components/adminAi/SafeMarkdown');
+
+    render(
+      <div>
+        <SafeMarkdown content="**Doanh thu** tăng trưởng ổn định" />
+        <AdminAiPosterCard
+          data={{
+            _id: 'design_99',
+            name: 'Autumn Silk Layout',
+            preset: 'instagram_portrait',
+            width: 1080,
+            height: 1350,
+            background: { type: 'gradient', value: '#1a1918', secondaryValue: '#0d0d0c' },
+            layers: [{ id: '1' }],
+          }}
+        />
+      </div>
+    );
+
+    const strong = screen.getByText('Doanh thu');
+    expect(strong.tagName.toLowerCase()).toBe('strong');
+    expect(screen.queryByText(/\*\*Doanh thu\*\*/)).toBeNull();
+    const link = screen.getByRole('link', { name: /Mở Trong Studio/i });
+    expect(link.getAttribute('href')).toBe('/admin/ai-assistant?tab=creative&designId=design_99');
+  });
 });

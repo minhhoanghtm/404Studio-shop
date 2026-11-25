@@ -77,6 +77,11 @@ class ProductRepository {
     return await Product.findByIdAndUpdate(id, updateData, options);
   }
 
+  async updateIfDescriptionMatches(id, expectedDescription, updateData) {
+    const description = expectedDescription === '' ? { $in: ['', null] } : expectedDescription;
+    return await Product.findOneAndUpdate({ _id: id, description }, updateData, { returnDocument: 'after' });
+  }
+
   async findByIdAndDelete(id, options = {}) {
     const { session } = options;
     if (session) {

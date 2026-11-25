@@ -30,7 +30,7 @@ interface AdminAiStoreState {
   loadConversation: (id: string) => Promise<void>;
   sendMessage: (content: string, routeContext?: any) => Promise<void>;
   confirmAction: (actionProposal: any) => Promise<boolean>;
-  cancelAction: (actionId: string) => void;
+  cancelAction: (actionId: string) => Promise<boolean>;
   fetchInsights: () => Promise<void>;
   loadSettings: () => Promise<void>;
   testConnection: (providerId: string) => Promise<any>;
@@ -186,12 +186,12 @@ export const useAdminAiStore = create<AdminAiStoreState>((set, get) => ({
             if (m.actionProposal && m.actionProposal.actionId === actionProposal.actionId) {
               return {
                 ...m,
-                cardType: 'action_result',
+                cardType: 'confirmation_required',
                 actionProposal: {
                   ...m.actionProposal,
                   status: 'confirmed',
                 },
-                cardData: resultData,
+                cardData: { ...m.cardData, status: 'confirmed', result: resultData },
               };
             }
             return m;
@@ -208,21 +208,25 @@ export const useAdminAiStore = create<AdminAiStoreState>((set, get) => ({
     }
   },
 
-  cancelAction: (actionId: string) => {
+  cancelAction: async (actionId: string) => {
+    set({ isLoading: true });
+    try {
+    await adminAiApi.cancelAction(actionId);
     set((state) => ({
       messages: state.messages.map((m): AdminAiMessage => {
-        if (m.actionProposal && m.actionProposal.actionId === actionId) {
+        if (m.actionProposal?.actionId === actionId || m.cardData?.actionId === actionId) {
           return {
             ...m,
-            actionProposal: {
-              ...m.actionProposal,
-              status: 'cancelled',
-            },
+            cardData: { ...m.cardData, status: 'cancelled' },
+            actionProposal: m.actionProposal ? { ...m.actionProposal, status: 'cancelled' } : undefined,
           };
         }
         return m;
       }),
     }));
+    return true;
+    } catch (err: any) { set({ error: err.message || 'Không thể hủy xác nhận' }); return false; }
+    finally { set({ isLoading: false }); }
   },
 
   fetchInsights: async () => {

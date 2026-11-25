@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import Campaign from "./campaign.model.js";
 import CampaignProduct from "./campaignProduct.model.js";
 import CampaignPurchase from "./campaignPurchase.model.js";
-import { OrderItem } from "../orders/order.model.js";
+import { Order, OrderItem } from "../orders/order.model.js";
 import Product from "../products/product.model.js";
 import "../users/user.model.js";
 import "../categories/category.model.js";
@@ -12,6 +12,24 @@ import pricingService from "./pricing.service.js";
 import { AppError } from "../../common/exceptions/AppError.js";
 
 class CampaignService {
+  async getCampaignPerformance({ startDate, endDate, limit = 10 }) {
+    const start = new Date(startDate); const end = new Date(endDate);
+    if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || start > end) throw new AppError("Khoảng ngày không hợp lệ", 400);
+    const boundedLimit = Math.min(20, Math.max(1, Math.floor(Number(limit) || 10)));
+    const rows = await Order.aggregate([
+      { $match: { createdAt: { $gte: start, $lte: end }, status: "delivered", payment_status: { $ne: "refunded" }, $or: [{ payment_method: "cod" }, { payment_status: "paid" }] } },
+      { $lookup: { from: "order_items", localField: "_id", foreignField: "order_id", as: "item" } },
+      { $unwind: "$item" },
+      { $match: { "item.campaign_id": { $ne: null } } },
+      { $group: { _id: { campaign: "$item.campaign_id", order: "$_id" }, units: { $sum: "$item.quantity" }, itemRevenue: { $sum: { $multiply: ["$item.quantity", "$item.price"] } } } },
+      { $group: { _id: "$_id.campaign", units: { $sum: "$units" }, itemRevenue: { $sum: "$itemRevenue" }, orders: { $sum: 1 } } },
+      { $lookup: { from: "campaigns", localField: "_id", foreignField: "_id", as: "campaign" } },
+      { $unwind: "$campaign" },
+      { $sort: { itemRevenue: -1, _id: 1 } },
+      { $limit: boundedLimit },
+    ]);
+    return { campaigns: rows.map((row) => ({ id: String(row._id), name: row.campaign.name, units: row.units, orders: row.orders, itemRevenue: row.itemRevenue })) };
+  }
   /**
    * Public: Lấy danh sách chiến dịch đang active kèm thời gian đếm ngược (server time)
    */
@@ -294,6 +312,9 @@ class CampaignService {
           campaign_id: new mongoose.Types.ObjectId(id),
         },
       },
+      { $lookup: { from: "orders", localField: "order_id", foreignField: "_id", as: "order" } },
+      { $unwind: "$order" },
+      { $match: { "order.status": "delivered", "order.payment_status": { $ne: "refunded" }, $or: [{ "order.payment_method": "cod" }, { "order.payment_status": "paid" }] } },
       {
         $group: {
           _id: null,

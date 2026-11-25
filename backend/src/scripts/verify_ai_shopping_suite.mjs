@@ -1,4 +1,7 @@
+import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
 import { requireEnv } from "./require-env.js";
+
+await verifyQaSuiteTarget({ liveProviders: true });
 
 const mongoConnectionString = requireEnv("MONGO_CONNECTIONSTRING");
 requireEnv("REDIS_URL");

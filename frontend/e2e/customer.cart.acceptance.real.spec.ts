@@ -1,0 +1,68 @@
+import { expect, test } from '@playwright/test';
+import { customerCartFixture, type CustomerCartFixture } from './support/customerCartFixture';
+
+test('authenticated product selection persists cart quantity and removal', async ({ page, request }) => {
+  test.skip(process.env.QA_E2E_ENABLED !== 'true', 'Requires isolated QA.');
+  test.setTimeout(90000);
+  page.setDefaultTimeout(12000);
+  let fixture: CustomerCartFixture | undefined;
+  try {
+    fixture = customerCartFixture('create');
+    const login = await request.post('http://127.0.0.1:5002/api/auth/login', { data: { email: 'qa.customer.b@atelier.local', passWord: process.env.QA_SEED_PASSWORD } });
+    expect(login.ok()).toBeTruthy();
+    const session = (await login.json()).data; const headers = { Authorization: `Bearer ${session.accessToken}` };
+    const otherLogin = await request.post('http://127.0.0.1:5002/api/auth/login', { data: { email: 'qa.customer.a@atelier.local', passWord: process.env.QA_SEED_PASSWORD } });
+    expect(otherLogin.ok()).toBeTruthy(); const otherSession = (await otherLogin.json()).data;
+    const getItems = async () => {
+      const cart = await request.get('http://127.0.0.1:5002/api/cart', { headers });
+      if (!cart.ok()) return [];
+      const data = (await cart.json()).data;
+      if (!data?._id) return [];
+      const items = await request.get(`http://127.0.0.1:5002/api/cart_items/${data._id}`, { headers });
+      return items.ok() ? (await items.json()).data : [];
+    };
+    await page.goto('/');
+    const cookies = page.getByRole('button', { name: 'Chấp nhận tất cả' });
+    if (await cookies.isVisible().catch(() => false)) await cookies.click();
+    await page.evaluate((item) => localStorage.setItem('atelier_cart_items', JSON.stringify({ version: 2, items: [{ productId: item.productId, variantId: item.variantId, productSlug: item.slug, name: item.name, price: 100000, quantity: 1, selectedColor: 'QA', selectedColorHex: '#1E1E24', selectedSize: 'M', image: '' }] })), fixture);
+    await page.evaluate((auth) => localStorage.setItem('atelier_patron_auth', JSON.stringify({ state: { token: auth.accessToken, refreshToken: auth.refreshToken, user: auth.user } })), session);
+    await page.addLocatorHandler(page.getByTestId('promotional-popup'), async () => { await page.getByTestId('popup-close').click(); });
+    await page.goto(`/products/${fixture.slug}`);
+    await expect(page.getByRole('heading', { name: fixture.name })).toBeVisible();
+    await page.getByRole('button', { name: /Kích cỡ M/ }).click();
+    await page.getByRole('button', { name: 'Thêm Vào Túi May Đo' }).click();
+    const drawer = page.getByRole('dialog', { name: 'Giỏ hàng' });
+    await expect(drawer.getByText(fixture.name)).toBeVisible();
+    if (process.env.QA_VIDEO_EVIDENCE === 'true') await page.waitForTimeout(1500);
+    await expect.poll(async () => (await getItems()).some((item: any) => String(item.product_id?._id || item.product_id) === fixture!.productId && String(item.variant_id?._id || item.variant_id) === fixture!.variantId && item.quantity === 1), { timeout: 10000 }).toBeTruthy();
+    let row = drawer.getByRole('link', { name: fixture.name }).locator('..').locator('..');
+    await row.getByRole('button', { name: 'Tăng số lượng' }).click();
+    await expect.poll(async () => (await getItems()).find((item: any) => String(item.product_id?._id || item.product_id) === fixture!.productId)?.quantity, { timeout: 10000 }).toBe(2);
+    if (process.env.QA_VIDEO_EVIDENCE === 'true') await page.waitForTimeout(1500);
+    await page.evaluate((auth) => localStorage.setItem('atelier_patron_auth', JSON.stringify({ state: { token: auth.accessToken, refreshToken: auth.refreshToken, user: auth.user } })), otherSession);
+    await page.reload();
+    await page.locator('button[aria-label^="Giỏ hàng ("]:visible').first().click();
+    await expect(page.getByRole('dialog', { name: 'Giỏ hàng' }).getByText(fixture.name)).toHaveCount(0);
+    if (process.env.QA_VIDEO_EVIDENCE === 'true') await page.waitForTimeout(1500);
+    await page.evaluate((auth) => localStorage.setItem('atelier_patron_auth', JSON.stringify({ state: { token: auth.accessToken, refreshToken: auth.refreshToken, user: auth.user } })), session);
+    await page.reload();
+    await page.locator('button[aria-label^="Giỏ hàng ("]:visible').first().click();
+    await expect(drawer.getByText(fixture.name)).toBeVisible();
+    if (process.env.QA_VIDEO_EVIDENCE === 'true') await page.waitForTimeout(1500);
+    row = drawer.getByRole('link', { name: fixture.name }).locator('..').locator('..');
+    await row.getByRole('button', { name: `Xóa ${fixture.name} khỏi giỏ hàng` }).click();
+    await expect.poll(async () => (await getItems()).some((item: any) => String(item.product_id?._id || item.product_id) === fixture!.productId), { timeout: 10000 }).toBeFalsy();
+    if (process.env.QA_VIDEO_EVIDENCE === 'true') await page.waitForTimeout(1500);
+    await drawer.getByRole('button', { name: 'Đóng giỏ hàng' }).click();
+    for (let count = 0; count < 5; count += 1) await page.getByRole('button', { name: 'Tăng số lượng', exact: true }).click();
+    await page.getByRole('button', { name: 'Thêm Vào Túi May Đo' }).click();
+    await expect(page.getByText('Không thể thêm vào giỏ')).toBeVisible();
+    if (process.env.QA_VIDEO_EVIDENCE === 'true') await page.waitForTimeout(1500);
+    await expect(page.getByRole('button', { name: 'Đã Thêm Vào Túi' })).toHaveCount(0);
+    await expect.poll(async () => (await getItems()).some((item: any) => String(item.product_id?._id || item.product_id) === fixture!.productId)).toBeFalsy();
+    await page.evaluate(() => localStorage.removeItem('atelier_patron_auth'));
+    await page.reload();
+    await page.locator('button[aria-label^="Giỏ hàng ("]:visible').first().click();
+    await expect(page.getByRole('dialog', { name: 'Giỏ hàng' }).getByText(fixture.name)).toBeVisible();
+  } finally { if (fixture) customerCartFixture('cleanup', fixture); }
+});

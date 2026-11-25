@@ -1,3 +1,4 @@
+import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
 /**
  * CONSENT PERSISTENCE & PRIVACY GUARANTEE VERIFICATION
  * Target: Nginx Staging (8081), MongoDB Staging (27018), Redis Staging (6381)
@@ -18,6 +19,8 @@ import Redis from "ioredis";
 import { execSync } from "child_process";
 import crypto from "crypto";
 import { requireEnv } from "./require-env.js";
+
+await verifyQaSuiteTarget();
 
 const STAGING_URL = "http://localhost:8081";
 const STAGING_API_URL = "http://localhost:8081/api";

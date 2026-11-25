@@ -1,8 +1,11 @@
+import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
 import mongoose from 'mongoose';
 import Redis from 'ioredis';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { requireEnv } from './require-env.js';
+
+await verifyQaSuiteTarget();
 
 const API_URL = 'http://localhost:5050/api';
 const REDIS_URL = requireEnv('REDIS_URL');

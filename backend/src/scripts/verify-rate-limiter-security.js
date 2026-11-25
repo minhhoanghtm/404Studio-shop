@@ -1,3 +1,6 @@
+import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
+await verifyQaSuiteTarget();
+
 /**
  * VERIFY RATE LIMITER & BRUTE-FORCE SECURITY TEST
  * Target: Nginx Staging http://localhost:8081/api/auth/signIn

@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import { getRedisConnection } from "../../configs/redis.js";
 import InventoryReservation from "./inventoryReservation.model.js";
 import { Product, ProductVariant } from "../products/product.model.js";
+import { Order } from "../orders/order.model.js";
 import UserEvent from "../tracking/userEvent.model.js";
 import { EVENT_TYPES } from "../tracking/tracking.constants.js";
 import logger from "../../common/logger.js";
@@ -102,7 +103,11 @@ end
 redis.call("ZREM", expirationsKey, resId)
 
 if updatedJson and updatedJson ~= "" then
-  redis.call("SET", resKey, updatedJson, "EX", 3600)
+  local patch = cjson.decode(updatedJson)
+  for k, v in pairs(patch) do
+    res[k] = v
+  end
+  redis.call("SET", resKey, cjson.encode(res), "EX", 3600)
 else
   redis.call("DEL", resKey)
 end
@@ -143,7 +148,11 @@ end
 redis.call("ZREM", expirationsKey, resId)
 
 if updatedJson and updatedJson ~= "" then
-  redis.call("SET", resKey, updatedJson, "EX", 86400)
+  local patch = cjson.decode(updatedJson)
+  for k, v in pairs(patch) do
+    res[k] = v
+  end
+  redis.call("SET", resKey, cjson.encode(res), "EX", 86400)
 end
 
 return cjson.encode({ success = true, status = "COMPLETED" })
@@ -213,8 +222,8 @@ class InventoryReservationService {
     if (!userId) {
       throw new Error("userId là bắt buộc để giữ hàng");
     }
-    if (!Array.isArray(items) || items.length === 0) {
-      throw new Error("Danh sách sản phẩm giữ hàng không được trống");
+    if (!Array.isArray(items) || items.length === 0 || items.length > 100) {
+      throw Object.assign(new Error("Danh sách sản phẩm giữ hàng không hợp lệ"), { statusCode: 400, status: "fail", isOperational: true });
     }
 
     const redis = this.getRedis();
@@ -228,6 +237,8 @@ class InventoryReservationService {
         expiresAt: { $gt: new Date() },
       }).lean();
       if (existing) {
+        const comparable = (entries) => entries.map((item) => `${item.productId || item.product_id}:${item.variantId || item.variant_id || item.product_variant_id || ""}:${Number(item.quantity ?? 1)}`).sort().join("|");
+        if (comparable(items) !== comparable(existing.items || [])) throw Object.assign(new Error("Khóa giữ hàng đã được sử dụng cho sản phẩm khác"), { statusCode: 409, code: "IDEMPOTENCY_CONFLICT", status: "fail", isOperational: true });
         return this.formatReservation(existing);
       }
     }
@@ -235,12 +246,13 @@ class InventoryReservationService {
     // 1. Verify DB stock for each item & assemble Lua arguments
     const preparedItems = [];
     const luaArgs = [];
+    const seenSkus = new Set();
 
     for (const it of items) {
       const productId = String(it.productId || it.product_id);
       const variantId = it.variantId || it.variant_id ? String(it.variantId || it.variant_id) : null;
-      const quantity = Math.max(1, parseInt(it.quantity || 1, 10));
-      const sku = this.getSku(productId, variantId);
+      const quantity = Number(it.quantity ?? 1);
+      if (!Number.isInteger(quantity) || quantity < 1 || quantity > 1000) throw Object.assign(new Error("Số lượng giữ hàng không hợp lệ"), { statusCode: 400, status: "fail", isOperational: true });
 
       let dbStock = 0;
       let name = it.name || "Sản phẩm";
@@ -251,11 +263,11 @@ class InventoryReservationService {
 
       let variantDoc = null;
       if (variantId && mongoose.isValidObjectId(variantId)) {
-        variantDoc = await ProductVariant.findById(variantId).lean();
+        variantDoc = await ProductVariant.findOne({ _id: variantId, product_id: productId, is_active: { $ne: false } }).lean();
       }
 
       const productDoc = await Product.findById(productId).lean();
-      if (!productDoc) {
+      if (!productDoc || productDoc.is_active === false) {
         throw new Error(`Sản phẩm không tồn tại (ID: ${productId})`);
       }
 
@@ -280,6 +292,7 @@ class InventoryReservationService {
           variantDoc = productDoc.variants[0];
         }
       }
+      if (variantId && !variantDoc) throw Object.assign(new Error("Phiên bản sản phẩm không hợp lệ"), { statusCode: 400, status: "fail", isOperational: true });
 
       if (variantDoc) {
         dbStock = Number(variantDoc.stock || 0);
@@ -301,22 +314,15 @@ class InventoryReservationService {
         unitPrice = Number(variantDoc?.price ?? productDoc.new_price ?? productDoc.price ?? 0);
       }
 
-      if (unitPrice <= 0 && it.unitPrice) {
-        unitPrice = Number(it.unitPrice);
-      }
-      if (unitPrice <= 0 && it.price) {
-        unitPrice = Number(it.price);
-      }
-      if (unitPrice <= 0 && it.new_price) {
-        unitPrice = Number(it.new_price);
-      }
-
       let finalVarId = null;
       if (variantDoc?._id && mongoose.isValidObjectId(variantDoc._id)) {
         finalVarId = String(variantDoc._id);
       } else if (variantId && mongoose.isValidObjectId(variantId)) {
         finalVarId = String(variantId);
       }
+      const sku = this.getSku(productId, finalVarId);
+      if (seenSkus.has(sku)) throw Object.assign(new Error("Sản phẩm giữ hàng bị trùng lặp"), { statusCode: 400, status: "fail", isOperational: true });
+      seenSkus.add(sku);
 
       preparedItems.push({
         productId,
@@ -441,10 +447,12 @@ class InventoryReservationService {
     const resKey = `${KEY_PREFIX_RES}${reservationId}`;
 
     let data = null;
+    let fromRedis = false;
     try {
       const cached = await redis.get(resKey);
       if (cached) {
         data = JSON.parse(cached);
+        fromRedis = true;
       }
     } catch (e) {
       logger.warn("Redis getReservation cache miss/error:", e.message);
@@ -454,15 +462,49 @@ class InventoryReservationService {
       const doc = await InventoryReservation.findOne({ reservationId }).lean();
       if (!doc) return null;
       data = doc;
+    } else if (data.status === "ACTIVE") {
+      // Reconcile if MongoDB ledger or Order already finalized this reservation (e.g. crash before Redis cleanup)
+      const [dbDoc, existingOrder] = await Promise.all([
+        InventoryReservation.findOne({ reservationId }).select("status orderId completedAt releasedAt").lean(),
+        Order.findOne({ reservation_id: reservationId }).select("_id").lean(),
+      ]);
+      if (existingOrder || (dbDoc && dbDoc.status !== "ACTIVE")) {
+        const resolvedStatus = existingOrder ? "COMPLETED" : dbDoc.status;
+        if (existingOrder && dbDoc?.status === "ACTIVE") {
+          await InventoryReservation.updateOne(
+            { reservationId, status: "ACTIVE" },
+            { $set: { status: "COMPLETED", orderId: existingOrder._id, completedAt: new Date() } }
+          );
+        }
+        if (resolvedStatus === "COMPLETED") {
+          await this.finalizeCommittedReservationRedis(reservationId, existingOrder?._id || dbDoc?.orderId || null);
+        } else {
+          await this.releaseReservation(reservationId, resolvedStatus);
+        }
+        data.status = resolvedStatus;
+        return this.formatReservation(data);
+      }
     }
 
     const now = Date.now();
     const expiresAtMs = new Date(data.expiresAt).getTime();
 
-    // Lazy expiration check
+    // Lazy expiration check (do not expire if an Order already exists)
     if (data.status === "ACTIVE" && now >= expiresAtMs) {
-      await this.releaseReservation(reservationId, "EXPIRED");
-      data.status = "EXPIRED";
+      const existingOrder = await Order.findOne({ reservation_id: reservationId }).select("_id").lean();
+      if (existingOrder) {
+        await this.commitReservation(reservationId, existingOrder._id);
+        data.status = "COMPLETED";
+      } else {
+        await this.releaseReservation(reservationId, "EXPIRED");
+        data.status = "EXPIRED";
+      }
+    } else if (!fromRedis && data.status === "ACTIVE") {
+      const existingOrder = await Order.findOne({ reservation_id: reservationId }).select("_id").lean();
+      if (existingOrder) {
+        await this.commitReservation(reservationId, existingOrder._id);
+        data.status = "COMPLETED";
+      }
     }
 
     return this.formatReservation(data);
@@ -520,14 +562,14 @@ class InventoryReservationService {
   }
 
   /**
-   * Commit reservation upon successful order placement.
+   * Release Redis reservation hold & expirations entry after MongoDB ledger is committed.
    */
-  async commitReservation(reservationId, orderId = null) {
+  async finalizeCommittedReservationRedis(reservationId, orderId = null) {
     if (!reservationId) return false;
     const redis = this.getRedis();
     const resKey = `${KEY_PREFIX_RES}${reservationId}`;
-
     const updatedPayload = { status: "COMPLETED", orderId, completedAt: Date.now() };
+    let redisOk = false;
     try {
       await redis.eval(
         LUA_COMMIT,
@@ -537,30 +579,41 @@ class InventoryReservationService {
         reservationId,
         JSON.stringify(updatedPayload)
       );
+      redisOk = true;
     } catch (e) {
-      logger.error("Error executing LUA_COMMIT in Redis:", e.message);
+      logger.warn("Redis LUA_COMMIT failed after reservation commit (reconcilable on startup):", e.message);
     }
 
-    // Update MongoDB ledger
-    try {
-      await InventoryReservation.updateOne(
-        { reservationId },
-        {
-          $set: {
-            status: "COMPLETED",
-            orderId: orderId || null,
-            completedAt: new Date(),
-          },
-        }
-      );
+    UserEvent.create({
+      event_id: new mongoose.Types.ObjectId().toString(),
+      event_type: EVENT_TYPES.CHECKOUT_RESERVATION_CONFIRMED,
+      meta: { reservation_id: reservationId, order_id: orderId },
+    }).catch(() => {});
 
-      UserEvent.create({
-        event_id: new mongoose.Types.ObjectId().toString(),
-        event_type: EVENT_TYPES.CHECKOUT_RESERVATION_CONFIRMED,
-        meta: { reservation_id: reservationId, order_id: orderId },
-      }).catch(() => {});
-    } catch (dbErr) {
-      logger.error("Error committing MongoDB reservation ledger:", dbErr.message);
+    return redisOk;
+  }
+
+  /**
+   * Commit reservation upon successful order placement (durable DB + Redis hold release).
+   */
+  async commitReservation(reservationId, orderId = null, options = {}) {
+    if (!reservationId) return false;
+
+    const updateOptions = options?.session ? { session: options.session } : {};
+    await InventoryReservation.updateOne(
+      { reservationId },
+      {
+        $set: {
+          status: "COMPLETED",
+          orderId: orderId || null,
+          completedAt: new Date(),
+        },
+      },
+      updateOptions
+    );
+
+    if (!options?.session) {
+      await this.finalizeCommittedReservationRedis(reservationId, orderId);
     }
 
     return true;
@@ -577,7 +630,12 @@ class InventoryReservationService {
 
       if (Array.isArray(expiredIds) && expiredIds.length > 0) {
         for (const resId of expiredIds) {
-          await this.releaseReservation(resId, "EXPIRED");
+          const existingOrder = await Order.findOne({ reservation_id: resId }).select("_id").lean();
+          if (existingOrder) {
+            await this.commitReservation(resId, existingOrder._id);
+          } else {
+            await this.releaseReservation(resId, "EXPIRED");
+          }
         }
         logger.info(`Released ${expiredIds.length} expired inventory reservations`);
       }
@@ -600,41 +658,105 @@ class InventoryReservationService {
         status: "ACTIVE",
       }).lean();
 
+      const activeIds = activeReservations.map((r) => r.reservationId).filter(Boolean);
+      const existingOrders = activeIds.length
+        ? await Order.find({ reservation_id: { $in: activeIds } }).select("_id reservation_id").lean()
+        : [];
+      const orderByResId = new Map(existingOrders.map((o) => [o.reservation_id, o._id]));
+
       let recovered = 0;
       let expiredCount = 0;
+      let completedFromOrders = 0;
+      const stillActive = [];
 
       for (const res of activeReservations) {
+        const matchedOrderId = orderByResId.get(res.reservationId);
+        if (matchedOrderId) {
+          await InventoryReservation.updateOne(
+            { _id: res._id, status: "ACTIVE" },
+            { $set: { status: "COMPLETED", orderId: matchedOrderId, completedAt: now } }
+          );
+          await this.finalizeCommittedReservationRedis(res.reservationId, matchedOrderId);
+          completedFromOrders++;
+          continue;
+        }
+
         const expiresAtMs = new Date(res.expiresAt).getTime();
         if (expiresAtMs <= nowMs) {
-          // Has expired while server/redis was off
           await InventoryReservation.updateOne(
-            { _id: res._id },
+            { _id: res._id, status: "ACTIVE" },
             { $set: { status: "EXPIRED", releasedAt: now } }
           );
+          await this.releaseReservation(res.reservationId, "EXPIRED");
           expiredCount++;
         } else {
-          // Re-populate into Redis
-          const remainingSec = Math.max(1, Math.floor((expiresAtMs - nowMs) / 1000));
-          const resKey = `${KEY_PREFIX_RES}${res.reservationId}`;
-
-          for (const item of res.items) {
-            const sku = item.sku;
-            const qty = item.quantity;
-            await redis.incrby(`${KEY_PREFIX_STOCK_RESERVED}${sku}`, qty);
-            await redis.sadd(`${KEY_PREFIX_STOCK_RESERVATIONS}${sku}`, res.reservationId);
-          }
-
-          await redis.set(resKey, JSON.stringify(res), "EX", remainingSec);
-          await redis.zadd(KEY_EXPIRATIONS_ZSET, expiresAtMs, res.reservationId);
-          recovered++;
+          stillActive.push(res);
         }
       }
 
+      // Remove any non-active reservations lingering in Redis expirations ZSET
+      const zsetIds = await redis.zrange(KEY_EXPIRATIONS_ZSET, 0, -1);
+      const stillActiveSet = new Set(stillActive.map((r) => r.reservationId));
+      for (const zId of zsetIds) {
+        if (!stillActiveSet.has(zId)) {
+          await redis.zrem(KEY_EXPIRATIONS_ZSET, zId);
+          await redis.del(`${KEY_PREFIX_RES}${zId}`);
+        }
+      }
+
+      // Idempotently rebuild SKU reserved counters from truly active reservations
+      const skuTotals = new Map();
+      for (const res of stillActive) {
+        for (const item of res.items || []) {
+          const sku = item.sku;
+          if (!sku) continue;
+          const entry = skuTotals.get(sku) || { qty: 0, ids: [] };
+          entry.qty += Number(item.quantity || 1);
+          entry.ids.push(res.reservationId);
+          skuTotals.set(sku, entry);
+        }
+      }
+
+      const existingReservedKeys = await redis.keys(`${KEY_PREFIX_STOCK_RESERVED}*`);
+      for (const key of existingReservedKeys) {
+        const sku = key.slice(KEY_PREFIX_STOCK_RESERVED.length);
+        if (!skuTotals.has(sku)) {
+          await redis.del(key);
+        }
+      }
+      const existingResSets = await redis.keys(`${KEY_PREFIX_STOCK_RESERVATIONS}*`);
+      for (const key of existingResSets) {
+        const sku = key.slice(KEY_PREFIX_STOCK_RESERVATIONS.length);
+        if (!skuTotals.has(sku)) {
+          await redis.del(key);
+        }
+      }
+
+      for (const [sku, entry] of skuTotals.entries()) {
+        await redis.set(`${KEY_PREFIX_STOCK_RESERVED}${sku}`, String(entry.qty));
+        const setKey = `${KEY_PREFIX_STOCK_RESERVATIONS}${sku}`;
+        await redis.del(setKey);
+        if (entry.ids.length > 0) {
+          await redis.sadd(setKey, ...entry.ids);
+        }
+      }
+
+      for (const res of stillActive) {
+        const expiresAtMs = new Date(res.expiresAt).getTime();
+        const remainingSec = Math.max(1, Math.floor((expiresAtMs - nowMs) / 1000));
+        const resKey = `${KEY_PREFIX_RES}${res.reservationId}`;
+        await redis.set(resKey, JSON.stringify(res), "EX", remainingSec);
+        await redis.zadd(KEY_EXPIRATIONS_ZSET, expiresAtMs, res.reservationId);
+        recovered++;
+      }
+
       logger.info(
-        `Inventory Reservation Reconcile Complete: ${recovered} active recovered, ${expiredCount} expired marked`
+        `Inventory Reservation Reconcile Complete: ${recovered} active recovered, ${expiredCount} expired marked, ${completedFromOrders} completed from orders`
       );
+      return { recovered, expiredCount, completedFromOrders };
     } catch (e) {
       logger.error("Error during reconcileReservationsFromDB:", e.message);
+      return { recovered: 0, expiredCount: 0, completedFromOrders: 0, error: e.message };
     }
   }
 
@@ -675,7 +797,7 @@ class InventoryReservationService {
 
     return {
       reservationId: data.reservationId,
-      userId: String(data.userId),
+      userId: data.userId ? String(data.userId) : null,
       checkoutSessionId: data.checkoutSessionId,
       status: remainingSeconds <= 0 && data.status === "ACTIVE" ? "EXPIRED" : data.status,
       reservedItems: formattedItems,

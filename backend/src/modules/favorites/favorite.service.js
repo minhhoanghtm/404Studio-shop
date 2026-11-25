@@ -5,12 +5,11 @@ import { AppError } from "../../common/exceptions/AppError.js";
 
 const populateProduct = {
   path: "product_id",
-  select: "name slug displayProduct category_id old_price new_price rating is_active description",
-  populate: {
-    path: "category_id",
-    select: "name",
-    options: { strictPopulate: false },
-  },
+  select: "name slug displayProduct category_id old_price new_price rating is_active description stock",
+  populate: [
+    { path: "category_id", select: "name", options: { strictPopulate: false } },
+    { path: "variants", match: { is_active: { $ne: false } }, select: "color size stock image_url sku", options: { strictPopulate: false } },
+  ],
 };
 
 class FavoriteService {
@@ -85,7 +84,7 @@ class FavoriteService {
     }
 
     const product = await Product.findById(productId).select("_id is_active").lean();
-    if (!product) {
+    if (!product || product.is_active === false) {
       throw new AppError("Sản phẩm không tồn tại", 404);
     }
 

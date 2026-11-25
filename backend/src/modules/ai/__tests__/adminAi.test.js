@@ -1,16 +1,17 @@
 import { describe, it, expect, beforeAll, afterAll } from "@jest/globals";
 import mongoose from "mongoose";
-import * as tools from "../services/adminAiTools.service.js";
-import adminAiAgentService, {
-  generateAdminActionToken,
-  verifyAdminActionToken,
-} from "../services/adminAiAgent.service.js";
+import { verifyQaSuiteTarget, assertConnectedQaDatabase } from "./qaSuiteGuard.mjs";
+let tools; let adminAiAgentService; let generateAdminActionToken; let verifyAdminActionToken;
 
 describe("Admin AI Copilot Test Suite", () => {
   beforeAll(async () => {
+    const uri = await verifyQaSuiteTarget();
+    tools = await import("../services/adminAiTools.service.js");
+    ({ default: adminAiAgentService, generateAdminActionToken, verifyAdminActionToken } = await import("../services/adminAiAgent.service.js"));
     if (mongoose.connection.readyState === 0) {
-      await mongoose.connect(process.env.MONGO_URI || "mongodb://localhost:27017/shop");
+      await mongoose.connect(uri);
     }
+    assertConnectedQaDatabase(mongoose);
   });
 
   afterAll(async () => {

@@ -1,5 +1,8 @@
+import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
 import mongoose from 'mongoose';
 import { requireEnv } from './require-env.js';
+
+await verifyQaSuiteTarget({ liveProviders: true });
 
 const customerPassword = requireEnv('STAGING_CUSTOMER_PASSWORD');
 

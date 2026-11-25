@@ -1,19 +1,21 @@
 import { describe, it, expect, beforeAll, afterAll } from "@jest/globals";
 import mongoose from "mongoose";
-import providerRegistry from "../providers/ProviderRegistry.js";
-import aiRouter from "../services/aiRouter.service.js";
-import usageCostTracker from "../services/usageCostTracker.service.js";
-import adminImageGenerationService from "../services/adminImageGeneration.service.js";
-import { AdminAiSettings } from "../models/adminAiSettings.model.js";
-import { AdminAiUsageLog } from "../models/adminAiUsageLog.model.js";
-import adminAiAgentService from "../services/adminAiAgent.service.js";
-import * as tools from "../services/adminAiTools.service.js";
+import { verifyQaSuiteTarget } from "./qaSuiteGuard.mjs";
+let providerRegistry; let aiRouter; let usageCostTracker; let adminImageGenerationService; let adminAiAgentService; let tools;
 
 describe("Multi-Provider AI & Image Generation Test Suite", () => {
   beforeAll(async () => {
+    const uri = await verifyQaSuiteTarget({ liveProviders: true });
+    ({ default: providerRegistry } = await import("../providers/ProviderRegistry.js"));
+    ({ default: aiRouter } = await import("../services/aiRouter.service.js"));
+    ({ default: usageCostTracker } = await import("../services/usageCostTracker.service.js"));
+    ({ default: adminImageGenerationService } = await import("../services/adminImageGeneration.service.js"));
+    ({ default: adminAiAgentService } = await import("../services/adminAiAgent.service.js"));
+    tools = await import("../services/adminAiTools.service.js");
     if (mongoose.connection.readyState === 0) {
-      await mongoose.connect(process.env.MONGO_URI || "mongodb://localhost:27017/shop");
+      await mongoose.connect(uri);
     }
+    if (mongoose.connection.name !== "atelier_verite_qa" || mongoose.connection.port !== 27018) throw new Error("QA database verification failed.");
   });
 
   afterAll(async () => {

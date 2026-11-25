@@ -34,6 +34,10 @@ jest.unstable_mockModule("../../../middlewares/auth.middleware.js", () => ({
   noAdmin: (req, res, next) => next(),
 }));
 
+jest.unstable_mockModule("../../../sockets/index.js", () => ({
+  getSocketIO: jest.fn(() => null),
+}));
+
 const { default: websiteSettingsRouter } = await import("../websiteSettings.route.js");
 
 const app = express();

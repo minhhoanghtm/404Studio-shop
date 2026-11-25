@@ -54,6 +54,7 @@ const adminAiAuditLogSchema = new mongoose.Schema(
       default: null,
       index: true,
     },
+    expiresAt: { type: Date, default: null },
     securityReason: {
       type: String,
       default: null,

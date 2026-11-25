@@ -5,6 +5,8 @@ import { successResponse } from "../../common/responses/index.js";
 import { AppError } from "../../common/exceptions/AppError.js";
 import WebsiteSettings from "../websiteSettings/websiteSettings.model.js";
 import crypto from "crypto";
+import { getEffectivePermissions } from "../../middlewares/rbac.middleware.js";
+import { quoteCheckout } from "./checkoutQuote.service.js";
 
 const getGuestAccessToken = (req) =>
   req.get("x-guest-order-token") || req.body?.guest_access_token || null;
@@ -42,7 +44,12 @@ const getAuthorizedGuestOrder = async (req, action) => {
 export const createOrder = async (req, res, next) => {
   try {
     const userId = req.user?.userId || null;
-    const order = await orderFacade.createOrder(userId, req.body);
+    const headerIdempKey = req.get("idempotency-key");
+    const payload =
+      headerIdempKey && !req.body?.idempotency_key && !req.body?.idempotencyKey
+        ? { ...(req.body || {}), idempotency_key: headerIdempKey }
+        : req.body;
+    const order = await orderFacade.createOrder(userId, payload);
     return res.status(200).json({
       success: true,
       message: "Đặt hàng thành công",
@@ -52,6 +59,11 @@ export const createOrder = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+};
+
+export const getCheckoutQuote = async (req, res, next) => {
+  try { return successResponse(res, await quoteCheckout(req.user?.userId || null, req.body || {})); }
+  catch (error) { next(error); }
 };
 
 export const getOrdersByUser = async (req, res, next) => {
@@ -264,6 +276,11 @@ export const createOrderItem = async (req, res, next) => {
 export const getOrderItemsByOrderId = async (req, res, next) => {
   try {
     const { order_id } = req.params;
+    if (!mongoose.isValidObjectId(order_id)) throw new AppError("Không tìm thấy đơn hàng", 404);
+    const order = await Order.findById(order_id).select("user_id").lean();
+    const isOwner = order?.user_id && String(order.user_id) === String(req.user.userId);
+    const canViewOrders = isOwner ? false : (await getEffectivePermissions(req.user)).includes("order:view");
+    if (!order || (!isOwner && !canViewOrders)) throw new AppError("Không tìm thấy đơn hàng", 404);
     const orderItems = await orderFacade.getOrderItemsByOrderId(order_id);
     return res.status(200).json({
       success: true,

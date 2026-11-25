@@ -1,7 +1,9 @@
+import { verifyQaSuiteTarget } from "../src/common/qa/qaIsolationGuard.js";
 import getRedisConnection from "../src/configs/redis.js";
 import dotenv from "dotenv";
 
-dotenv.config();
+await verifyQaSuiteTarget();
+
 
 const run = async () => {
   try {

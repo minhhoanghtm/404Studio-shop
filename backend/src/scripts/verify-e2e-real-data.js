@@ -1,4 +1,4 @@
-import "dotenv/config";
+import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
 import mongoose from "mongoose";
 import { connectDB } from "../configs/db.js";
 import { getRedisConnection } from "../configs/redis.js";
@@ -13,6 +13,8 @@ import { addTrackingJob } from "../queues/tracking.queue.js";
 import { initTrackingWorker } from "../queues/workers/tracking.worker.js";
 import embeddingService from "../modules/ai/services/embedding.service.js";
 import { LocalEmbeddingProvider } from "../modules/ai/providers/LocalEmbeddingProvider.js";
+
+await verifyQaSuiteTarget({ liveProviders: true });
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 

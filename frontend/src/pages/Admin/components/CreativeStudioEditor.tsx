@@ -18,6 +18,7 @@ export const CreativeStudioEditor: React.FC<Props> = ({ design, onChange, onSave
   const svgRef = useRef<SVGSVGElement>(null);
   const uploadInputRef = useRef<HTMLInputElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
+  const importRevisionRef = useRef(0);
   const saveInFlightRef = useRef(false);
   const queuedSaveRef = useRef<AdminDesignProject | null>(null);
   const latestDesignRef = useRef<AdminDesignProject | null>(design);
@@ -76,7 +77,7 @@ export const CreativeStudioEditor: React.FC<Props> = ({ design, onChange, onSave
     };
   }, [design?._id, design?.width, design?.height]);
 
-  useEffect(() => { const initial = design?.layers?.[0]?.id || null; setSelectedId(initial); setSelectedIds(initial ? [initial] : []); setHistory([]); setFuture([]); }, [design?._id]);
+  useEffect(() => { const initial = design?.layers?.[0]?.id || null; setSelectedId(initial); setSelectedIds(initial ? [initial] : []); setHistory([]); setFuture([]); importRevisionRef.current += 1; setPendingImport(null); setImportError(''); }, [design?._id]);
   useEffect(() => {
     if (!design?._id) return;
     const timer = window.setTimeout(() => { void persist(design).catch(() => undefined); }, 1400);
@@ -200,7 +201,7 @@ export const CreativeStudioEditor: React.FC<Props> = ({ design, onChange, onSave
   const backgroundStyle = design.background?.type === 'gradient' ? `linear-gradient(135deg, ${design.background.value}, ${design.background.secondaryValue || '#111827'})` : design.background?.value || '#FFFFFF';
   const addLayer = (type: Layer['type']) => {
     const layer: Layer = { id: uid(), type, name: type === 'text' ? 'Văn bản mới' : type === 'shape' ? 'Hình khối mới' : 'Lớp mới', x: 100, y: 100, width: type === 'text' ? 420 : 220, height: type === 'text' ? 80 : 120, rotation: 0, opacity: 1, zIndex: design.layers.length + 1, visible: true, locked: false, content: type === 'text' ? 'Nhập nội dung' : '', styles: type === 'text' ? { fontFamily: 'Inter', fontSize: 42, fontWeight: '700', color: '#111111', textAlign: 'left' } : { backgroundColor: '#D4AF37', borderRadius: 12 } };
-    patch((value) => ({ ...value, layers: [...value.layers, layer] })); setSelectedId(layer.id);
+    patch((value) => ({ ...value, layers: [...value.layers, layer] })); selectLayers(layer.id);
   };
   const uploadAsset = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -217,7 +218,7 @@ export const CreativeStudioEditor: React.FC<Props> = ({ design, onChange, onSave
       const uploaded = response?.data;
       if (!uploaded?.url) throw new Error('Máy chủ không trả về URL ảnh.');
       const layer: Layer = { id: uid(), type: 'image', name: uploaded.originalName || file.name, x: 120, y: 260, width: 840, height: 620, rotation: 0, opacity: 1, zIndex: design.layers.length + 1, visible: true, locked: false, content: uploaded.url, styles: { objectFit: 'contain', cropX: 50, cropY: 50, cropZoom: 1 } };
-      patch((value) => ({ ...value, layers: [...value.layers, layer] })); setSelectedId(layer.id);
+      patch((value) => ({ ...value, layers: [...value.layers, layer] })); selectLayers(layer.id);
     } catch (error: any) {
       setUploadError(error?.message || 'Tải ảnh thất bại. Vui lòng thử lại.');
     } finally { setUploadingAsset(false); }
@@ -268,7 +269,7 @@ export const CreativeStudioEditor: React.FC<Props> = ({ design, onChange, onSave
       return;
     }
     const layer: Layer = { id: uid(), type: 'image', name: asset.name, x: 120, y: 260, width: 840, height: 620, rotation: 0, opacity: 1, zIndex: design.layers.length + 1, visible: true, locked: false, content: asset.url, styles: { objectFit: 'contain' } };
-    patch((value) => ({ ...value, layers: [...value.layers, layer] })); setSelectedId(layer.id);
+    patch((value) => ({ ...value, layers: [...value.layers, layer] })); selectLayers(layer.id);
   };
   const filteredLibraryAssets = libraryAssets.filter((asset) => (librarySource === 'all' || asset.source === librarySource) && `${asset.name} ${asset.description || ''}`.toLocaleLowerCase('vi-VN').includes(libraryQuery.trim().toLocaleLowerCase('vi-VN')));
   const toggleProduct = (id: string) => setSelectedProductIds((ids) => ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id]);
@@ -286,7 +287,7 @@ export const CreativeStudioEditor: React.FC<Props> = ({ design, onChange, onSave
           { id: uid(), type: 'text', name: `${product.name} · giá`, x: 120, y: 980 + offset, width: 840, height: 60, zIndex: base + 2, visible: true, locked: false, content: `${price.toLocaleString('vi-VN')} ₫${oldPrice > price ? `  ${oldPrice.toLocaleString('vi-VN')} ₫` : ''}`, styles: { fontFamily: 'Inter', fontSize: 32, fontWeight: '700', color: '#A56F1B', textAlign: 'center' } }
         );
       });
-      return { ...value, layers };
+      return { ...value, layers: layers.map((layer) => ({ ...layer, rotation: layer.rotation ?? 0, opacity: layer.opacity ?? 1 })) };
     });
     setSelectedProductIds([]);
   };
@@ -299,7 +300,7 @@ export const CreativeStudioEditor: React.FC<Props> = ({ design, onChange, onSave
     const imageLayer: Layer = { id: uid(), type: 'product', name: `${product.name} · ảnh`, x: 180, y: 350, width: 720, height: 520, zIndex: base, visible: true, locked: false, content: image, styles: { objectFit: 'contain' } };
     const nameLayer: Layer = { id: uid(), type: 'text', name: `${product.name} · tên`, x: 120, y: 900, width: 840, height: 70, zIndex: base + 1, visible: true, locked: false, content: product.name, styles: { fontFamily: 'Inter', fontSize: 42, fontWeight: '700', color: '#111111', textAlign: 'center' } };
     const priceLayer: Layer = { id: uid(), type: 'text', name: `${product.name} · giá`, x: 120, y: 980, width: 840, height: 60, zIndex: base + 2, visible: true, locked: false, content: `${price.toLocaleString('vi-VN')} ₫${oldPrice > price ? `  ${oldPrice.toLocaleString('vi-VN')} ₫` : ''}`, styles: { fontFamily: 'Inter', fontSize: 32, fontWeight: '700', color: '#A56F1B', textAlign: 'center' } };
-    patch((value) => ({ ...value, layers: [...value.layers, imageLayer, nameLayer, priceLayer] })); setSelectedId(imageLayer.id);
+    patch((value) => ({ ...value, layers: [...value.layers, ...[imageLayer, nameLayer, priceLayer].map((layer) => ({ ...layer, rotation: 0, opacity: 1 }))] })); selectLayers(imageLayer.id);
   };
   const remove = () => { const removable = selectedLayers.filter((layer) => !isEffectivelyLocked(layer)).flatMap((layer) => layer.type === 'group' ? [layer.id, ...groupMembers(layer)] : [layer.id]); if (!removable.length) return; patch((value) => ({ ...value, layers: value.layers.filter((layer) => !removable.includes(layer.id)) })); setSelectedId(null); setSelectedIds([]); };
   const duplicate = () => {
@@ -390,7 +391,30 @@ export const CreativeStudioEditor: React.FC<Props> = ({ design, onChange, onSave
   };
   const exportImage = async (format: 'png' | 'jpeg' | 'webp') => {
     setExportError(''); const svg = svgRef.current; if (!svg) return;
-    try { await document.fonts?.ready; const copy = svg.cloneNode(true) as SVGSVGElement; copy.querySelectorAll('[data-selection="true"], [data-transform-handles="true"], [data-multi-selection="true"]').forEach((node) => node.remove()); const source = new XMLSerializer().serializeToString(copy); const blob = new Blob([source], { type: 'image/svg+xml' }); const url = URL.createObjectURL(blob); const image = new Image(); image.onload = () => { const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height; const context = canvas.getContext('2d'); if (!context) return; context.drawImage(image, 0, 0, width, height); URL.revokeObjectURL(url); const a = document.createElement('a'); a.href = canvas.toDataURL(`image/${format}`, 0.92); a.download = `${design.name || 'atelier-design'}.${format === 'jpeg' ? 'jpg' : format}`; a.click(); }; image.onerror = () => { URL.revokeObjectURL(url); setExportError('Không thể xuất vì một ảnh ngoài miền không cho phép CORS. Hãy thay asset đó bằng ảnh đã tải lên hệ thống.'); }; image.src = url; } catch { setExportError('Xuất ảnh thất bại. Vui lòng kiểm tra asset và thử lại.'); }
+    try {
+      await document.fonts?.ready;
+      const copy = svg.cloneNode(true) as SVGSVGElement;
+      copy.querySelectorAll('[data-selection="true"], [data-transform-handles="true"], [data-multi-selection="true"]').forEach((node) => node.remove());
+      await Promise.all(Array.from(copy.querySelectorAll('image')).map(async (node) => {
+        const href = node.getAttribute('href');
+        if (!href || /^data:image\/(png|jpeg|webp|gif);base64,/i.test(href)) return;
+        const response = await fetch(href, { mode: 'cors', credentials: 'omit', redirect: 'error', signal: AbortSignal.timeout(15000) });
+        if (!response.ok) throw new Error('Image unavailable');
+        if (Number(response.headers.get('content-length') || 0) > 10 * 1024 * 1024) throw new Error('Image too large');
+        const contentType = (response.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
+        if (!/^image\/(png|jpeg|webp|gif)$/.test(contentType) || !response.body) throw new Error('Unsupported image type');
+        const reader = response.body.getReader(); const chunks: Uint8Array[] = []; let total = 0;
+        try { while (true) { const { value, done } = await reader.read(); if (done) break; total += value.byteLength; if (total > 10 * 1024 * 1024) { await reader.cancel(); throw new Error('Image too large'); } chunks.push(value); } } finally { reader.releaseLock(); }
+        const imageBlob = new Blob(chunks as BlobPart[], { type: contentType });
+        const header = new Uint8Array(await imageBlob.slice(0, 12).arrayBuffer());
+        const mime = imageBlob.type.toLowerCase();
+        const signatureValid = mime === 'image/png' ? [137, 80, 78, 71, 13, 10, 26, 10].every((value, index) => header[index] === value) : mime === 'image/jpeg' ? header[0] === 255 && header[1] === 216 && header[2] === 255 : mime === 'image/gif' ? String.fromCharCode(...header.slice(0, 6)) === 'GIF87a' || String.fromCharCode(...header.slice(0, 6)) === 'GIF89a' : String.fromCharCode(...header.slice(0, 4)) === 'RIFF' && String.fromCharCode(...header.slice(8, 12)) === 'WEBP';
+        if (!signatureValid) throw new Error('Image signature mismatch');
+        const embedded = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => typeof reader.result === 'string' ? resolve(reader.result) : reject(new Error('Image read failed')); reader.onerror = () => reject(reader.error); reader.readAsDataURL(imageBlob); });
+        node.setAttribute('href', embedded);
+      }));
+      const source = new XMLSerializer().serializeToString(copy); const blob = new Blob([source], { type: 'image/svg+xml' }); const url = URL.createObjectURL(blob); const image = new Image(); image.onload = () => { try { const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height; const context = canvas.getContext('2d'); if (!context) throw new Error('Canvas unavailable'); context.drawImage(image, 0, 0, width, height); const a = document.createElement('a'); a.href = canvas.toDataURL(`image/${format}`, 0.92); a.download = `${design.name || 'atelier-design'}.${format === 'jpeg' ? 'jpg' : format}`; a.click(); } catch { setExportError('Xuất ảnh thất bại. Vui lòng kiểm tra asset và thử lại.'); } finally { URL.revokeObjectURL(url); } }; image.onerror = () => { URL.revokeObjectURL(url); setExportError('Không thể xuất vì một ảnh ngoài miền không cho phép CORS. Hãy thay asset đó bằng ảnh đã tải lên hệ thống.'); }; image.src = url;
+    } catch { setExportError('Không thể xuất vì một ảnh không khả dụng hoặc không cho phép CORS. Hãy kiểm tra asset và thử lại.'); }
   };
   const download = (blob: Blob, extension: string) => {
     const url = URL.createObjectURL(blob); const anchor = document.createElement('a');
@@ -409,10 +433,13 @@ export const CreativeStudioEditor: React.FC<Props> = ({ design, onChange, onSave
     const envelope = raw as Record<string, unknown>;
     if (envelope.schemaVersion !== undefined && envelope.schemaVersion !== 2) throw new Error('Chỉ hỗ trợ schemaVersion 2.');
     const candidate = (envelope.project && typeof envelope.project === 'object' ? envelope.project : envelope) as Record<string, unknown>;
+    if (candidate.schemaVersion !== undefined && candidate.schemaVersion !== 2) throw new Error('Chỉ hỗ trợ schemaVersion 2.');
     const nextWidth = candidate.width ?? (candidate.canvas as Record<string, unknown> | undefined)?.width;
     const nextHeight = candidate.height ?? (candidate.canvas as Record<string, unknown> | undefined)?.height;
     if (typeof candidate.name !== 'string' || !candidate.name.trim() || typeof nextWidth !== 'number' || !Number.isFinite(nextWidth) || nextWidth < 32 || nextWidth > 10000 || typeof nextHeight !== 'number' || !Number.isFinite(nextHeight) || nextHeight < 32 || nextHeight > 10000) throw new Error('Canvas hoặc tên thiết kế không hợp lệ.');
     if (!candidate.background || typeof candidate.background !== 'object' || Array.isArray(candidate.background) || !['color', 'gradient', 'image', 'texture'].includes((candidate.background as Record<string, unknown>).type as string)) throw new Error('Background không hợp lệ.');
+    const importedBackground = candidate.background as Record<string, unknown>;
+    if (typeof importedBackground.value !== 'string' || (importedBackground.type === 'image' && importedBackground.value && !/^(https?:\/\/|data:image\/(png|jpeg|webp|gif);base64,)/i.test(importedBackground.value))) throw new Error('Nguồn ảnh nền không an toàn.');
     if (!Array.isArray(candidate.layers) || candidate.layers.length > 200) throw new Error('JSON phải chứa tối đa 200 layer.');
     const allowedTypes = new Set(['text', 'image', 'background', 'shape', 'icon', 'logo', 'badge', 'button', 'group', 'product', 'gradient', 'qr']);
     const ids = new Set<string>();
@@ -423,8 +450,15 @@ export const CreativeStudioEditor: React.FC<Props> = ({ design, onChange, onSave
       ids.add(layer.id);
       for (const key of ['x', 'y', 'width', 'height', 'rotation', 'opacity', 'zIndex']) if (typeof layer[key] !== 'number' || !Number.isFinite(layer[key] as number)) throw new Error(`Geometry layer ${layer.id} không hợp lệ.`);
       if ((layer.width as number) < 1 || (layer.height as number) < 1 || (layer.opacity as number) < 0 || (layer.opacity as number) > 1 || typeof layer.name !== 'string' || typeof layer.content !== 'string' || typeof layer.visible !== 'boolean' || typeof layer.locked !== 'boolean') throw new Error(`Thuộc tính layer ${layer.id} không hợp lệ.`);
-      if (['image', 'product', 'logo'].includes(layer.type as string) && layer.content && !/^(https?:\/\/|data:image\/(png|jpeg|webp|gif);base64,)/i.test(layer.content as string)) throw new Error(`Nguồn asset của ${layer.id} không an toàn.`);
+      if (['text', 'badge', 'button', 'logo'].includes(layer.type as string) && /<\s*\/?\s*(?:script|iframe|object|embed|svg|math|img|style|link|meta)\b/i.test(layer.content as string)) throw new Error(`Nội dung layer ${layer.id} không an toàn.`);
+      if (['image', 'product', 'logo', 'background'].includes(layer.type as string) && layer.content && !/^(https?:\/\/|data:image\/(png|jpeg|webp|gif);base64,)/i.test(layer.content as string)) throw new Error(`Nguồn asset của ${layer.id} không an toàn.`);
       if (layer.styles !== undefined && (!layer.styles || typeof layer.styles !== 'object' || Array.isArray(layer.styles) || Object.keys(layer.styles as Record<string, unknown>).some((key) => ['__proto__', 'constructor', 'prototype'].includes(key)))) throw new Error(`Styles layer ${layer.id} không an toàn.`);
+      if (layer.styles) {
+        const styles = layer.styles as Record<string, unknown>;
+        if (Object.values(styles).some((value) => (value !== null && typeof value === 'object') || (typeof value === 'string' && /(?:url\s*\(|expression\s*\(|javascript\s*:|[<>])/i.test(value)))) throw new Error(`Styles layer ${layer.id} không an toàn.`);
+        for (const [key, min, max] of [['cropX', 0, 100], ['cropY', 0, 100], ['cropZoom', 1, 3]] as const) if (styles[key] !== undefined && (typeof styles[key] !== 'number' || !Number.isFinite(styles[key]) || (styles[key] as number) < min || (styles[key] as number) > max)) throw new Error(`Crop layer ${layer.id} không hợp lệ.`);
+        if (styles.fontSize !== undefined && (typeof styles.fontSize !== 'number' || !Number.isFinite(styles.fontSize) || styles.fontSize < 1 || styles.fontSize > 10000)) throw new Error(`Cỡ chữ layer ${layer.id} không hợp lệ.`);
+      }
     });
     candidate.layers.filter((item) => (item as Record<string, unknown>).type === 'group').forEach((item) => {
       const layer = item as Record<string, unknown>; let members: unknown;
@@ -436,11 +470,18 @@ export const CreativeStudioEditor: React.FC<Props> = ({ design, onChange, onSave
   const importJson = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]; event.target.value = '';
     if (!file) return;
+    const revision = ++importRevisionRef.current;
     setImportError(''); setPendingImport(null);
     if (file.size > 1024 * 1024) { setImportError('JSON import tối đa 1 MB.'); return; }
     let parsed: unknown;
-    try { parsed = JSON.parse(await file.text()); } catch { setImportError('Không thể đọc JSON import.'); return; }
-    try { setPendingImport(prepareImport(parsed)); } catch (error) { setImportError(error instanceof Error ? error.message : 'JSON import không hợp lệ.'); }
+    try { parsed = JSON.parse(await file.text()); } catch { if (revision === importRevisionRef.current) setImportError('Không thể đọc JSON import.'); return; }
+    if (revision !== importRevisionRef.current) return;
+    try {
+      const candidate = prepareImport(parsed);
+      const { name, preset, width, height, background, layers } = candidate;
+      await adminAiApi.validateDesign({ name, preset, width, height, background, layers });
+      if (revision === importRevisionRef.current) setPendingImport(candidate);
+    } catch (error) { if (revision === importRevisionRef.current) setImportError(error instanceof Error ? error.message : 'JSON import không hợp lệ.'); }
   };
 
   return (
@@ -731,6 +772,13 @@ export const CreativeStudioEditor: React.FC<Props> = ({ design, onChange, onSave
                 </div>
                 {TEXT_TYPES.has(selected.type) && (
                   <>
+                    <label className="studio-field">
+                      Font chữ
+                      <select aria-label="Font chữ" value={String(selected.styles?.fontFamily || 'Inter')} onChange={(event) => patchStyles(selected.id, { fontFamily: event.target.value })} className="studio-input">
+                        {!['Arial', 'Georgia', 'Times New Roman', 'Verdana'].includes(String(selected.styles?.fontFamily || 'Inter')) && <option value={String(selected.styles?.fontFamily || 'Inter')}>{String(selected.styles?.fontFamily || 'Inter')} (font hiện tại)</option>}
+                        {['Arial', 'Georgia', 'Times New Roman', 'Verdana'].map((font) => <option key={font} value={font}>{font}</option>)}
+                      </select>
+                    </label>
                     <label className="studio-field">
                       Màu chữ
                       <input

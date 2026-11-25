@@ -298,6 +298,7 @@ const productModelMock = {
   findById: jest.fn((id) => {
     const found = mockProductsStore.find((p) => String(p._id) === String(id)) || null;
     return {
+      select: () => ({ lean: () => Promise.resolve(found) }),
       lean: () => Promise.resolve(found),
       then: (res, rej) => Promise.resolve(found).then(res, rej),
     };
@@ -308,6 +309,22 @@ const productVariantModelMock = {
   find: jest.fn((filter = {}) =>
     createQueryChain(mockVariantsStore.filter((v) => matchesMongoFilter(v, filter)))
   ),
+  findOne: jest.fn((filter = {}) => {
+    const found = mockVariantsStore.find((v) => matchesMongoFilter(v, filter)) || null;
+    return {
+      select: () => ({ lean: () => Promise.resolve(found) }),
+      lean: () => Promise.resolve(found),
+      then: (res, rej) => Promise.resolve(found).then(res, rej),
+    };
+  }),
+  findById: jest.fn((id) => {
+    const found = mockVariantsStore.find((v) => String(v._id) === String(id)) || null;
+    return {
+      select: () => ({ lean: () => Promise.resolve(found) }),
+      lean: () => Promise.resolve(found),
+      then: (res, rej) => Promise.resolve(found).then(res, rej),
+    };
+  }),
 };
 
 jest.unstable_mockModule("../../products/product.model.js", () => ({

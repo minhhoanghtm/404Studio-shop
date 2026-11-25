@@ -1,4 +1,4 @@
-import "dotenv/config";
+import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { connectDB } from "../configs/db.js";
@@ -6,6 +6,8 @@ import User from "../modules/users/user.model.js";
 import Product from "../modules/products/product.model.js";
 import Campaign from "../modules/campaigns/campaign.model.js";
 import { whitelistAccess } from "../modules/auth/auth.redis.service.js";
+
+await verifyQaSuiteTarget();
 
 const BACKEND_URL = "http://localhost:5000";
 

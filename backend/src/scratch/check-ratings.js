@@ -1,3 +1,4 @@
+import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import path from 'path';
@@ -10,6 +11,8 @@ dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 import Product from '../modules/products/product.model.js';
 import Review from '../modules/reviews/review.model.js';
+
+await verifyQaSuiteTarget();
 
 async function checkRatings() {
   const uri = process.env.MONGO_CONNECTIONSTRING;

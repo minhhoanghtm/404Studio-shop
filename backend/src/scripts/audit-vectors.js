@@ -1,6 +1,8 @@
-import "dotenv/config";
+import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
 import { connectDB } from "../configs/db.js";
 import { VectorEmbedding } from "../modules/ai/models/vectorEmbedding.model.js";
+
+await verifyQaSuiteTarget({ liveProviders: true });
 
 async function run() {
   await connectDB();

@@ -1,3 +1,4 @@
+import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
 import http from "http";
 import express from "express";
 import { chromium } from "playwright";
@@ -27,6 +28,8 @@ import UserInterestProfile from "../modules/recommendations/userInterestProfile.
 import UserEvent from "../modules/tracking/userEvent.model.js";
 import Product from "../modules/products/product.model.js";
 import User from "../modules/users/user.model.js";
+
+await verifyQaSuiteTarget({ liveProviders: true });
 
 const TEST_PORT = 5098;
 const TEST_ORIGIN = `http://127.0.0.1:${TEST_PORT}`;

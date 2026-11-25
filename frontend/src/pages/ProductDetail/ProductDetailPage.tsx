@@ -36,7 +36,7 @@ export const ProductDetailPage: React.FC = () => {
   const [quantity, setQuantity] = useState(1);
 
   const { addItem } = useCartStore();
-  const { isInWishlist, toggleWishlist } = useWishlistStore();
+  const { isInWishlist, toggleWishlist, isSyncing: wishlistPending } = useWishlistStore();
   const { addToast } = useToastStore();
   const { trackProductView, trackAddToCart: trackAddCartEvent } = useBehaviorTracking();
 
@@ -117,15 +117,13 @@ export const ProductDetailPage: React.FC = () => {
       ? activeVariant.images
       : product?.galleryImages || [];
 
-  const handleAddToCart = () => {
-    if (!product || !activeVariant) return;
+  const handleAddToCart = async () => {
+    if (!product || !activeVariant) return false;
     const sizeToUse = selectedSize || activeVariant.sizes.find((s) => s.inStock)?.size || activeVariant.sizes[0]?.size || 'M';
-
-    trackAddCartEvent(product.id, quantity);
 
     const matchedSizeObj = activeVariant.sizes.find((s) => s.size === sizeToUse);
 
-    addItem({
+    const added = await addItem({
       productId: product.id,
       variantId: matchedSizeObj?.variantId || activeVariant.id,
       productSlug: product.slug,
@@ -138,11 +136,14 @@ export const ProductDetailPage: React.FC = () => {
       image: currentGalleryImages[0] || product.featuredImage,
     });
 
+    if (!added) return false;
+    trackAddCartEvent(product.id, quantity);
     addToast({
       type: 'success',
       title: 'Đã thêm vào giỏ hàng',
       message: `${quantity}x ${product.name} (${activeVariant.colorName} / Size ${sizeToUse}) đã được lưu vào túi mua sắm.`,
     });
+    return true;
   };
 
   const handleShare = () => {
@@ -374,6 +375,7 @@ export const ProductDetailPage: React.FC = () => {
               isAvailable={isAvailable}
               onAddToCart={handleAddToCart}
               isWishlisted={isWishlisted}
+              wishlistPending={wishlistPending}
               onToggleWishlist={() => toggleWishlist(product)}
               onShare={handleShare}
             />

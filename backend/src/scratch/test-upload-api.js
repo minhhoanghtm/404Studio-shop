@@ -1,3 +1,6 @@
+import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
+await verifyQaSuiteTarget();
+
 async function test() {
   const fileContent = Buffer.from('dummy image content');
   const blob = new Blob([fileContent], { type: 'image/png' });

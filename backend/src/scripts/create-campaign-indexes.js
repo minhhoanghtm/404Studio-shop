@@ -1,6 +1,8 @@
+import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
-dotenv.config();
+
+await verifyQaSuiteTarget();
 
 /**
  * Script tạo Index cho module Chiến dịch giảm giá (Campaigns)

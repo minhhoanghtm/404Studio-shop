@@ -10,7 +10,7 @@ WORKDIR /app
 
 # Install dependencies first for optimal Docker layer caching
 COPY package*.json ./
-RUN npm install --no-audit --no-fund
+RUN npm ci --no-audit --no-fund
 
 # Copy source code and build production bundle
 COPY . .

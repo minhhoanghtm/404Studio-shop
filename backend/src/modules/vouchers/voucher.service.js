@@ -642,15 +642,15 @@ class VoucherService {
   /**
    * Core/Checkout: Validate voucher for application
    */
-  async validateVoucher(userId, code, subtotal, items = [], shippingFee = 0) {
-    await this._seedUserWalletIfEmpty(userId);
+  async validateVoucher(userId, code, subtotal, items = [], shippingFee = 0, options = {}) {
+    const { session = null } = options;
     const uppercaseCode = code.trim().toUpperCase();
 
     // 1. Find the voucher
     const voucher = await voucherRepository.findOne({
       code: uppercaseCode,
       isDeleted: false,
-    });
+    }, { session });
     if (!voucher) {
       throw new AppError("Mã giảm giá không tồn tại", 404);
     }
@@ -662,17 +662,17 @@ class VoucherService {
 
     if (voucher.targetAudience && voucher.targetAudience !== "all") {
       if (voucher.targetAudience === "new") {
-        const orderCount = await Order.countDocuments({ user_id: userId, status: { $ne: "cancelled" } });
+        const orderCount = await Order.countDocuments({ user_id: userId, status: { $ne: "cancelled" } }).session(session);
         if (orderCount > 0) {
           throw new AppError("Mã giảm giá này chỉ dành riêng cho khách hàng mới (chưa có đơn hàng)", 400);
         }
       } else if (voucher.targetAudience === "member") {
-        const orderCount = await Order.countDocuments({ user_id: userId, status: { $ne: "cancelled" } });
+        const orderCount = await Order.countDocuments({ user_id: userId, status: { $ne: "cancelled" } }).session(session);
         if (orderCount === 0) {
           throw new AppError("Mã giảm giá này chỉ dành cho khách hàng đã từng đặt hàng", 400);
         }
       } else if (voucher.targetAudience === "vip") {
-        const orders = await Order.find({ user_id: userId, status: "delivered" }).select("total_price").lean();
+        const orders = await Order.find({ user_id: userId, status: "delivered" }).select("total_price").session(session).lean();
         const totalSpend = orders.reduce((sum, o) => sum + Number(o.total_price || 0), 0);
         if (totalSpend < 5000000) {
           throw new AppError("Mã giảm giá này chỉ áp dụng cho khách hàng VIP (tổng chi tiêu từ 5.000.000đ)", 400);
@@ -692,7 +692,7 @@ class VoucherService {
     const userVoucher = await voucherRepository.findOneUserVoucher({
       userId,
       voucherId: voucher._id || voucher.id,
-    });
+    }, { session });
 
     if (!userVoucher) {
       throw new AppError(
@@ -754,7 +754,7 @@ class VoucherService {
           .filter(Boolean);
         const dbProducts = await Product.find({
           _id: { $in: productIds },
-        }).lean();
+        }).session(session).lean();
         const productMap = new Map(
           dbProducts.map((p) => [p._id.toString(), p]),
         );
@@ -1088,11 +1088,12 @@ class VoucherService {
     discountAmount,
     options = {},
   ) {
+    const { placeholderOrderId: providedPlaceholderId, ...repoOptions } = options;
     const uppercaseCode = voucherCode.toUpperCase();
     const voucher = await voucherRepository.findOne({
       code: uppercaseCode,
       isDeleted: false,
-    });
+    }, repoOptions);
     if (!voucher) {
       throw new AppError("Voucher không tồn tại", 404);
     }
@@ -1105,7 +1106,7 @@ class VoucherService {
         $expr: { $lt: ["$usedQuantity", "$totalQuantity"] },
       },
       { $inc: { usedQuantity: 1 } },
-      { ...options, new: true },
+      { ...repoOptions, new: true },
     );
 
     if (!voucherUpdate) {
@@ -1120,7 +1121,7 @@ class VoucherService {
       await voucherRepository.findOneAndUpdateUserVoucher(
         { userId, voucherId: voucher._id, status: "CLAIMED" },
         { $set: { status: "USED", usedAt: new Date() } },
-        { ...options, new: true },
+        { ...repoOptions, new: true },
       );
 
     if (!userVoucherUpdate) {
@@ -1131,7 +1132,7 @@ class VoucherService {
     }
 
     // Create a temporary placeholder orderId
-    const placeholderOrderId = new mongoose.Types.ObjectId();
+    const placeholderOrderId = providedPlaceholderId || new mongoose.Types.ObjectId();
 
     // 3. Create VoucherUsage record with placeholder orderId
     await voucherRepository.createUsage(
@@ -1142,7 +1143,7 @@ class VoucherService {
         discountAmount,
         usedAt: new Date(),
       },
-      options,
+      repoOptions,
     );
 
     // 4. Log to history
@@ -1157,7 +1158,7 @@ class VoucherService {
           discountAmount,
         },
       },
-      options,
+      repoOptions,
     );
 
     return voucherUpdate;
@@ -1167,10 +1168,14 @@ class VoucherService {
    * Link the temporary placeholder orderId in VoucherUsage to the actual order ID
    */
   async linkVoucherUsageToOrder(userId, voucherId, orderId, options = {}) {
+    const { placeholderOrderId, ...repoOptions } = options;
+    const filter = placeholderOrderId
+      ? { userId, voucherId, orderId: placeholderOrderId }
+      : { userId, voucherId, orderId: { $ne: orderId } };
     const updatedUsage = await voucherRepository.findOneAndUpdateUsage(
-      { userId, voucherId, orderId: { $ne: orderId } },
+      filter,
       { $set: { orderId } },
-      options,
+      repoOptions,
     );
     return updatedUsage;
   }

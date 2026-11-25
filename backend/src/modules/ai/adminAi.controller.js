@@ -2,19 +2,25 @@ import adminAiAgentService from "./services/adminAiAgent.service.js";
 import AdminAiConversation from "./models/adminAiConversation.model.js";
 import AdminDesignProject from "./models/adminDesignProject.model.js";
 import { validateDesignPayload } from "./designPayload.validator.js";
+import { validateDesignAssets } from "./designAssetPolicy.js";
+import campaignService from "../campaigns/campaign.service.js";
 import AdminAiAuditLog from "./models/adminAiAuditLog.model.js";
 import AdminAiSettings from "./models/adminAiSettings.model.js";
 import providerRegistry from "./providers/ProviderRegistry.js";
 import aiRouter from "./services/aiRouter.service.js";
 import usageCostTracker from "./services/usageCostTracker.service.js";
 import adminImageGenerationService from "./services/adminImageGeneration.service.js";
-import { applyDesignOperations, designSummary, parseOperations } from "./services/designOperations.service.js";
+import { applyDesignOperationsAtomically, designSummary, parseOperations } from "./services/designOperations.service.js";
 import * as tools from "./services/adminAiTools.service.js";
 import ExcelJS from "exceljs";
 import crypto from "crypto";
+import path from "path";
+import { readFile, rename, unlink } from "node:fs/promises";
+import sharp from "sharp";
 
 const ENCRYPTION_SECRET = process.env.ACTION_SECRET || "atelier_verite_ai_default_secret_32_chars";
 const CIPHER_KEY = crypto.createHash("sha256").update(ENCRYPTION_SECRET).digest();
+const localAssetOrigin = (req) => { const address = req.socket.localAddress?.replace(/^::ffff:/, ''); return address ? `http://${address.includes(':') ? `[${address}]` : address}:${req.socket.localPort}` : undefined; };
 
 function encryptSecret(plainText) {
   if (!plainText || typeof plainText !== "string" || !plainText.trim()) return null;
@@ -92,6 +98,13 @@ export const adminAiConfirmActionController = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+};
+
+export const adminAiCancelActionController = async (req, res, next) => {
+  try {
+    const cancelled = await adminAiAgentService.cancelConfirmedAction(req.body?.actionId, { userId: req.user.userId, role: req.user.role });
+    return cancelled ? res.status(200).json({ success: true, data: { status: "cancelled" } }) : res.status(404).json({ success: false, message: "Không tìm thấy xác nhận đang chờ." });
+  } catch (error) { next(error); }
 };
 
 export const getAdminConversationsController = async (req, res, next) => {
@@ -192,7 +205,10 @@ export const getAdminDesignsController = async (req, res, next) => {
 export const saveAdminDesignController = async (req, res, next) => {
   try {
     const adminId = req.user.userId;
+    if (Buffer.byteLength(JSON.stringify(req.body), 'utf8') > 1024 * 1024) return res.status(413).json({ success: false, message: 'Thiết kế vượt quá giới hạn 1 MB.' });
+    if (['name', 'preset', 'width', 'height', 'background', 'layers'].some((field) => req.body?.[field] === undefined)) return res.status(400).json({ success: false, message: 'Thiết kế thiếu trường bắt buộc.' });
     validateDesignPayload(req.body);
+    await validateDesignAssets(req.body, { adminId, localOrigin: localAssetOrigin(req) });
     const { _id, name, preset, width, height, background, layers } = req.body;
 
     let design;
@@ -234,6 +250,16 @@ export const saveAdminDesignController = async (req, res, next) => {
   }
 };
 
+export const validateAdminDesignController = async (req, res, next) => {
+  try {
+    if (Buffer.byteLength(JSON.stringify(req.body), 'utf8') > 1024 * 1024) return res.status(413).json({ success: false, message: 'Thiết kế vượt quá giới hạn 1 MB.' });
+    if (['name', 'preset', 'width', 'height', 'background', 'layers'].some((field) => req.body?.[field] === undefined)) return res.status(400).json({ success: false, message: 'Thiết kế thiếu trường bắt buộc.' });
+    validateDesignPayload(req.body);
+    await validateDesignAssets(req.body, { adminId: req.user.userId, localOrigin: localAssetOrigin(req) });
+    return res.status(200).json({ success: true, data: { valid: true } });
+  } catch (error) { next(error); }
+};
+
 export const applyAdminDesignOperationsController = async (req, res, next) => {
   try {
     const { designId, request, selectedLayerId, provider = "auto" } = req.body;
@@ -251,8 +277,11 @@ export const applyAdminDesignOperationsController = async (req, res, next) => {
     ].join("\n");
     const result = await aiRouter.executeChatWithFallback({ messages: [{ role: "system", content: prompt }, { role: "user", content: request }], requestedProvider: provider, authContext: { userId: req.user.userId } });
     const operations = parseOperations(result.message);
-    const { document, applied } = applyDesignOperations(design, operations);
-    if (!applied.length) return res.status(422).json({ success: false, message: "Không có thay đổi an toàn nào để áp dụng." });
+    const resultDocument = applyDesignOperationsAtomically(design, operations);
+    if (!resultDocument) return res.status(422).json({ success: false, message: "Không thể áp dụng toàn bộ thay đổi an toàn; thiết kế chưa bị sửa." });
+    const { document, applied } = resultDocument;
+    validateDesignPayload(document);
+    await validateDesignAssets(document, { adminId: req.user.userId, localOrigin: localAssetOrigin(req) });
     design.versionHistory.push({ version: (design.versionHistory?.length || 0) + 1, name: design.name, canvas: { width: design.width, height: design.height }, background: design.background, layers: design.layers });
     design.background = document.background;
     design.layers = document.layers;
@@ -269,6 +298,22 @@ export const getBrandKitController = async (req, res) => {
     success: true,
     data: tools.getBrandKit(),
   });
+};
+
+export const getAdminBusinessAnalyticsController = async (req, res, next) => {
+  try {
+    const { period = "this_month", startDate, endDate } = req.query;
+    const supported = ["today", "yesterday", "this_week", "last_week", "this_month", "last_month", "this_quarter", "this_year", "custom"];
+    if (typeof period !== "string" || !supported.includes(period) || (period === "custom" && (typeof startDate !== "string" || typeof endDate !== "string")) || (period !== "custom" && (startDate !== undefined || endDate !== undefined))) {
+      return res.status(400).json({ success: false, message: "Kỳ thống kê không hợp lệ." });
+    }
+    const range = tools.parsePeriodDates(period, startDate, endDate);
+    if (range.endDate.getTime() - range.startDate.getTime() > 366 * 86400000) return res.status(400).json({ success: false, message: "Khoảng thống kê tối đa 366 ngày." });
+    const bounds = { period, startDate: range.startDate.toISOString(), endDate: range.endDate.toISOString() };
+    const [summary, trend, inventory, lowStock, customers, topProducts, slowProducts, campaignPerformance] = await Promise.all([tools.getRevenueSummary(bounds), tools.getRevenueTrend(bounds), tools.getInventorySummary(), tools.getLowStockProducts(), tools.getCustomerStatistics(bounds), tools.getTopSellingProducts(bounds), tools.getSlowMovingProducts({ daysThreshold: 30, limit: 10 }), campaignService.getCampaignPerformance({ startDate: range.startDate, endDate: range.endDate })]);
+    summary.period = range.periodLabel; trend.period = range.periodLabel; customers.period = range.periodLabel;
+    return res.status(200).json({ success: true, data: { summary, trend, inventory, lowStock, customers, topProducts, slowProducts, campaignPerformance } });
+  } catch (error) { next(error); }
 };
 
 export const exportAdminReportController = async (req, res, next) => {
@@ -291,11 +336,11 @@ export const exportAdminReportController = async (req, res, next) => {
     ];
 
     sheet.addRow({ metric: "Kỳ báo cáo", value: summary.period, note: "Khoảng thời gian thống kê" });
-    sheet.addRow({ metric: "Tổng Doanh Thu (VND)", value: summary.totalRevenue, note: "Doanh thu bán hàng" });
+    sheet.addRow({ metric: "Tổng Doanh Thu (VND)", value: summary.totalRevenue, note: "Doanh thu ghi nhận từ đơn đủ điều kiện" });
     sheet.addRow({ metric: "Số lượng đơn hàng", value: summary.totalOrders, note: "Tổng đơn hàng phát sinh" });
     sheet.addRow({ metric: "Giá trị đơn trung bình (AOV)", value: summary.averageOrderValue, note: "VND / đơn" });
     sheet.addRow({ metric: "Tổng giá trị giảm giá", value: summary.totalDiscounts, note: "Khuyến mãi / Voucher" });
-    sheet.addRow({ metric: "Doanh thu thuần", value: summary.netRevenue, note: "Doanh thu trừ giảm giá" });
+    sheet.addRow({ metric: "Doanh thu thuần", value: summary.netRevenue, note: "Giá trị đơn đã trừ ưu đãi; không trừ lại" });
 
     sheet.addRow({});
     sheet.addRow({ metric: "TOP SẢN PHẨM BÁN CHẠY", value: "", note: "" });
@@ -486,6 +531,18 @@ export const uploadAiReferenceController = async (req, res, next) => {
     if (!req.file) {
       return res.status(400).json({ success: false, message: "Chưa chọn file hình ảnh tải lên" });
     }
+    const expectedFormat = { "image/jpeg": "jpeg", "image/png": "png", "image/webp": "webp", "image/gif": "gif" }[req.file.mimetype];
+    try {
+      const image = sharp(await readFile(req.file.path), { limitInputPixels: 40000000, failOn: "error" });
+      const metadata = await image.metadata();
+      if (!expectedFormat || metadata.format !== expectedFormat || !metadata.width || !metadata.height) throw new Error("Invalid image");
+      await image.toBuffer();
+    } catch {
+      await unlink(req.file.path).catch(() => {});
+      return res.status(400).json({ success: false, message: "Nội dung ảnh không hợp lệ hoặc vượt giới hạn kích thước." });
+    }
+    try { await rename(req.file.path, path.resolve(process.cwd(), "uploads", "ai_references", req.file.filename)); }
+    catch (error) { await unlink(req.file.path).catch(() => {}); throw error; }
     const configuredPublicBaseUrl = process.env.PUBLIC_BASE_URL?.replace(/\/$/, "");
     const requestBaseUrl = `${req.protocol}://${req.get("host")}`;
     const fileUrl = `${configuredPublicBaseUrl || requestBaseUrl}/uploads/ai_references/${req.file.filename}`;

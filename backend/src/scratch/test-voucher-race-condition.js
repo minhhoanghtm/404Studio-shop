@@ -1,3 +1,4 @@
+import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import Voucher from "../modules/vouchers/voucher.model.js";
@@ -6,7 +7,8 @@ import voucherService from "../modules/vouchers/voucher.service.js";
 import { connectDB } from "../configs/db.js";
 import getRedisConnection from "../configs/redis.js";
 
-dotenv.config();
+await verifyQaSuiteTarget();
+
 
 const runTest = async () => {
   console.log("🧪 BẮT ĐẦU TEST CHỐNG RACE CONDITION VOUCHER...");

@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import inventoryReservationService from "./inventoryReservation.service.js";
 import { successResponse, errorResponse } from "../../common/responses/index.js";
 import { isFeatureEnabled } from "../../common/utils/featureFlags.js";
+import User from "../users/user.model.js";
 
 /**
  * Create a new 5-minute atomic checkout reservation.
@@ -9,7 +10,7 @@ import { isFeatureEnabled } from "../../common/utils/featureFlags.js";
  */
 export const createCheckoutReservation = async (req, res, next) => {
   try {
-    let userId = req.user?.userId || req.user?._id || req.body?.userId;
+    let userId = req.user?.userId || req.user?._id;
 
     if (!userId) {
       const guestAllowed = await isFeatureEnabled("allowGuestCheckout");
@@ -34,18 +35,10 @@ export const createCheckoutReservation = async (req, res, next) => {
 
     return successResponse(res, reservation, "Khởi tạo phiên giữ hàng thành công (5 phút)", 201);
   } catch (error) {
-    if (error.statusCode === 409 || error.code === "INSUFFICIENT_STOCK") {
-      return errorResponse(
-        res,
-        error.message || "Sản phẩm không đủ số lượng khả dụng trong kho",
-        409,
-        "INSUFFICIENT_STOCK",
-        {
-          sku: error.sku,
-          available: error.available,
-        }
-      );
+    if (error.code === "INSUFFICIENT_STOCK") {
+      return res.status(409).json({ success: false, message: error.message || "Sản phẩm không đủ số lượng khả dụng trong kho", code: "INSUFFICIENT_STOCK", details: { sku: error.sku, available: error.available } });
     }
+    if (error.statusCode === 409) return res.status(409).json({ success: false, message: error.message, code: error.code || "CONFLICT" });
     next(error);
   }
 };
@@ -64,6 +57,7 @@ export const getReservationDetail = async (req, res, next) => {
 
     // Authorization check: User can only access their own reservation
     const currentUserId = req.user?.userId || req.user?._id;
+    if (!currentUserId && mongoose.isValidObjectId(reservation.userId) && await User.exists({ _id: reservation.userId })) return errorResponse(res, "Vui lòng đăng nhập để truy cập phiên giữ hàng", 401);
     if (currentUserId && reservation.userId && String(reservation.userId) !== String(currentUserId)) {
       return errorResponse(res, "Bạn không có quyền truy cập phiên giữ hàng này", 403);
     }
@@ -86,6 +80,7 @@ export const releaseReservation = async (req, res, next) => {
     const reservation = await inventoryReservationService.getReservation(id);
     if (reservation) {
       const currentUserId = req.user?.userId || req.user?._id;
+      if (!currentUserId && mongoose.isValidObjectId(reservation.userId) && await User.exists({ _id: reservation.userId })) return errorResponse(res, "Vui lòng đăng nhập để hủy phiên giữ hàng", 401);
       if (currentUserId && reservation.userId && String(reservation.userId) !== String(currentUserId)) {
         return errorResponse(res, "Bạn không có quyền hủy phiên giữ hàng này", 403);
       }

@@ -1,3 +1,4 @@
+import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import path from 'path';
@@ -12,8 +13,10 @@ import { Order } from '../modules/orders/order.model.js';
 import PaymentTransaction from '../modules/payments/paymentTransaction.model.js';
 import orderFacade from '../modules/orders/order.facade.js';
 
+await verifyQaSuiteTarget();
+
 async function test() {
-  const uri = process.env.MONGO_CONNECTIONSTRING || "mongodb://localhost:27017/REACT-WebFashion";
+  const uri = process.env.MONGO_CONNECTIONSTRING ;
   await mongoose.connect(uri);
   console.log("Connected to MongoDB successfully.");
 

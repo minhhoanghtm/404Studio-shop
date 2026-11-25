@@ -9,76 +9,42 @@ import Voucher from "../../vouchers/voucher.model.js";
 import AdminDesignProject from "../models/adminDesignProject.model.js";
 import AdminAiInsight from "../models/adminAiInsight.model.js";
 import crypto from "crypto";
+import moment from "moment";
 
 // ============================================================================
 // DATE RANGE PARSER
 // ============================================================================
 
 export function parsePeriodDates(period = "this_month", customStart, customEnd) {
-  const now = new Date();
-  let start = new Date();
-  let end = new Date();
-
-  if (customStart && customEnd) {
-    return {
-      startDate: new Date(customStart),
-      endDate: new Date(customEnd),
-      periodLabel: `Từ ${new Date(customStart).toLocaleDateString("vi-VN")} đến ${new Date(customEnd).toLocaleDateString("vi-VN")}`,
+  if (customStart !== undefined || customEnd !== undefined) {
+    const parseBoundary = (value, endOfDay) => {
+      if (typeof value !== "string") return moment.invalid();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        const date = moment(value, "YYYY-MM-DD", true);
+        return date.isValid() ? moment.parseZone(`${value}T${endOfDay ? "23:59:59.999" : "00:00:00.000"}+07:00`, moment.ISO_8601, true) : moment.invalid();
+      }
+      return moment.parseZone(value, moment.ISO_8601, true);
     };
+    const start = parseBoundary(customStart, false);
+    const end = parseBoundary(customEnd, true);
+    if (!start.isValid() || !end.isValid() || start.isAfter(end)) {
+      const error = new Error("Khoảng ngày không hợp lệ."); error.statusCode = 400; error.status = "fail"; error.isOperational = true; throw error;
+    }
+    return { startDate: start.toDate(), endDate: end.toDate(), periodLabel: `Từ ${start.clone().utcOffset(420).format("DD/MM/YYYY")} đến ${end.clone().utcOffset(420).format("DD/MM/YYYY")}` };
   }
-
+  const now = moment().utcOffset(420);
+  let start; let end = now.clone(); let periodLabel;
   switch (period) {
-    case "today":
-      start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
-      end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
-      return { startDate: start, endDate: end, periodLabel: "Hôm nay" };
-
-    case "yesterday":
-      start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0);
-      end = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59);
-      return { startDate: start, endDate: end, periodLabel: "Hôm qua" };
-
-    case "this_week": {
-      const day = now.getDay() || 7; // Monday = 1
-      start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day + 1, 0, 0, 0);
-      end = new Date();
-      return { startDate: start, endDate: end, periodLabel: "Tuần này" };
-    }
-
-    case "last_week": {
-      const day = now.getDay() || 7;
-      start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day - 6, 0, 0, 0);
-      end = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day, 23, 59, 59);
-      return { startDate: start, endDate: end, periodLabel: "Tuần trước" };
-    }
-
-    case "this_month":
-      start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
-      end = new Date();
-      return { startDate: start, endDate: end, periodLabel: "Tháng này" };
-
-    case "last_month":
-      start = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0);
-      end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
-      return { startDate: start, endDate: end, periodLabel: "Tháng trước" };
-
-    case "this_quarter": {
-      const quarterMonth = Math.floor(now.getMonth() / 3) * 3;
-      start = new Date(now.getFullYear(), quarterMonth, 1, 0, 0, 0);
-      end = new Date();
-      return { startDate: start, endDate: end, periodLabel: "Quý này" };
-    }
-
-    case "this_year":
-      start = new Date(now.getFullYear(), 0, 1, 0, 0, 0);
-      end = new Date();
-      return { startDate: start, endDate: end, periodLabel: "Năm nay" };
-
-    default:
-      start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
-      end = new Date();
-      return { startDate: start, endDate: end, periodLabel: "Tháng này" };
+    case "today": start = now.clone().startOf("day"); end = now.clone().endOf("day"); periodLabel = "Hôm nay"; break;
+    case "yesterday": start = now.clone().subtract(1, "day").startOf("day"); end = start.clone().endOf("day"); periodLabel = "Hôm qua"; break;
+    case "this_week": start = now.clone().startOf("isoWeek"); periodLabel = "Tuần này"; break;
+    case "last_week": start = now.clone().subtract(1, "week").startOf("isoWeek"); end = start.clone().endOf("isoWeek"); periodLabel = "Tuần trước"; break;
+    case "last_month": start = now.clone().subtract(1, "month").startOf("month"); end = start.clone().endOf("month"); periodLabel = "Tháng trước"; break;
+    case "this_quarter": start = now.clone().startOf("quarter"); periodLabel = "Quý này"; break;
+    case "this_year": start = now.clone().startOf("year"); periodLabel = "Năm nay"; break;
+    default: start = now.clone().startOf("month"); periodLabel = "Tháng này";
   }
+  return { startDate: start.toDate(), endDate: end.toDate(), periodLabel };
 }
 
 // ============================================================================
@@ -90,28 +56,32 @@ export async function getRevenueSummary({ period = "this_month", startDate, endD
 
   const matchQuery = {
     createdAt: { $gte: start, $lte: end },
-    status: { $ne: "cancelled" },
-    payment_status: { $in: ["paid", "pending", "awaiting_verification"] },
   };
+  // Match the order dashboard's recognized-revenue rule: delivered and paid,
+  // or delivered COD. Keep all orders in the count, including cancellations.
+  const recognized = { $and: [{ $eq: ["$status", "delivered"] }, { $ne: ["$payment_status", "refunded"] }, { $or: [{ $eq: ["$payment_method", "cod"] }, { $eq: ["$payment_status", "paid"] }] }] };
+  const paidActive = { $and: [{ $eq: ["$payment_status", "paid"] }, { $ne: ["$status", "cancelled"] }] };
 
   const [aggResult] = await Order.aggregate([
     { $match: matchQuery },
     {
       $group: {
         _id: null,
-        totalRevenue: { $sum: "$total_price" },
+        totalRevenue: { $sum: { $cond: [recognized, "$total_price", 0] } },
         paidRevenue: {
           $sum: {
-            $cond: [{ $eq: ["$payment_status", "paid"] }, "$total_price", 0],
+            $cond: [paidActive, "$total_price", 0],
           },
         },
         totalOrders: { $sum: 1 },
         paidOrders: {
-          $sum: { $cond: [{ $eq: ["$payment_status", "paid"] }, 1, 0] },
+          $sum: { $cond: [paidActive, 1, 0] },
         },
-        avgOrderValue: { $avg: "$total_price" },
-        totalDiscounts: { $sum: { $ifNull: ["$discount_amount", 0] } },
-        totalShipping: { $sum: { $ifNull: ["$shipping_fee", 0] } },
+        deliveredOrders: { $sum: { $cond: [{ $eq: ["$status", "delivered"] }, 1, 0] } },
+        cancelledOrders: { $sum: { $cond: [{ $eq: ["$status", "cancelled"] }, 1, 0] } },
+        refundedOrders: { $sum: { $cond: [{ $eq: ["$payment_status", "refunded"] }, 1, 0] } },
+        recognizedOrders: { $sum: { $cond: [recognized, 1, 0] } },
+        totalDiscounts: { $sum: { $cond: [recognized, { $ifNull: ["$discount_amount", 0] }, 0] } },
       },
     },
   ]);
@@ -119,8 +89,10 @@ export async function getRevenueSummary({ period = "this_month", startDate, endD
   const totalOrders = aggResult?.totalOrders || 0;
   const totalRevenue = aggResult?.totalRevenue || 0;
   const paidRevenue = aggResult?.paidRevenue || 0;
-  const aov = aggResult?.avgOrderValue ? Math.round(aggResult.avgOrderValue) : 0;
-  const netRevenue = Math.max(0, totalRevenue - (aggResult?.totalDiscounts || 0));
+  const recognizedOrders = aggResult?.recognizedOrders || 0;
+  const aov = recognizedOrders ? Math.round(totalRevenue / recognizedOrders) : 0;
+  // Order.total_price already includes shipping and subtracts discounts at checkout.
+  const netRevenue = totalRevenue;
 
   return {
     period: periodLabel,
@@ -130,6 +102,10 @@ export async function getRevenueSummary({ period = "this_month", startDate, endD
     paidRevenue,
     totalOrders,
     paidOrders: aggResult?.paidOrders || 0,
+    deliveredOrders: aggResult?.deliveredOrders || 0,
+    cancelledOrders: aggResult?.cancelledOrders || 0,
+    refundedOrders: aggResult?.refundedOrders || 0,
+    recognizedOrders,
     averageOrderValue: aov,
     totalDiscounts: aggResult?.totalDiscounts || 0,
     netRevenue,
@@ -177,8 +153,8 @@ export async function compareRevenue({ currentPeriod = "this_month", previousPer
   };
 }
 
-export async function getRevenueTrend({ period = "this_month", interval = "day" } = {}) {
-  const { startDate: start, endDate: end, periodLabel } = parsePeriodDates(period);
+export async function getRevenueTrend({ period = "this_month", interval = "day", startDate, endDate } = {}) {
+  const { startDate: start, endDate: end, periodLabel } = parsePeriodDates(period, startDate, endDate);
 
   let dateFormat = "%Y-%m-%d";
   if (interval === "month") dateFormat = "%Y-%m";
@@ -187,7 +163,9 @@ export async function getRevenueTrend({ period = "this_month", interval = "day" 
     {
       $match: {
         createdAt: { $gte: start, $lte: end },
-        status: { $ne: "cancelled" },
+        status: "delivered",
+        payment_status: { $ne: "refunded" },
+        $or: [{ payment_method: "cod" }, { payment_status: "paid" }],
       },
     },
     {
@@ -248,36 +226,32 @@ export async function getSalesStatistics({ period = "this_month", groupBy = "pay
   };
 }
 
-export async function getTopSellingProducts({ limit = 5, period = "this_month" } = {}) {
-  const { startDate: start, endDate: end, periodLabel } = parsePeriodDates(period);
+export async function getTopSellingProducts({ limit = 5, period = "this_month", startDate, endDate } = {}) {
+  const { startDate: start, endDate: end, periodLabel } = parsePeriodDates(period, startDate, endDate);
+  const boundedLimit = Math.min(20, Math.max(1, Math.floor(Number(limit) || 5)));
 
-  const topItems = await OrderItem.aggregate([
-    {
-      $lookup: {
-        from: "orders",
-        localField: "order_id",
-        foreignField: "_id",
-        as: "order",
-      },
-    },
-    { $unwind: "$order" },
+  const topItems = await Order.aggregate([
     {
       $match: {
-        "order.createdAt": { $gte: start, $lte: end },
-        "order.status": { $ne: "cancelled" },
+        createdAt: { $gte: start, $lte: end },
+        status: "delivered",
+        payment_status: { $ne: "refunded" },
+        $or: [{ payment_method: "cod" }, { payment_status: "paid" }],
       },
     },
+    { $lookup: { from: "order_items", localField: "_id", foreignField: "order_id", as: "item" } },
+    { $unwind: "$item" },
     {
       $group: {
-        _id: "$product_id",
-        productName: { $first: "$product_name" },
-        productImage: { $first: "$product_image" },
-        totalSold: { $sum: "$quantity" },
-        totalRevenue: { $sum: { $multiply: ["$price", "$quantity"] } },
+        _id: { $convert: { input: "$item.product_id", to: "string", onError: "", onNull: "" } },
+        productName: { $first: "$item.product_name" },
+        productImage: { $first: "$item.product_image" },
+        totalSold: { $sum: "$item.quantity" },
+        totalRevenue: { $sum: { $multiply: ["$item.price", "$item.quantity"] } },
       },
     },
-    { $sort: { totalRevenue: -1 } },
-    { $limit: Number(limit) || 5 },
+    { $sort: { totalSold: -1, totalRevenue: -1, _id: 1 } },
+    { $limit: boundedLimit },
   ]);
 
   return {
@@ -295,48 +269,28 @@ export async function getTopSellingProducts({ limit = 5, period = "this_month" }
 }
 
 export async function getSlowMovingProducts({ daysThreshold = 30, limit = 10 } = {}) {
-  const cutoff = new Date(Date.now() - Number(daysThreshold) * 86400 * 1000);
-
-  // Products with active status and positive stock
-  const candidates = await Product.find({ is_active: true, stock: { $gt: 0 } })
-    .select("name slug new_price old_price stock sold category_id displayProduct")
-    .populate("category_id", "name slug")
-    .limit(50)
-    .lean();
-
-  // Find recent order items for these products
-  const candidateIds = candidates.map((c) => c._id);
-  const recentSales = await OrderItem.aggregate([
-    {
-      $lookup: {
-        from: "orders",
-        localField: "order_id",
-        foreignField: "_id",
-        as: "order",
-      },
-    },
-    { $unwind: "$order" },
-    {
-      $match: {
-        product_id: { $in: candidateIds },
-        "order.createdAt": { $gte: cutoff },
-        "order.status": { $ne: "cancelled" },
-      },
-    },
-    {
-      $group: {
-        _id: "$product_id",
-        recentSold: { $sum: "$quantity" },
-      },
-    },
+  const days = Math.min(366, Math.max(1, Math.floor(Number(daysThreshold) || 30)));
+  const boundedLimit = Math.min(20, Math.max(1, Math.floor(Number(limit) || 10)));
+  const cutoff = new Date(Date.now() - days * 86400 * 1000);
+  const candidates = await Product.aggregate([
+    { $match: { is_active: true, stock: { $gt: 0 } } },
+    { $sort: { stock: -1, _id: 1 } },
+    { $addFields: { productLookupIds: ["$_id", { $toString: "$_id" }] } },
+    { $lookup: { from: "order_items", localField: "productLookupIds", foreignField: "product_id", pipeline: [
+      { $lookup: { from: "orders", localField: "order_id", foreignField: "_id", as: "order" } },
+      { $unwind: "$order" },
+      { $match: { "order.createdAt": { $gte: cutoff }, "order.status": "delivered", "order.payment_status": { $ne: "refunded" }, $or: [{ "order.payment_method": "cod" }, { "order.payment_status": "paid" }] } },
+      { $group: { _id: null, count: { $sum: "$quantity" } } },
+    ], as: "recentSales" } },
+    { $addFields: { recentSold: { $ifNull: [{ $arrayElemAt: ["$recentSales.count", 0] }, 0] } } },
+    { $match: { recentSold: { $lte: 1 } } },
+    { $limit: boundedLimit },
+    { $project: { name: 1, slug: 1, new_price: 1, stock: 1, sold: 1, category_id: 1, displayProduct: 1, recentSold: 1 } },
   ]);
-
-  const salesMap = new Map();
-  recentSales.forEach((s) => salesMap.set(String(s._id), s.recentSold));
-
+  await Product.populate(candidates, { path: "category_id", select: "name slug" });
   const slowMoving = candidates
     .map((p) => {
-      const soldRecent = salesMap.get(String(p._id)) || 0;
+      const soldRecent = p.recentSold || 0;
       return {
         id: String(p._id),
         name: p.name,
@@ -350,36 +304,37 @@ export async function getSlowMovingProducts({ daysThreshold = 30, limit = 10 } =
         clearancePriority: p.stock > 10 && soldRecent === 0 ? "high" : "medium",
       };
     })
-    .filter((p) => p.soldRecent <= 1)
-    .sort((a, b) => b.stock - a.stock)
-    .slice(0, Number(limit) || 10);
+    ;
 
   return {
-    daysThreshold,
+    daysThreshold: days,
     totalIdentified: slowMoving.length,
     products: slowMoving,
   };
 }
 
-export async function getCustomerStatistics({ period = "this_month" } = {}) {
-  const { startDate: start, endDate: end, periodLabel } = parsePeriodDates(period);
+export async function getCustomerStatistics({ period = "this_month", startDate, endDate } = {}) {
+  const { startDate: start, endDate: end, periodLabel } = parsePeriodDates(period, startDate, endDate);
 
   const [totalUsers, newUsersInPeriod, activeCustomers] = await Promise.all([
-    User.countDocuments({ role: "user" }),
-    User.countDocuments({ role: "user", createdAt: { $gte: start, $lte: end } }),
-    Order.distinct("user_id", {
-      createdAt: { $gte: start, $lte: end },
-      user_id: { $ne: null },
-      status: { $ne: "cancelled" },
-    }),
+    User.countDocuments({ role: { $in: ["user", "customer"] } }),
+    User.countDocuments({ role: { $in: ["user", "customer"] }, createdAt: { $gte: start, $lte: end } }),
+    Order.aggregate([
+      { $match: { createdAt: { $gte: start, $lte: end }, user_id: { $ne: null }, status: { $ne: "cancelled" } } },
+      { $group: { _id: "$user_id" } },
+      { $lookup: { from: "users", localField: "_id", foreignField: "_id", as: "user" } },
+      { $unwind: "$user" },
+      { $match: { "user.role": { $in: ["user", "customer"] } } },
+      { $count: "count" },
+    ]),
   ]);
 
   return {
     period: periodLabel,
     totalRegisteredUsers: totalUsers,
     newUsersInPeriod,
-    activeBuyingCustomers: activeCustomers.length,
-    retentionEstimatePercentage: totalUsers > 0 ? Number(((activeCustomers.length / totalUsers) * 100).toFixed(1)) : 0,
+    activeBuyingCustomers: activeCustomers[0]?.count || 0,
+    activeCustomerSharePercentage: totalUsers > 0 ? Number((((activeCustomers[0]?.count || 0) / totalUsers) * 100).toFixed(1)) : 0,
   };
 }
 

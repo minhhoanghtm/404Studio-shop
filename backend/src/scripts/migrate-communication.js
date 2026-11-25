@@ -1,3 +1,4 @@
+import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
 import { connectDB } from "../configs/db.js";
@@ -6,7 +7,8 @@ import LegacyMessage from "../modules/messages/message.model.js";
 import Conversation from "../modules/communication/conversations/conversation.model.js";
 import Message from "../modules/communication/messages/message.model.js";
 
-dotenv.config();
+await verifyQaSuiteTarget();
+
 
 const mapStatus = (status) => {
   if (status === "active") return "open";

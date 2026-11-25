@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { CartItem, Coupon } from '../types';
 import { useToastStore } from './useToastStore';
-import { productsApi } from '../api';
+import { cartApi, productsApi } from '../api';
+import { getAccessToken } from '../api/client';
 
 export const VALID_COUPONS: Record<string, Coupon> = {
   VANGUARD15: {
@@ -26,6 +27,19 @@ export const OBJECT_ID_REGEX = /^[a-f\d]{24}$/i;
 export const CART_STORAGE_KEY = 'atelier_cart_items';
 export const CART_STORAGE_VERSION = 2;
 
+const customerScope = (): string | null => {
+  if (typeof window === 'undefined' || !getAccessToken()) return null;
+  try {
+    const user = JSON.parse(localStorage.getItem('atelier_patron_auth') || '{}')?.state?.user;
+    const id = String(user?.id || user?._id || '');
+    return user?.role !== 'admin' && OBJECT_ID_REGEX.test(id) ? id : null;
+  } catch { return null; }
+};
+const cartKey = (scope: string | null) => scope ? `${CART_STORAGE_KEY}:user:${scope}` : CART_STORAGE_KEY;
+let activeCartScope = customerScope();
+let cartMutationQueue: Promise<void> = Promise.resolve();
+let cartReadRevision = 0;
+
 interface CartState {
   items: CartItem[];
   isDrawerOpen: boolean;
@@ -34,7 +48,7 @@ interface CartState {
   openDrawer: () => void;
   closeDrawer: () => void;
   toggleDrawer: () => void;
-  addItem: (item: CartItem) => void;
+  addItem: (item: CartItem) => Promise<boolean>;
   removeItem: (productId: string, selectedColor: string, selectedSize: string) => void;
   updateQuantity: (productId: string, selectedColor: string, selectedSize: string, quantity: number) => void;
   clearCart: () => void;
@@ -54,10 +68,11 @@ interface CartState {
   getTotal: () => number;
 }
 
-const loadSavedCart = (): CartItem[] => {
+const loadSavedCart = (scope = customerScope()): CartItem[] => {
   if (typeof window === 'undefined') return [];
   try {
-    const raw = localStorage.getItem(CART_STORAGE_KEY);
+    const key = cartKey(scope);
+    const raw = localStorage.getItem(key);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
 
@@ -67,7 +82,7 @@ const loadSavedCart = (): CartItem[] => {
         (it) => it && typeof it.productId === 'string' && OBJECT_ID_REGEX.test(it.productId)
       );
       localStorage.setItem(
-        CART_STORAGE_KEY,
+        key,
         JSON.stringify({ version: CART_STORAGE_VERSION, items: validItems })
       );
       return validItems;
@@ -81,7 +96,7 @@ const loadSavedCart = (): CartItem[] => {
       );
       if (validItems.length !== rawItems.length || parsed.version !== CART_STORAGE_VERSION) {
         localStorage.setItem(
-          CART_STORAGE_KEY,
+          key,
           JSON.stringify({ version: CART_STORAGE_VERSION, items: validItems })
         );
       }
@@ -94,11 +109,11 @@ const loadSavedCart = (): CartItem[] => {
   }
 };
 
-const saveCart = (items: CartItem[]) => {
+const saveCart = (items: CartItem[], scope = customerScope()) => {
   if (typeof window !== 'undefined') {
     try {
       localStorage.setItem(
-        CART_STORAGE_KEY,
+        cartKey(scope),
         JSON.stringify({ version: CART_STORAGE_VERSION, items })
       );
     } catch {
@@ -127,7 +142,7 @@ export const useCartStore = create<CartState>((set, get) => ({
     }
   },
 
-  addItem: (newItem) => {
+  addItem: async (newItem) => {
     // 1. Kiểm tra nghiêm ngặt mã sản phẩm từ Backend
     if (!newItem.productId || !OBJECT_ID_REGEX.test(newItem.productId)) {
       useToastStore.getState().addToast({
@@ -135,7 +150,7 @@ export const useCartStore = create<CartState>((set, get) => ({
         title: 'Không thể thêm vào giỏ',
         message: `Sản phẩm "${newItem.name || 'chưa xác định'}" chưa có mã định danh hợp lệ (_id) từ hệ thống. Vui lòng chọn sản phẩm từ danh mục chính thức.`,
       });
-      return;
+      return false;
     }
 
     // 2. Bắt buộc có kích cỡ và màu sắc
@@ -145,7 +160,25 @@ export const useCartStore = create<CartState>((set, get) => ({
         title: 'Chưa chọn phân loại',
         message: 'Quý khách vui lòng chọn màu sắc và kích cỡ trước khi thêm vào giỏ hàng.',
       });
-      return;
+      return false;
+    }
+
+    const scope = customerScope();
+    if (scope) {
+      set({ isDrawerOpen: true });
+      const operation = cartMutationQueue.catch(() => undefined).then(async () => {
+        if (customerScope() !== scope) return false;
+        try {
+          await cartApi.addItem({ product_id: newItem.productId, ...(newItem.variantId && OBJECT_ID_REGEX.test(newItem.variantId) ? { variant_id: newItem.variantId } : {}), color: newItem.selectedColor, size: newItem.selectedSize, quantity: newItem.quantity });
+          if (customerScope() === scope) await get().validateCartWithBackend();
+          return customerScope() === scope;
+        } catch (error) {
+          if (customerScope() === scope) useToastStore.getState().addToast({ type: 'error', title: 'Không thể thêm vào giỏ', message: error instanceof Error ? error.message : 'Vui lòng thử lại.' });
+          return false;
+        }
+      });
+      cartMutationQueue = operation.then(() => undefined);
+      return operation;
     }
 
     set((state) => {
@@ -176,9 +209,21 @@ export const useCartStore = create<CartState>((set, get) => ({
 
       return { items: updatedItems, isDrawerOpen: true };
     });
+    return true;
   },
 
   removeItem: (productId, selectedColor, selectedSize) => {
+    const scope = customerScope();
+    if (scope) {
+      cartMutationQueue = cartMutationQueue.catch(() => undefined).then(async () => {
+        if (customerScope() !== scope) return;
+        const item = get().items.find((entry) => entry.productId === productId && entry.selectedColor === selectedColor && entry.selectedSize === selectedSize);
+        if (!item?.cartItemId) return;
+        try { await cartApi.removeItem(item.cartItemId); if (customerScope() === scope) await get().validateCartWithBackend(); }
+        catch (error) { if (customerScope() === scope) useToastStore.getState().addToast({ type: 'error', title: 'Không thể xóa sản phẩm', message: error instanceof Error ? error.message : 'Vui lòng thử lại.' }); }
+      });
+      return;
+    }
     set((state) => {
       const updatedItems = state.items.filter(
         (item) =>
@@ -209,6 +254,24 @@ export const useCartStore = create<CartState>((set, get) => ({
   },
 
   validateCartWithBackend: async () => {
+    const scope = customerScope();
+    if (activeCartScope !== scope) { activeCartScope = scope; set({ items: loadSavedCart(scope), appliedCoupon: null }); }
+    const revision = ++cartReadRevision;
+    if (scope) {
+      try {
+        const cart = await cartApi.getCart();
+        const serverItems = cart.data?._id ? (await cartApi.getItems(String(cart.data._id))).data || [] : [];
+        if (customerScope() !== scope || revision !== cartReadRevision) return;
+        const items: CartItem[] = serverItems.filter((entry: any) => entry.product_id?._id).map((entry: any) => {
+          const product = entry.product_id; const variant = entry.variant_id;
+          return { cartItemId: String(entry._id), productId: String(product._id), variantId: variant?._id ? String(variant._id) : undefined, productSlug: String(product.slug || ''), name: String(product.name || ''), price: Number(entry.current_price ?? entry.price ?? 0), quantity: Number(entry.quantity), selectedColor: String(variant?.color || 'Mặc định'), selectedColorHex: String(variant?.color_code || '#1E1E24'), selectedSize: String(variant?.size || 'Freesize'), image: String(variant?.image_url || product.displayProduct?.[0] || '') };
+        });
+        saveCart(items, scope); set({ items });
+      } catch (error) {
+        if (customerScope() === scope && revision === cartReadRevision) useToastStore.getState().addToast({ type: 'error', title: 'Không thể tải giỏ hàng', message: error instanceof Error ? error.message : 'Vui lòng thử lại.' });
+      }
+      return;
+    }
     const current = get().items;
     if (current.length === 0) return;
 
@@ -243,6 +306,7 @@ export const useCartStore = create<CartState>((set, get) => ({
         }
       }
 
+      if (customerScope() !== scope || revision !== cartReadRevision) return;
       if (hasChanges || validItems.length !== current.length) {
         saveCart(validItems);
         set({ items: validItems });
@@ -262,6 +326,17 @@ export const useCartStore = create<CartState>((set, get) => ({
       get().removeItem(productId, selectedColor, selectedSize);
       return;
     }
+    const scope = customerScope();
+    if (scope) {
+      cartMutationQueue = cartMutationQueue.catch(() => undefined).then(async () => {
+        if (customerScope() !== scope) return;
+        const item = get().items.find((entry) => entry.productId === productId && entry.selectedColor === selectedColor && entry.selectedSize === selectedSize);
+        if (!item?.cartItemId) return;
+        try { await cartApi.updateItem(item.cartItemId, quantity); if (customerScope() === scope) await get().validateCartWithBackend(); }
+        catch (error) { if (customerScope() === scope) useToastStore.getState().addToast({ type: 'error', title: 'Không thể cập nhật số lượng', message: error instanceof Error ? error.message : 'Vui lòng thử lại.' }); }
+      });
+      return;
+    }
     set((state) => {
       const updatedItems = state.items.map((item) => {
         if (
@@ -279,6 +354,7 @@ export const useCartStore = create<CartState>((set, get) => ({
   },
 
   clearCart: () => {
+    if (customerScope()) { void get().validateCartWithBackend(); return; }
     saveCart([]);
     set({ items: [], appliedCoupon: null });
   },

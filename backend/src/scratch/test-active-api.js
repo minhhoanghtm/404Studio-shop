@@ -1,3 +1,6 @@
+import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
+await verifyQaSuiteTarget();
+
 async function test() {
   try {
     console.log("Fetching active banners from backend API (http://localhost:5000/api/banners/active)...");

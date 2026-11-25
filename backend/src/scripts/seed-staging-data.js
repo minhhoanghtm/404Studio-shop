@@ -1,3 +1,4 @@
+import { verifyQaSuiteTarget } from "../common/qa/qaIsolationGuard.js";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import path from "path";
@@ -19,6 +20,8 @@ import User from "../modules/users/user.model.js";
 import vectorIndexService from "../modules/ai/services/vectorIndex.service.js";
 import { AA_EXPERIMENT_ID } from "../modules/recommendations/experiments/experiment.service.js";
 import { requireEnv } from "./require-env.js";
+
+await verifyQaSuiteTarget({ liveProviders: true });
 
 const STAGING_URI = requireEnv("MONGO_CONNECTIONSTRING");
 const customerPassword = requireEnv("STAGING_CUSTOMER_PASSWORD");
