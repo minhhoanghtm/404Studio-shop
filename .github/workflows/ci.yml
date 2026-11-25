@@ -131,6 +131,15 @@ jobs:
       - name: Run Backend Pure Unit Tests (Jest)
         run: npm run test:unit
 
+      - name: Generate Ephemeral CI Test Secrets for Node Tests
+        run: |
+          {
+            echo "ACCESS_TOKEN_SECRET=$(openssl rand -hex 32)"
+            echo "REFRESH_TOKEN_SECRET=$(openssl rand -hex 32)"
+            echo "ACTION_SECRET=$(openssl rand -hex 32)"
+            echo "OTP_SECRET=$(openssl rand -hex 32)"
+          } >> "$GITHUB_ENV"
+
       - name: Run Backend Deterministic Node Unit Tests
         run: |
           node --test --test-force-exit \
