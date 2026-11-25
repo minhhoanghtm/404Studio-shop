@@ -1,3 +1,4 @@
+import "./configs/env.bootstrap.js";
 import { maintenanceMiddleware } from "./middlewares/maintenance.middleware.js";
 import apiTracingMiddleware from "./middlewares/apiTracing.middleware.js";
 import express from "express";
@@ -8,8 +9,6 @@ import mongoSanitize from "express-mongo-sanitize";
 import rootRouter from "./routes/index.js";
 import errorHandler from "./middlewares/error.middleware.js";
 import logger from "./common/logger.js";
-import dotenv from "dotenv";
-dotenv.config();
 import { getCorsConfig } from "./configs/network.config.js";
 
 const app = express();

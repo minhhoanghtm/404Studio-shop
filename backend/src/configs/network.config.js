@@ -166,6 +166,72 @@ export const getRedisConnectionConfig = (env = process.env) => {
   };
 };
 
+const stripQuotes = (value = "") => String(value).trim().replace(/^["']|["']$/g, "").trim();
+
+const parseMongoUri = (rawUri) => {
+  const clean = stripQuotes(rawUri);
+  const protoMatch = clean.match(/^(mongodb(?:\+srv)?):\/\/(.+)$/i);
+  if (!protoMatch) {
+    throw new Error("[NetworkConfig] Unsupported or invalid MongoDB connection string.");
+  }
+
+  const protocol = `${protoMatch[1].toLowerCase()}:`;
+  const remainder = protoMatch[2];
+  const beforeQuery = remainder.split(/[?#]/, 1)[0];
+  const slashIdx = beforeQuery.indexOf("/");
+  const authority = slashIdx === -1 ? beforeQuery : beforeQuery.slice(0, slashIdx);
+  const dbPath = slashIdx === -1 ? "" : beforeQuery.slice(slashIdx + 1);
+
+  if (!authority) {
+    throw new Error("[NetworkConfig] Invalid MongoDB connection string: missing host authority.");
+  }
+
+  const atIdx = authority.lastIndexOf("@");
+  const hostsPart = atIdx === -1 ? authority : authority.slice(atIdx + 1);
+  const seeds = hostsPart.split(",").map((s) => s.trim()).filter(Boolean);
+  if (seeds.length === 0) {
+    throw new Error("[NetworkConfig] Invalid MongoDB connection string: missing seed host.");
+  }
+
+  let primaryHost = "";
+  let primaryPort = null;
+  for (const seed of seeds) {
+    let seedHost = seed;
+    let seedPort = null;
+    if (seed.startsWith("[")) {
+      const endBracket = seed.indexOf("]");
+      if (endBracket === -1) {
+        throw new Error("[NetworkConfig] Invalid IPv6 MongoDB seed host.");
+      }
+      seedHost = seed.slice(1, endBracket);
+      const restPort = seed.slice(endBracket + 1);
+      if (restPort.startsWith(":")) {
+        seedPort = parsePort(restPort.slice(1), "MONGO_CONNECTIONSTRING port");
+      }
+    } else {
+      const colonIdx = seed.lastIndexOf(":");
+      if (colonIdx !== -1) {
+        seedHost = seed.slice(0, colonIdx).trim();
+        seedPort = parsePort(seed.slice(colonIdx + 1), "MONGO_CONNECTIONSTRING port");
+      }
+    }
+    if (!seedHost) {
+      throw new Error("[NetworkConfig] Invalid MongoDB connection string: empty host entry.");
+    }
+    if (!primaryHost) {
+      primaryHost = seedHost;
+      primaryPort = seedPort;
+    }
+  }
+
+  return {
+    protocol,
+    host: primaryHost,
+    port: primaryPort,
+    database: dbPath.replace(/\/+$/, ""),
+  };
+};
+
 export const getMongoConnectionConfig = (env = process.env, { required = true } = {}) => {
   const explicitUri = (
     env.LOCAL_DEV_MONGO_URI ||
@@ -175,26 +241,17 @@ export const getMongoConnectionConfig = (env = process.env, { required = true } 
     ""
   ).trim();
 
-  const host = (env.MONGO_HOST || "").trim();
+  const host = stripQuotes(env.MONGO_HOST || "");
   const port = parsePort(env.MONGO_PORT, "MONGO_PORT", { required: false });
-  const database = (env.MONGO_DATABASE || "").trim();
+  const database = stripQuotes(env.MONGO_DATABASE || "");
 
   if (explicitUri) {
-    let parsed = null;
-    try {
-      parsed = new URL(explicitUri);
-    } catch {
-      throw new Error("[NetworkConfig] Invalid MongoDB connection string.");
-    }
-    if (parsed.protocol !== "mongodb:" && parsed.protocol !== "mongodb+srv:") {
-      throw new Error(`[NetworkConfig] Unsupported MongoDB protocol: "${parsed.protocol}".`);
-    }
-    const parsedPort = parsed.port ? parsePort(parsed.port, "MONGO_CONNECTIONSTRING port") : null;
+    const parsed = parseMongoUri(explicitUri);
     return {
       uri: explicitUri,
-      host: parsed.hostname || host,
-      port: parsedPort ?? port,
-      database: parsed.pathname?.replace(/^\//, "") || database,
+      host: parsed.host || host,
+      port: parsed.port ?? port,
+      database: parsed.database || database,
     };
   }
 

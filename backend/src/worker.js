@@ -1,4 +1,4 @@
-import "dotenv/config";
+import "./configs/env.bootstrap.js";
 import { connectDB } from "./configs/db.js";
 import { validateEnvironment } from "./configs/validateEnv.js";
 import { initEmailWorker } from "./queues/workers/email.worker.js";

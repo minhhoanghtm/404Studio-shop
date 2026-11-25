@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "description": "Atelier Vérité — TypeScript AI Shopping Agent based on Spring AI Concepts",
   "type": "module",
+  "engines": {
+    "node": ">=22.0.0 <25.0.0",
+    "npm": ">=10.0.0"
+  },
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx src/index.ts",

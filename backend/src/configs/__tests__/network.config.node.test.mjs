@@ -145,3 +145,27 @@ test("validateNetworkEnvironment and validateEnvironment enforce production/QA i
     true
   );
 });
+
+test("getMongoConnectionConfig supports multi-seed Atlas URIs and mongodb+srv scheme", () => {
+  const credSegment = ["testUser", "placeholderPass"].join(":");
+  const multiSeed = getMongoConnectionConfig({
+    MONGO_CONNECTIONSTRING:
+      `mongodb://${credSegment}@shard-00-00.example.internal:17018,shard-00-01.example.internal:17018,shard-00-02.example.internal:17018/atelier_staging?ssl=true&replicaSet=atlas-rs&authSource=admin`,
+  });
+  assert.equal(multiSeed.host, "shard-00-00.example.internal");
+  assert.equal(multiSeed.port, 17018);
+  assert.equal(multiSeed.database, "atelier_staging");
+
+  const srv = getMongoConnectionConfig({
+    MONGO_CONNECTIONSTRING:
+      `mongodb+srv://${credSegment}@cluster0.example.internal/atelier_prod?retryWrites=true&w=majority`,
+  });
+  assert.equal(srv.host, "cluster0.example.internal");
+  assert.equal(srv.port, null);
+  assert.equal(srv.database, "atelier_prod");
+
+  assert.throws(
+    () => getMongoConnectionConfig({ MONGO_CONNECTIONSTRING: "http://not-mongo:17018/db" }),
+    /Unsupported or invalid MongoDB connection string/
+  );
+});

@@ -1,3 +1,4 @@
+import '../config/env.js';
 import express, { Request, Response, NextFunction } from 'express';
 import { verifyIncomingNodeSignature } from '../security/HmacAuth.js';
 import { ChatClient } from '../client/ChatClient.js';

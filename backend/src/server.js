@@ -1,4 +1,4 @@
-import "dotenv/config";
+import "./configs/env.bootstrap.js";
 import app from "./app.js";
 import { connectDB } from "./configs/db.js";
 import { validateEnvironment } from "./configs/validateEnv.js";

@@ -4,6 +4,10 @@
   "version": "1.0.0",
   "description": "Haute Couture & Contemporary Ready-to-Wear E-Commerce Platform built with ThreeUI",
   "type": "module",
+  "engines": {
+    "node": ">=22.0.0 <25.0.0",
+    "npm": ">=10.0.0"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

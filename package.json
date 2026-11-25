@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "description": "Atelier Vérité — Haute Couture & Contemporary Ready-to-Wear Monorepo Workspace",
+  "engines": {
+    "node": ">=22.0.0 <25.0.0",
+    "npm": ">=10.0.0"
+  },
   "scripts": {
     "dev": "concurrently --kill-others-on-fail --names BACKEND,FRONTEND,AI-SERVICE --prefix-colors blue,green,magenta \"npm run dev:backend\" \"npm run dev:frontend\" \"npm run dev:ai\"",
     "dev:backend": "npm --prefix backend run dev",
@@ -15,6 +19,7 @@
     "test:frontend": "npm --prefix frontend run test",
     "test:backend": "npm --prefix backend run test",
     "test:ai": "npm --prefix ai-service run test",
+    "test:startup": "node scripts/smoke-dev-startup.mjs",
     "test:e2e": "npm --prefix frontend run test:e2e",
     "lint": "npm run check:ports && npm run lint:frontend && npm run lint:backend",
     "check:ports": "node scripts/check-hardcoded-ports.mjs",
